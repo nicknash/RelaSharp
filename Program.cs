@@ -3,6 +3,132 @@ using System.Threading;
 
 namespace ConsoleApplication
 {
+/*
+    interface ITest 
+    {
+        IReadOnlyList<Action> Threads { get; }
+        void Setup();
+    }
+*/
+
+    enum MemoryOrder
+    {
+        Acq,
+        Rel,
+        AcqRel,
+        SeqCst
+    }
+
+    class FullyChecked<T>
+    {
+        private static TestEnvironment TE = TestEnvironment.TE;
+        private T _data;
+        //private TrackingData trackingData;
+
+        public FullyChecked(T data)
+        {
+            //_trackingData = TestEnvironment.TE.NewFullyChecked();
+        }
+
+        public void Store(T data, MemoryOrder mo)
+        {
+            //TE.scheduler();
+            _data = data;
+        }
+
+        public T Load(MemoryOrder mo)
+        {
+            return _data;
+        }
+
+        // Atomics ...
+    }
+
+    class VectorClock
+    {
+        private ulong[] _clocks;
+        public readonly int Size;
+        
+        public VectorClock(int size)
+        {
+            _clocks = new ulong[size];
+            Size = size;
+        }
+
+        public bool IsBefore(VectorClock other)
+        {
+            if(Size != other.Size)
+            {
+                throw new Exception($"Cannot compare vector clocks of different sizes, this size = {Size}, other size = {other.Size}");
+            }
+            for(int i = 0; i < Size; ++i)
+            {
+                if(other.clocks[i] >= _clocks[i]) // TODO: revisit >= vs >
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public void Join(VectorClock other)
+        {
+
+        }
+
+        public void Assign(ulong value)
+        {
+
+        }
+    }
+
+    // TODO: Need lock(..) wrappers...
+
+    class RaceChecked<T>
+    {
+        private static TestEnvironment TE = TestEnvironment.TE;
+        private T _data;
+        //private TrackingData trackingData;
+
+        private VectorClock _loadClock;
+        private VectorClock _storeClock;
+
+        public RaceChecked(T data)
+        {
+            //_trackingData = TestEnvironment.TE.NewRaceChecked();
+        
+        }
+
+        public void Store(T data)
+        {
+            if(!_loadClock.IsBefore(TE.RunningThread.VC))
+            {
+                // DATA RACE 
+                // The storing thread has not seen a load by at least one other thread!
+            }
+            if(!_storeClock.IsBefore(TE.RunningThread.VC))
+            {
+                // DATA RACE 
+                // The storing thread has not seen a store by at least one other thread!
+            }
+            TE.RunningThread.IncrementClock();
+            _storeClock.Assign(TE.RunningThread.Clock);
+            _data = data;
+        }
+
+        public T Load()
+        {
+            if(!_storeClock.IsBefore(TE.RunningThread.VC) // yuck 
+            {
+                // DATA RACE 
+                // because the loading thread has not seen the writes performed by at least one other thread 
+            }
+            TE.RunningThread.IncrementClock();
+            _loadClock.Assign(TE.RunningThread.Clock);
+            return _data;
+        }
+    }
+
     public class Program
     {
         public static void Main(string[] args)
@@ -13,25 +139,20 @@ namespace ConsoleApplication
             
         }
     }
-/*
-    public class TestRunner 
+    
+    class ShadowThread
     {
-        private static TestEnvironment TE = TestEnvironment.TE;
+        private long _clock;
+        public readonly VectorClock VC; // 
 
-        public static void Run(ITest test)
+        public void IncrementClock()
         {
-            test.Setup();
-            TE.RunningTest = test;
-            int runningThread = 0;
-            TE.Scheduler();
+
         }
-    }
 
-    public class TrackingData
-    {
 
     }
-*/
+
     public class TestEnvironment
     {
         public static TestEnvironment TE = new TestEnvironment();
@@ -67,6 +188,8 @@ namespace ConsoleApplication
             threadFunction();
         }
 
+
+
         public void SetupTest()
         {
             _numThreads = 5;
@@ -82,7 +205,7 @@ namespace ConsoleApplication
                 _threads[i] = new Thread(new ThreadStart(wrapped));
                 _threads[i].Start();
             }
-            Thread.Sleep(100); // TODO: Sync. properly with all threads going to sleep. Prevent a hang!
+            Thread.Sleep(100); // TODO: Sync. properly with all threads going to sleep. Prevent a hang if thread 0 not asleep yet!
             WakeThread(0);
             Console.WriteLine("startup thread exiting!");
 
@@ -123,16 +246,8 @@ namespace ConsoleApplication
             //return (_runningThreadIdx + 1) % _numThreads;
         }
     }
+
 /*
-    interface ITest 
-    {
-        IReadOnlyList<Action> Threads { get; }
-        void Setup();
-
-        void RunThread(int index);
-
-    }
-
     public class PetersenTest : IThread 
     {
         private MemOrdered<int> flag0;
@@ -191,4 +306,25 @@ namespace ConsoleApplication
         }
     }
     */
+
+/*
+    public class TestRunner 
+    {
+        private static TestEnvironment TE = TestEnvironment.TE;
+
+        public static void Run(ITest test)
+        {
+            test.Setup();
+            TE.RunningTest = test;
+            int runningThread = 0;
+            TE.Scheduler();
+        }
+    }
+
+    public class TrackingData
+    {
+
+    }
+*/
+
 }
