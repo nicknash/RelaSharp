@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Threading;
+using System.Collections.Generic;
 
 namespace ConsoleApplication
 {
-/*
+
     interface ITest 
     {
-        IReadOnlyList<Action> Threads { get; }
-        void Setup();
+        IReadOnlyList<Action> ThreadEntries { get; }
     }
-*/
+
 
     enum MemoryOrder
     {
@@ -19,13 +19,40 @@ namespace ConsoleApplication
         SeqCst
     }
 
-    class FullyChecked<T>
+    class AccessData 
+    {
+        public int LastStoredThreadId { get; private set; }
+        public long LastStoredThreadClock { get; private set; }
+        
+        private VectorClock _lastSeen;
+        private VectorClock _releasesToAcquire;
+
+        public AccessData(int numThreads)
+        {
+            _lastSeen = new VectorClock(numThreads);
+            _releasesToAcquire = new VectorClock(numThreads);
+        }
+
+        public void RecordStore(int threadIdx, long threadClock)
+        {
+            _lastSeen.Assign(VectorClock.BeforeAllTimes);
+            _lastSeen.SetClock(threadIdx, threadClock);
+            
+        }
+
+        public void RecordLoad(int threadIdx, long threadClock)
+        {
+
+        }
+    }
+
+    class MemoryOrdered<T>
     {
         private static TestEnvironment TE = TestEnvironment.TE;
         private T _data;
         //private TrackingData trackingData;
 
-        public FullyChecked(T data)
+        public MemoryOrdered(T data)
         {
             //_trackingData = TestEnvironment.TE.NewFullyChecked();
         }
@@ -46,12 +73,13 @@ namespace ConsoleApplication
 
     class VectorClock
     {
-        private ulong[] _clocks;
+        public const long BeforeAllTimes = -1;
+        private long[] _clocks;
         public readonly int Size;
         
         public VectorClock(int size)
         {
-            _clocks = new ulong[size];
+            _clocks = new long[size];
             Size = size;
         }
 
@@ -63,7 +91,7 @@ namespace ConsoleApplication
             }
             for(int i = 0; i < Size; ++i)
             {
-                if(other.clocks[i] >= _clocks[i]) // TODO: revisit >= vs >
+                if(other._clocks[i] >= _clocks[i]) // TODO: revisit >= vs >
                 {
                     return false;
                 }
@@ -71,18 +99,23 @@ namespace ConsoleApplication
             return true;
         }
 
+        public void SetClock(int idx, long v)
+        {
+            _clocks[idx] = v;
+        }
+
         public void Join(VectorClock other)
         {
 
         }
 
-        public void Assign(ulong value)
+        public void Assign(long value)
         {
 
         }
     }
 
-    // TODO: Need lock(..) wrappers...
+    // TODO: Need lock(..), fence, cmp exch, wrappers...
 
     class RaceChecked<T>
     {
@@ -112,19 +145,19 @@ namespace ConsoleApplication
                 // The storing thread has not seen a store by at least one other thread!
             }
             TE.RunningThread.IncrementClock();
-            _storeClock.Assign(TE.RunningThread.Clock);
+            _storeClock.SetClock(TE.RunningThread.Id, TE.RunningThread.Clock);
             _data = data;
         }
 
         public T Load()
         {
-            if(!_storeClock.IsBefore(TE.RunningThread.VC) // yuck 
+            if(!_storeClock.IsBefore(TE.RunningThread.VC)) // yuck 
             {
                 // DATA RACE 
                 // because the loading thread has not seen the writes performed by at least one other thread 
             }
             TE.RunningThread.IncrementClock();
-            _loadClock.Assign(TE.RunningThread.Clock);
+            _loadClock.SetClock(TE.RunningThread.Id, TE.RunningThread.Clock);
             return _data;
         }
     }
@@ -142,8 +175,16 @@ namespace ConsoleApplication
     
     class ShadowThread
     {
-        private long _clock;
-        public readonly VectorClock VC; // 
+        public long Clock { get; private set; } // TODO: wrap "clock" in timestamp type.
+        
+        public readonly VectorClock VC;  
+        public readonly int Id;
+
+        public ShadowThread(int id, int numThreads)
+        {
+            Id = id;
+            VC = new VectorClock(numThreads);
+        }
 
         public void IncrementClock()
         {
@@ -153,13 +194,16 @@ namespace ConsoleApplication
 
     }
 
-    public class TestEnvironment
+    class TestEnvironment
     {
         public static TestEnvironment TE = new TestEnvironment();
+
+        public ShadowThread RunningThread { get; private set; }
     
         private int _runningThreadIdx;
         private int _numThreads;
         private Thread[] _threads;
+        private ShadowThread[] _shadowThreads;
 
         private bool[] _isRunning;
         private Object[] _threadLocks;
@@ -196,6 +240,7 @@ namespace ConsoleApplication
             _threads = new Thread[_numThreads];
             _isRunning = new bool[_numThreads];
             _threadLocks = new Object[_numThreads];
+            _shadowThreads = new ShadowThread[_numThreads];
             for(int i = 0; i < _numThreads; ++i)
             {
                 _threadLocks[i] = new Object();
@@ -204,6 +249,7 @@ namespace ConsoleApplication
                 Action wrapped = () => MakeThreadFunction(threadFunc, j); 
                 _threads[i] = new Thread(new ThreadStart(wrapped));
                 _threads[i].Start();
+                _shadowThreads[i] = new ShadowThread(i, _numThreads);
             }
             Thread.Sleep(100); // TODO: Sync. properly with all threads going to sleep. Prevent a hang if thread 0 not asleep yet!
             WakeThread(0);
@@ -287,27 +333,6 @@ namespace ConsoleApplication
             }
         }
     }
-
-    public struct MemOrdered<T>
-    {
-        private static TestEnvironment TE = TestEnvironment.TE;
-        private T _data;
-        private TrackingData trackingData;
-
-        public MemOrdered<T>(T data)
-        {
-            _trackingData = TestEnvironment.TE.newMemOrdered()
-        
-        }
-
-        public void Store()
-        {
-            TE.scheduler();
-        }
-    }
-    */
-
-/*
     public class TestRunner 
     {
         private static TestEnvironment TE = TestEnvironment.TE;
@@ -320,11 +345,5 @@ namespace ConsoleApplication
             TE.Scheduler();
         }
     }
-
-    public class TrackingData
-    {
-
-    }
 */
-
 }
