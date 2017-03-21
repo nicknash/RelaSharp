@@ -50,6 +50,8 @@ namespace ConsoleApplication
         {
             _lastSeen.Assign(VectorClock.BeforeAllTimes);
             _lastSeen.SetClock(threadIdx, threadClock);
+            LastStoredThreadId = threadIdx;
+            LastStoredThreadClock = threadClock;
             
         }
 
@@ -59,22 +61,59 @@ namespace ConsoleApplication
         }
     }
 
+    class AccessHistory
+    {
+        private int _index;
+
+
+
+        // Ring buffer of AccessData 
+        // Use indexer? TODO: decide on interface here.
+        public AccessData this[int idx] { get { return null; } }
+        
+        public AccessData GetNextRecord()
+        {
+            return 
+
+        }
+
+        public void RecordStore(int threadIdx, long threadClock, VectorClock sourceClock)
+        {
+            bool isReleaseSequence = false;//previousRecord.LastStoredThreadId == TE.RunningThread.Id; // || this is part of a RMW
+            if(isReleaseSequence)
+            {
+
+            }
+            else
+            {
+
+            }
+        }
+    }
+
     class MemoryOrdered<T> // TODO: restrict to atomic types.
     {
         private static TestEnvironment TE = TestEnvironment.TE;
         private T _data;
         private AccessData _accessData;
-        //private TrackingData trackingData;
+        private AccessHistory _history;
 
         public MemoryOrdered()
         {
             //_trackingData = TestEnvironment.TE.NewFullyChecked();
-            _accessData = new AccessData(TestEnvironment.TE.NumThreads);
+            _accessData = new AccessData(TE.NumThreads);
         }
 
         public void Store(T data, MemoryOrder mo)
         {
             TE.Scheduler();
+            TE.RunningThread.IncrementClock();
+            //_accessData.RecordStore(TE.RunningThread.Id, TE.RunningThread.Clock);
+            var previousRecord = _history.LatestRecord; // arrange that this is never null I guess.
+            //_history.RecordStore(TE.RunningThread.Id, TE.RunningThread.Clock)
+            bool isAtLeastRelease = mo == MemoryOrder.Release || mo == MemoryOrder.AcquireRelease || mo == MemoryOrder.SequentiallyConsistent;
+            var sourceClock = isAtLeastRelease ? TE.RunningThread.VC : TE.RunningThread.Fenced;
+            _history.RecordStore(threadIdx, TE.RunningThread.Clock, sourceClock);
             _data = data;
         }
 
@@ -181,7 +220,8 @@ namespace ConsoleApplication
     {
         public long Clock { get; private set; } // TODO: wrap "clock" in timestamp type.
         
-        public readonly VectorClock VC;  
+        public readonly VectorClock VC; // TODO: Think about better names for these.
+        public readonly VectorClock Fenced;  
         public readonly int Id;
 
         public ShadowThread(int id, int numThreads)
@@ -198,7 +238,6 @@ namespace ConsoleApplication
 
     enum ThreadState 
     {
-        Woken,
         Running,
         Blocked,
         Finished
@@ -213,30 +252,45 @@ namespace ConsoleApplication
     
         private int _runningThreadIdx;
         private int _numThreads;
-        private Thread[] _threads;
-        private ShadowThread[] _shadowThreads;
 
-        private bool[] _isRunning;
-    
+        private int[] _unfinishedThreadIndices;
+        private int _numUnfinishedThreads; // TODO: wrap these two into a proper data structure when shape clearer.
+
+        private Thread[] _threads;
+        private ThreadState[] _threadStates;
+        private ShadowThread[] _shadowThreads;
+   
         private Object[] _threadLocks;
 
-        private Object _initialThreadLock;
 
         private Random _random = new Random();
 
         private void MakeThreadFunction(Action threadFunction, int threadIdx)
         {
             var l = _threadLocks[threadIdx]; 
+            
             lock(l)
             {
+                _threadStates[threadIdx] = ThreadState.Blocked;
+                Monitor.Pulse(l);                
                 Monitor.Wait(l);
             }
-            if(threadIdx == 0)
-            {
-
-            }
             threadFunction();
-            // TODO: Signal thread exit.
+            _threadStates[threadIdx] = ThreadState.Finished;
+            if(_numUnfinishedThreads > 1)
+            {
+                int i = Array.IndexOf(_unfinishedThreadIndices, threadIdx);
+                _unfinishedThreadIndices[i] = _unfinishedThreadIndices[_numUnfinishedThreads - 1];
+                _numUnfinishedThreads--;
+                int nextIdx = GetNextThreadIdx(); 
+                Console.WriteLine($"Thread {threadIdx} completed. Going to wake: {nextIdx}");
+                Console.Out.Flush();            
+                WakeThread(nextIdx);
+            }
+            else
+            {
+                Console.WriteLine($"I'm the last thread ({threadIdx}) Nobody to wake");
+            }
         }
 
         public void RunTest(ITest test)
@@ -244,29 +298,41 @@ namespace ConsoleApplication
             _numThreads = test.ThreadEntries.Count;
             NumThreads = _numThreads;
             _threads = new Thread[_numThreads];
-            _isRunning = new bool[_numThreads];
+            _threadStates = new ThreadState[_numThreads];
             _threadLocks = new Object[_numThreads];
             _shadowThreads = new ShadowThread[_numThreads];
-            _initialThreadLock = new Object();
+            _unfinishedThreadIndices = new int[_numThreads];
+            _numUnfinishedThreads = _numThreads;
             for(int i = 0; i < _numThreads; ++i)
             {
+                _unfinishedThreadIndices[i] = i;
                 _threadLocks[i] = new Object();
                 int j = i;
                 Action threadEntry = test.ThreadEntries[j];
                 Action wrapped = () => MakeThreadFunction(threadEntry, j); 
+                _threadStates[i] = ThreadState.Running;
                 _threads[i] = new Thread(new ThreadStart(wrapped));
                 _threads[i].Start();
                 _shadowThreads[i] = new ShadowThread(i, _numThreads);
             }
-            Thread.Sleep(500); // TODO: Sync. properly with all threads going to sleep. Prevent a hang if thread 0 not asleep yet!
-            WakeThread(0);
-            Console.WriteLine("startup thread exiting!");
+            for(int i = 0; i < _numThreads; ++i)
+            {
+                var l = _threadLocks[i];
+                lock(l)
+                {
+                    while(_threadStates[i] == ThreadState.Running)
+                    {
+                        Monitor.Wait(l);
+                    }
+                }
+            }            
+            WakeThread(GetNextThreadIdx());
         }
 
         private void WakeThread(int idx)
         {
             _runningThreadIdx = idx;
-            _isRunning[idx] = true;
+            _threadStates[idx] = ThreadState.Running;
             var l = _threadLocks[idx];
             lock(l)
             {
@@ -278,13 +344,16 @@ namespace ConsoleApplication
         {
             int prevThreadIdx = _runningThreadIdx;
             int nextThreadIdx = GetNextThreadIdx();
-            //Console.Write(nextThreadIdx + " -> ");
-            _isRunning[prevThreadIdx] = false;
+            if(nextThreadIdx == prevThreadIdx)
+            {
+                return;
+            }
+            _threadStates[prevThreadIdx] = ThreadState.Blocked;
             WakeThread(nextThreadIdx);             
             var runningLock = _threadLocks[prevThreadIdx];
             lock(runningLock)
             {
-                while(!_isRunning[prevThreadIdx]) // I may get here, and be woken before I got a chance to sleep. That's OK. 
+                while(_threadStates[prevThreadIdx] == ThreadState.Blocked) // I may get here, and be woken before I got a chance to sleep. That's OK. 
                 {
                     Monitor.Wait(runningLock);
                 }
@@ -294,8 +363,11 @@ namespace ConsoleApplication
 
         private int GetNextThreadIdx()
         {
-            return _random.Next(_numThreads);
-            //return (_runningThreadIdx + 1) % _numThreads;
+            if(_numUnfinishedThreads == 0)
+            {
+                throw new Exception("All threads finished. Who called?");
+            }
+            return _unfinishedThreadIndices[_random.Next(_numUnfinishedThreads)];
         }
     }
 
@@ -310,25 +382,27 @@ namespace ConsoleApplication
 
         public PetersenTest()
         {
-            ThreadEntries = new List<Action>{Thread1,Thread2};
+            ThreadEntries = new List<Action>{Thread1,Thread2,Thread1,Thread2,Thread1,Thread2};
             flag0 = new MemoryOrdered<int>();
             flag1 = new MemoryOrdered<int>();
         }
 
         private void Thread1()
         {
-            while(true)
+            //while(true)
+            for(int i = 0; i < 3; ++i)
             {
-                Console.WriteLine("PetersenTest Thread1");
+                Console.WriteLine("3-Thread");
                 flag0.Store(10, MemoryOrder.Release);
             }
         }
 
         private void Thread2()
         {
-            while(true)
+            //while(true)
+            for(int i = 0; i < 10; ++i)
             {
-                Console.WriteLine("PetersenTest Thread2");
+                Console.WriteLine("10-Thread");
                 flag1.Store(20, MemoryOrder.Release);
             }
         }
