@@ -4,6 +4,18 @@ using System.Collections.Generic;
 
 namespace ConsoleApplication
 {
+    public class Program
+    {
+        public static void Main(string[] args)
+        {
+            var test = new PetersenTest();
+            TestEnvironment.TE.RunTest(test);
+            
+            //TestRunner.Run(test);
+            //TestEnvironment.TE.SetupTest();
+            
+        }
+    }
 
     interface ITest 
     {
@@ -13,10 +25,11 @@ namespace ConsoleApplication
 
     enum MemoryOrder
     {
-        Acq,
-        Rel,
-        AcqRel,
-        SeqCst
+        Relaxed,
+        Acquire,
+        Release,
+        AcquireRelease,
+        SequentiallyConsistent
     }
 
     class AccessData 
@@ -46,20 +59,22 @@ namespace ConsoleApplication
         }
     }
 
-    class MemoryOrdered<T>
+    class MemoryOrdered<T> // TODO: restrict to atomic types.
     {
         private static TestEnvironment TE = TestEnvironment.TE;
         private T _data;
+        private AccessData _accessData;
         //private TrackingData trackingData;
 
-        public MemoryOrdered(T data)
+        public MemoryOrdered()
         {
             //_trackingData = TestEnvironment.TE.NewFullyChecked();
+            _accessData = new AccessData(TestEnvironment.TE.NumThreads);
         }
 
         public void Store(T data, MemoryOrder mo)
         {
-            //TE.scheduler();
+            TE.Scheduler();
             _data = data;
         }
 
@@ -161,17 +176,6 @@ namespace ConsoleApplication
             return _data;
         }
     }
-
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            //var test = new PetersenTest();
-            //TestRunner.Run(test);
-            TestEnvironment.TE.SetupTest();
-            
-        }
-    }
     
     class ShadowThread
     {
@@ -190,8 +194,14 @@ namespace ConsoleApplication
         {
 
         }
+    }
 
-
+    enum ThreadState 
+    {
+        Woken,
+        Running,
+        Blocked,
+        Finished
     }
 
     class TestEnvironment
@@ -199,6 +209,7 @@ namespace ConsoleApplication
         public static TestEnvironment TE = new TestEnvironment();
 
         public ShadowThread RunningThread { get; private set; }
+        public int NumThreads { get; private set; }
     
         private int _runningThreadIdx;
         private int _numThreads;
@@ -206,21 +217,12 @@ namespace ConsoleApplication
         private ShadowThread[] _shadowThreads;
 
         private bool[] _isRunning;
+    
         private Object[] _threadLocks;
 
-        private Random _random = new Random();
+        private Object _initialThreadLock;
 
-        private void GenericThreadFunc(int idx)
-        {
-            //int iter = 0;
-            while(true)
-            {
-                //Console.WriteLine($"Thread-{idx}, run number: {++iter}");
-                Console.WriteLine(idx);
-                //Thread.Sleep(500);
-                Scheduler();
-            }
-        }
+        private Random _random = new Random();
 
         private void MakeThreadFunction(Action threadFunction, int threadIdx)
         {
@@ -229,32 +231,36 @@ namespace ConsoleApplication
             {
                 Monitor.Wait(l);
             }
+            if(threadIdx == 0)
+            {
+
+            }
             threadFunction();
+            // TODO: Signal thread exit.
         }
 
-
-
-        public void SetupTest()
+        public void RunTest(ITest test)
         {
-            _numThreads = 5;
+            _numThreads = test.ThreadEntries.Count;
+            NumThreads = _numThreads;
             _threads = new Thread[_numThreads];
             _isRunning = new bool[_numThreads];
             _threadLocks = new Object[_numThreads];
             _shadowThreads = new ShadowThread[_numThreads];
+            _initialThreadLock = new Object();
             for(int i = 0; i < _numThreads; ++i)
             {
                 _threadLocks[i] = new Object();
                 int j = i;
-                Action threadFunc = () => GenericThreadFunc(j);
-                Action wrapped = () => MakeThreadFunction(threadFunc, j); 
+                Action threadEntry = test.ThreadEntries[j];
+                Action wrapped = () => MakeThreadFunction(threadEntry, j); 
                 _threads[i] = new Thread(new ThreadStart(wrapped));
                 _threads[i].Start();
                 _shadowThreads[i] = new ShadowThread(i, _numThreads);
             }
-            Thread.Sleep(100); // TODO: Sync. properly with all threads going to sleep. Prevent a hang if thread 0 not asleep yet!
+            Thread.Sleep(500); // TODO: Sync. properly with all threads going to sleep. Prevent a hang if thread 0 not asleep yet!
             WakeThread(0);
             Console.WriteLine("startup thread exiting!");
-
         }
 
         private void WakeThread(int idx)
@@ -293,46 +299,49 @@ namespace ConsoleApplication
         }
     }
 
-/*
-    public class PetersenTest : IThread 
+
+    public class PetersenTest : ITest 
     {
-        private MemOrdered<int> flag0;
-        private MemOrdered<int> flag1;
-        private MemOrdered<int> turn;
+        private MemoryOrdered<int> flag0;
+        private MemoryOrdered<int> flag1;
+        private MemoryOrdered<int> turn;
 
+        public IReadOnlyList<Action> ThreadEntries { get; private set;}
 
-        private List<Action> _threads = new List<Action>{Thread1, Thread2};
-        public IReadOnlyList<Action> Threads => _threads;
-
-        IEnumerable<int> Thread1()
+        public PetersenTest()
         {
-            flag0.Store(25);
-            yield return 0;
-            flag1.Store(35);
-
+            ThreadEntries = new List<Action>{Thread1,Thread2};
+            flag0 = new MemoryOrdered<int>();
+            flag1 = new MemoryOrdered<int>();
         }
 
-        void Thread2()
+        private void Thread1()
         {
-
+            while(true)
+            {
+                Console.WriteLine("PetersenTest Thread1");
+                flag0.Store(10, MemoryOrder.Release);
+            }
         }
 
+        private void Thread2()
+        {
+            while(true)
+            {
+                Console.WriteLine("PetersenTest Thread2");
+                flag1.Store(20, MemoryOrder.Release);
+            }
+        }
 
+/*
         void Setup()
         {
         //     flag0 = 0;
         //     flag1 = 0;
         //     turn = 0;
-        }
-
-        void RunThread(int index)
-        {
-            if(index == 0)
-            {
-
-            }
-        }
+        }*/
     }
+    /*
     public class TestRunner 
     {
         private static TestEnvironment TE = TestEnvironment.TE;
@@ -344,6 +353,6 @@ namespace ConsoleApplication
             int runningThread = 0;
             TE.Scheduler();
         }
-    }
-*/
+    }*/
+
 }
