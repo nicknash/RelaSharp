@@ -32,11 +32,13 @@ namespace ConsoleApplication
         SequentiallyConsistent
     }
 
-    class AccessData 
+    class AccessData<T> 
     {
         public int LastStoredThreadId { get; private set; }
         public long LastStoredThreadClock { get; private set; }
         
+        public T _data;
+
         private VectorClock _lastSeen;
         private VectorClock _releasesToAcquire;
 
@@ -46,13 +48,13 @@ namespace ConsoleApplication
             _releasesToAcquire = new VectorClock(numThreads);
         }
 
-        public void RecordStore(int threadIdx, long threadClock)
+        public void RecordStore(int threadIdx, long threadClock, T data)
         {
             _lastSeen.Assign(VectorClock.BeforeAllTimes);
             _lastSeen.SetClock(threadIdx, threadClock);
             LastStoredThreadId = threadIdx;
             LastStoredThreadClock = threadClock;
-            
+            _data = data;
         }
 
         public void RecordLoad(int threadIdx, long threadClock)
@@ -61,23 +63,23 @@ namespace ConsoleApplication
         }
     }
 
-    class AccessHistory
+    class AccessHistory<T>
     {
+        private static TestEnvironment TE = TestEnvironment.TE;
+
+        private AccessData<T>[] _history;
         private int _index;
 
-
-
-        // Ring buffer of AccessData 
-        // Use indexer? TODO: decide on interface here.
-        public AccessData this[int idx] { get { return null; } }
-        
-        public AccessData GetNextRecord()
+        public AccessHistory()
         {
-            return 
 
         }
 
-        public void RecordStore(int threadIdx, long threadClock, VectorClock sourceClock)
+        // Ring buffer of AccessData 
+        // Use indexer? TODO: decide on interface here.
+        //public AccessData this[int idx] { get { return null; } }
+        
+        public void RecordStore(int threadIdx, long threadClock, VectorClock sourceClock, T data)
         {
             bool isReleaseSequence = false;//previousRecord.LastStoredThreadId == TE.RunningThread.Id; // || this is part of a RMW
             if(isReleaseSequence)
@@ -89,37 +91,37 @@ namespace ConsoleApplication
 
             }
         }
+
+        public T RecordLoad()
+        {
+            return default(T);
+        }
     }
 
     class MemoryOrdered<T> // TODO: restrict to atomic types.
     {
         private static TestEnvironment TE = TestEnvironment.TE;
-        private T _data;
-        private AccessData _accessData;
-        private AccessHistory _history;
+        private AccessHistory<T> _history;
 
         public MemoryOrdered()
         {
-            //_trackingData = TestEnvironment.TE.NewFullyChecked();
-            _accessData = new AccessData(TE.NumThreads);
+            _history = new AccessHistory<T>();
         }
 
         public void Store(T data, MemoryOrder mo)
         {
             TE.Scheduler();
             TE.RunningThread.IncrementClock();
-            //_accessData.RecordStore(TE.RunningThread.Id, TE.RunningThread.Clock);
-            var previousRecord = _history.LatestRecord; // arrange that this is never null I guess.
-            //_history.RecordStore(TE.RunningThread.Id, TE.RunningThread.Clock)
             bool isAtLeastRelease = mo == MemoryOrder.Release || mo == MemoryOrder.AcquireRelease || mo == MemoryOrder.SequentiallyConsistent;
             var sourceClock = isAtLeastRelease ? TE.RunningThread.VC : TE.RunningThread.Fenced;
-            _history.RecordStore(threadIdx, TE.RunningThread.Clock, sourceClock);
-            _data = data;
+            _history.RecordStore(TE.RunningThread.Id, TE.RunningThread.Clock, sourceClock, data);
         }
 
         public T Load(MemoryOrder mo)
         {
-            return _data;
+            TE.Scheduler();
+            // 
+            return _history.RecordLoad();
         }
 
         // Atomics ...
@@ -220,7 +222,7 @@ namespace ConsoleApplication
     {
         public long Clock { get; private set; } // TODO: wrap "clock" in timestamp type.
         
-        public readonly VectorClock VC; // TODO: Think about better names for these.
+        public readonly VectorClock VC; // TODO: Think about better names for these. "ReleasesAcquired" ?
         public readonly VectorClock Fenced;  
         public readonly int Id;
 
@@ -249,9 +251,9 @@ namespace ConsoleApplication
 
         public ShadowThread RunningThread { get; private set; }
         public int NumThreads { get; private set; }
-    
+        public int HistoryLength { get; private set; }
+
         private int _runningThreadIdx;
-        private int _numThreads;
 
         private int[] _unfinishedThreadIndices;
         private int _numUnfinishedThreads; // TODO: wrap these two into a proper data structure when shape clearer.
@@ -295,15 +297,15 @@ namespace ConsoleApplication
 
         public void RunTest(ITest test)
         {
-            _numThreads = test.ThreadEntries.Count;
-            NumThreads = _numThreads;
-            _threads = new Thread[_numThreads];
-            _threadStates = new ThreadState[_numThreads];
-            _threadLocks = new Object[_numThreads];
-            _shadowThreads = new ShadowThread[_numThreads];
-            _unfinishedThreadIndices = new int[_numThreads];
-            _numUnfinishedThreads = _numThreads;
-            for(int i = 0; i < _numThreads; ++i)
+            NumThreads = test.ThreadEntries.Count;
+            HistoryLength = 20;
+            _threads = new Thread[NumThreads];
+            _threadStates = new ThreadState[NumThreads];
+            _threadLocks = new Object[NumThreads];
+            _shadowThreads = new ShadowThread[NumThreads];
+            _unfinishedThreadIndices = new int[NumThreads];
+            _numUnfinishedThreads = NumThreads;
+            for(int i = 0; i < NumThreads; ++i)
             {
                 _unfinishedThreadIndices[i] = i;
                 _threadLocks[i] = new Object();
@@ -313,9 +315,9 @@ namespace ConsoleApplication
                 _threadStates[i] = ThreadState.Running;
                 _threads[i] = new Thread(new ThreadStart(wrapped));
                 _threads[i].Start();
-                _shadowThreads[i] = new ShadowThread(i, _numThreads);
+                _shadowThreads[i] = new ShadowThread(i, NumThreads);
             }
-            for(int i = 0; i < _numThreads; ++i)
+            for(int i = 0; i < NumThreads; ++i)
             {
                 var l = _threadLocks[i];
                 lock(l)
