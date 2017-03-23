@@ -37,6 +37,7 @@ namespace ConsoleApplication
         public int LastStoredThreadId { get; private set; }
         public long LastStoredThreadClock { get; private set; }
         public VectorClock ReleasesToAcquire { get; private set; }
+        public VectorClock LastSeen { get; private set; }
         
         public T Payload { get; private set; }
         public bool IsInitialized { get; private set; }
@@ -47,12 +48,13 @@ namespace ConsoleApplication
         {
             _lastSeen = new VectorClock(numThreads);
             ReleasesToAcquire = new VectorClock(numThreads);
+            LastSeen = new VectorClock(numThreads);
         }
 
         public void RecordStore(int threadIdx, long threadClock, T payload)
         {
-            _lastSeen.SetAllClocks(VectorClock.BeforeAllTimes);
-            _lastSeen.SetClock(threadIdx, threadClock);
+            LastSeen.SetAllClocks(VectorClock.BeforeAllTimes);
+            LastSeen[threadIdx] = threadClock;
             LastStoredThreadId = threadIdx;
             LastStoredThreadClock = threadClock;
             IsInitialized = true;
@@ -68,6 +70,7 @@ namespace ConsoleApplication
     class AccessDataPool<T>
     {
         public int CurrentIndex { get; private set; }
+        public int SizeOccupied { get; private set; }
         private int _length;
         private AccessData<T>[] _pool;
 
@@ -91,6 +94,8 @@ namespace ConsoleApplication
         {
             get
             {
+                // Allow for index wrap (including negative indices)
+                // Perhaps simpler to just manage here than in GetNext also.
                 return _pool[idx];
             }
         }
@@ -100,12 +105,13 @@ namespace ConsoleApplication
     {
         private static TestEnvironment TE = TestEnvironment.TE; // TODO: remove, ultimately pass this around as shallowly as possible 
 
-        private AccessDataPool<T> _history;
-
+        private readonly AccessDataPool<T> _history;
+        private readonly int _numThreads;
 
         public AccessHistory(int length, int numThreads)
         {
             _history = new AccessDataPool(length, numThreads);
+            _numThreads = numThreads;
         }
         
         public void RecordStore(T data)
@@ -140,15 +146,35 @@ namespace ConsoleApplication
             return loadData.Data;
         }
 
-        private AccessData<T> GetPossibleLoad()
+        private AccessData<T> GetPossibleLoad(VectorClock releasesAcquired, int threadId)
         {
-            return _history[0];
+            int j = _pool.CurrentIndex;
+            // Pick a random number up to _pool.SizeOccupied
+            for(int i = 0; i < _history.Length; ++i)
+            {
+                if(!_history[j].IsInitialized)
+                {
+                    // TODO: Replace with add to event log, throw exception
+                    Console.WriteLine("ACCESS TO UNINITIALIZED VARIABLE");
+                }
+                var accessData = _pool[j];
+                // Has the loading thread synchronized-with a later release of the last store to this variable
+                // by the last storing thread?
+                if(releasesAcquired[accessData.LastStoredThreadClock] > accessData.LastStoredThreadClock)
+                {
+                    break;
+                }
+                // Has the loading thread synchronized-with any thread that has loaded a later value 
+                // of the variable?
+                if(!releasesAcquired.IsBefore(accessData.LastSeen))
+                {
+                    break;
+                }
+                --j;
+            }
+            return _history[j];
         }
 
-        private int GetIndex()
-        {
-
-        }
     }
 
     class MemoryOrdered<T> // TODO: restrict to atomic types.
@@ -193,7 +219,7 @@ namespace ConsoleApplication
             Size = size;
         }
 
-        public bool IsBefore(VectorClock other)
+        public bool IsBefore(VectorClock other) 
         {
             if(Size != other.Size)
             {
@@ -209,9 +235,17 @@ namespace ConsoleApplication
             return true;
         }
 
-        public void SetClock(int idx, long v)
+        public long this[int idx]
         {
-            _clocks[idx] = v;
+            get
+            {
+                return _clocks[idx];
+            }
+            set
+            {
+                _clocks[idx] = value;
+            }
+
         }
 
         public void SetAllClocks(long v)
