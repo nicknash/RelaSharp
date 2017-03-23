@@ -63,20 +63,18 @@ namespace ConsoleApplication
 
         public void RecordLoad(int threadIdx, long threadClock)
         {
-            _lastSeen.SetClock(threadIdx, threadClock);
+            _lastSeen[threadIdx] = threadClock;
         }
     }
 
     class AccessDataPool<T>
     {
         public int CurrentIndex { get; private set; }
-        public int SizeOccupied { get; private set; }
-        private int _length;
+        public int SizeOccupied => _pool.Length;
         private AccessData<T>[] _pool;
 
         public AccessDataPool(int length, int numThreads)
         {
-            _length = length;
             _pool = new AccessData<T>[length];
             for(int i = 0; i < length; ++i)
             {
@@ -86,7 +84,7 @@ namespace ConsoleApplication
 
         public AccessData<T> GetNext()
         {
-            CurrentIndex = (CurrentIndex + 1) % length;
+            CurrentIndex++;// = (CurrentIndex + 1) % _pool.Size;
             return _pool[CurrentIndex]; // N.B. index-1 returned first
         }
 
@@ -110,14 +108,14 @@ namespace ConsoleApplication
 
         public AccessHistory(int length, int numThreads)
         {
-            _history = new AccessDataPool(length, numThreads);
+            _history = new AccessDataPool<T>(length, numThreads);
             _numThreads = numThreads;
         }
         
-        public void RecordStore(T data)
+        public void RecordStore(MemoryOrder mo, T data)
         {
             var runningThread = TE.RunningThread;
-            var storeTarget = _pool.GetNext();
+            var storeTarget = _history.GetNext();
             storeTarget.RecordStore(runningThread.Id, runningThread.Clock, data);
 
             bool isAtLeastRelease = mo == MemoryOrder.Release || mo == MemoryOrder.AcquireRelease || mo == MemoryOrder.SequentiallyConsistent;
@@ -136,21 +134,21 @@ namespace ConsoleApplication
 
         public T RecordPossibleLoad(MemoryOrder mo)
         {
-            var loadData = GetPossibleLoad();
             var runningThread = TE.RunningThread;
+            var loadData = GetPossibleLoad(runningThread.VC, runningThread.Id);
             runningThread.IncrementClock();
             loadData.RecordLoad(runningThread.Id, runningThread.Clock);
             bool isAtLeastAcquire = mo == MemoryOrder.Acquire || mo == MemoryOrder.AcquireRelease || mo == MemoryOrder.SequentiallyConsistent;
             var destinationClock = isAtLeastAcquire ? runningThread.VC : runningThread.Fenced;
             destinationClock.Join(loadData.ReleasesToAcquire);  
-            return loadData.Data;
+            return loadData.Payload;
         }
 
         private AccessData<T> GetPossibleLoad(VectorClock releasesAcquired, int threadId)
         {
-            int j = _pool.CurrentIndex;
-            // Pick a random number up to _pool.SizeOccupied
-            for(int i = 0; i < _history.Length; ++i)
+            int j = _history.CurrentIndex;
+            // Pick a random number up to _history.SizeOccupied
+            for(int i = 0; i < _history.SizeOccupied; ++i)
             {
                 if(!_history[j].IsInitialized)
                 {
@@ -158,9 +156,9 @@ namespace ConsoleApplication
                     // Perhaps can be made never to happen.
                     Console.WriteLine("ACCESS TO UNINITIALIZED VARIABLE");
                 }
-                var accessData = _pool[j];
+                var accessData = _history[j];
                 // Has the loading thread synchronized-with a later release of the last storing thread to this variable?
-                if(releasesAcquired[accessData.LastStoredThreadClock] >= accessData.LastStoredThreadClock)
+                if(releasesAcquired[accessData.LastStoredThreadId] >= accessData.LastStoredThreadClock)
                 {
                     // If so, this is the oldest load that can be returned, since this thread has synchronized-with 
                     // ("acquired a release" of) the storing thread at or after the one that made this store.
@@ -189,7 +187,7 @@ namespace ConsoleApplication
 
         public MemoryOrdered()
         {
-            _history = new AccessHistory<T>();
+            _history = new AccessHistory<T>(TE.HistoryLength, TE.NumThreads);
         }
 
         public void Store(T data, MemoryOrder mo)
@@ -203,7 +201,7 @@ namespace ConsoleApplication
         {
             TE.Scheduler();
             T result = _history.RecordPossibleLoad(mo);
-            TE.RunningThead.IncrementClock();
+            TE.RunningThread.IncrementClock();
             return result;
         }
 
@@ -290,7 +288,7 @@ namespace ConsoleApplication
     }
 
     // TODO: Need lock(..), fence, cmp exch, wrappers...
-
+/*
     class RaceChecked<T>
     {
         private static TestEnvironment TE = TestEnvironment.TE;
@@ -335,7 +333,7 @@ namespace ConsoleApplication
             return _data;
         }
     }
-    
+  */  
     class ShadowThread
     {
         public long Clock { get; private set; } // TODO: wrap "clock" in timestamp type.
