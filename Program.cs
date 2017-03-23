@@ -8,6 +8,7 @@ namespace ConsoleApplication
     {
         public static void Main(string[] args)
         {
+        
             var test = new PetersenTest();
             TestEnvironment.TE.RunTest(test);
             
@@ -70,7 +71,7 @@ namespace ConsoleApplication
     class AccessDataPool<T>
     {
         public int CurrentIndex { get; private set; }
-        public int SizeOccupied => _pool.Length;
+        public int SizeOccupied { get; private set; }
         private AccessData<T>[] _pool;
 
         public AccessDataPool(int length, int numThreads)
@@ -84,17 +85,24 @@ namespace ConsoleApplication
 
         public AccessData<T> GetNext()
         {
-            CurrentIndex++;// = (CurrentIndex + 1) % _pool.Size;
-            return _pool[CurrentIndex]; // N.B. index-1 returned first
+            CurrentIndex++;
+            if(SizeOccupied < _pool.Length)
+            {
+                SizeOccupied = CurrentIndex;
+            }
+            return _pool[CurrentIndex];
         }
 
         public AccessData<T> this[int idx]
         {
             get
             {
-                // Allow for index wrap (including negative indices)
-                // Perhaps simpler to just manage here than in GetNext also.
-                return _pool[idx];
+                int wrapped = idx % _pool.Length;
+                if(wrapped < 0)
+                {
+                    wrapped += _pool.Length;
+                }
+                return _pool[wrapped];
             }
         }
     } 
