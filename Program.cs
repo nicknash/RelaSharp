@@ -32,69 +32,122 @@ namespace ConsoleApplication
         SequentiallyConsistent
     }
 
-    class AccessData<T> 
+    class AccessData<T> // Not sure if encapsulation provided by this type is desirable or right structure. 
     {
         public int LastStoredThreadId { get; private set; }
         public long LastStoredThreadClock { get; private set; }
+        public VectorClock ReleasesToAcquire { get; private set; }
         
-        public T _data;
+        public T Payload { get; private set; }
+        public bool IsInitialized { get; private set; }
 
         private VectorClock _lastSeen;
-        private VectorClock _releasesToAcquire;
 
         public AccessData(int numThreads)
         {
             _lastSeen = new VectorClock(numThreads);
-            _releasesToAcquire = new VectorClock(numThreads);
+            ReleasesToAcquire = new VectorClock(numThreads);
         }
 
-        public void RecordStore(int threadIdx, long threadClock, T data)
+        public void RecordStore(int threadIdx, long threadClock, T payload)
         {
-            _lastSeen.Assign(VectorClock.BeforeAllTimes);
+            _lastSeen.SetAllClocks(VectorClock.BeforeAllTimes);
             _lastSeen.SetClock(threadIdx, threadClock);
             LastStoredThreadId = threadIdx;
             LastStoredThreadClock = threadClock;
-            _data = data;
+            IsInitialized = true;
+            Payload = payload;
         }
 
         public void RecordLoad(int threadIdx, long threadClock)
         {
-
+            _lastSeen.SetClock(threadIdx, threadClock);
         }
     }
 
-    class AccessHistory<T>
+    class AccessDataPool<T>
     {
-        private static TestEnvironment TE = TestEnvironment.TE;
+        public int CurrentIndex { get; private set; }
+        private int _length;
+        private AccessData<T>[] _pool;
 
-        private AccessData<T>[] _history;
-        private int _index;
-
-        public AccessHistory()
+        public AccessDataPool(int length, int numThreads)
         {
-
+            _length = length;
+            _pool = new AccessData<T>[length];
+            for(int i = 0; i < length; ++i)
+            {
+                _pool[i] = new AccessData<T>(numThreads);
+            }
         }
 
-        // Ring buffer of AccessData 
-        // Use indexer? TODO: decide on interface here.
-        //public AccessData this[int idx] { get { return null; } }
-        
-        public void RecordStore(int threadIdx, long threadClock, VectorClock sourceClock, T data)
+        public AccessData<T> GetNext()
         {
+            CurrentIndex = (CurrentIndex + 1) % length;
+            return _pool[CurrentIndex]; // N.B. index-1 returned first
+        }
+
+        public AccessData<T> this[int idx]
+        {
+            get
+            {
+                return _pool[idx];
+            }
+        }
+    } 
+
+    class AccessHistory<T>
+    {
+        private static TestEnvironment TE = TestEnvironment.TE; // TODO: remove, ultimately pass this around as shallowly as possible 
+
+        private AccessDataPool<T> _history;
+
+
+        public AccessHistory(int length, int numThreads)
+        {
+            _history = new AccessDataPool(length, numThreads);
+        }
+        
+        public void RecordStore(T data)
+        {
+            var runningThread = TE.RunningThread;
+            var storeTarget = _pool.GetNext();
+            storeTarget.RecordStore(runningThread.Id, runningThread.Clock, data);
+
+            bool isAtLeastRelease = mo == MemoryOrder.Release || mo == MemoryOrder.AcquireRelease || mo == MemoryOrder.SequentiallyConsistent;
+            var sourceClock = isAtLeastRelease ? TE.RunningThread.VC : TE.RunningThread.Fenced;
+ 
             bool isReleaseSequence = false;//previousRecord.LastStoredThreadId == TE.RunningThread.Id; // || this is part of a RMW
             if(isReleaseSequence)
             {
-
+                // TODO
             }
             else
             {
-
+            
             }
         }
 
-        public T RecordLoad()
+        public T RecordPossibleLoad(MemoryOrder mo)
         {
-            return default(T);
+            var loadData = GetPossibleLoad();
+            var runningThread = TE.RunningThread;
+            runningThread.IncrementClock();
+            loadData.RecordLoad(runningThread.Id, runningThread.Clock);
+            bool isAtLeastAcquire = mo == MemoryOrder.Acquire || mo == MemoryOrder.AcquireRelease || mo == MemoryOrder.SequentiallyConsistent;
+            var destinationClock = isAtLeastAcquire ? runningThread.VC : runningThread.Fenced;
+            destinationClock.Join(loadData.ReleasesToAcquire);  
+            return loadData.Data;
+        }
+
+        private AccessData<T> GetPossibleLoad()
+        {
+            return _history[0];
+        }
+
+        private int GetIndex()
+        {
+
         }
     }
 
@@ -112,17 +165,18 @@ namespace ConsoleApplication
         {
             TE.Scheduler();
             TE.RunningThread.IncrementClock();
-            bool isAtLeastRelease = mo == MemoryOrder.Release || mo == MemoryOrder.AcquireRelease || mo == MemoryOrder.SequentiallyConsistent;
-            var sourceClock = isAtLeastRelease ? TE.RunningThread.VC : TE.RunningThread.Fenced;
-            _history.RecordStore(TE.RunningThread.Id, TE.RunningThread.Clock, sourceClock, data);
+            _history.RecordStore(mo, data);
         }
 
         public T Load(MemoryOrder mo)
         {
             TE.Scheduler();
-            // 
-            return _history.RecordLoad();
+            T result = _history.RecordPossibleLoad(mo);
+            TE.RunningThead.IncrementClock();
+            return result;
         }
+
+        
 
         // Atomics ...
     }
@@ -160,12 +214,17 @@ namespace ConsoleApplication
             _clocks[idx] = v;
         }
 
+        public void SetAllClocks(long v)
+        {
+
+        }
+
         public void Join(VectorClock other)
         {
 
         }
 
-        public void Assign(long value)
+        public void Assign(VectorClock other)
         {
 
         }
