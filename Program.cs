@@ -43,11 +43,8 @@ namespace ConsoleApplication
         public T Payload { get; private set; }
         public bool IsInitialized { get; private set; }
 
-        private VectorClock _lastSeen;
-
         public AccessData(int numThreads)
         {
-            _lastSeen = new VectorClock(numThreads);
             ReleasesToAcquire = new VectorClock(numThreads);
             LastSeen = new VectorClock(numThreads);
         }
@@ -64,7 +61,7 @@ namespace ConsoleApplication
 
         public void RecordLoad(int threadIdx, long threadClock)
         {
-            _lastSeen[threadIdx] = threadClock;
+            LastSeen[threadIdx] = threadClock;
         }
     }
 
@@ -90,7 +87,7 @@ namespace ConsoleApplication
             {
                 SizeOccupied = CurrentIndex;
             }
-            return _pool[CurrentIndex];
+            return this[CurrentIndex];
         }
 
         public AccessData<T> this[int idx]
@@ -113,11 +110,13 @@ namespace ConsoleApplication
 
         private readonly AccessDataPool<T> _history;
         private readonly int _numThreads;
+        private readonly Random _random;
 
         public AccessHistory(int length, int numThreads)
         {
             _history = new AccessDataPool<T>(length, numThreads);
             _numThreads = numThreads;
+            _random = new Random();
         }
         
         public void RecordStore(MemoryOrder mo, T data)
@@ -127,16 +126,18 @@ namespace ConsoleApplication
             storeTarget.RecordStore(runningThread.Id, runningThread.Clock, data);
 
             bool isAtLeastRelease = mo == MemoryOrder.Release || mo == MemoryOrder.AcquireRelease || mo == MemoryOrder.SequentiallyConsistent;
+            
             var sourceClock = isAtLeastRelease ? TE.RunningThread.VC : TE.RunningThread.Fenced;
- 
-            bool isReleaseSequence = false;//previousRecord.LastStoredThreadId == TE.RunningThread.Id; // || this is part of a RMW
+            var previous = _history[_history.CurrentIndex - 1];
+            bool isReleaseSequence = previous.IsInitialized && previous.LastStoredThreadId == TE.RunningThread.Id; // TODO: OR this is part of a read-modify-write
             if(isReleaseSequence)
             {
-                // TODO
+                storeTarget.ReleasesToAcquire.Assign(previous.ReleasesToAcquire);
+                storeTarget.ReleasesToAcquire.Join(sourceClock);
             }
             else
             {
-            
+                storeTarget.ReleasesToAcquire.Assign(sourceClock);
             }
         }
 
@@ -144,10 +145,9 @@ namespace ConsoleApplication
         {
             var runningThread = TE.RunningThread;
             var loadData = GetPossibleLoad(runningThread.VC, runningThread.Id);
-            runningThread.IncrementClock();
             loadData.RecordLoad(runningThread.Id, runningThread.Clock);
             bool isAtLeastAcquire = mo == MemoryOrder.Acquire || mo == MemoryOrder.AcquireRelease || mo == MemoryOrder.SequentiallyConsistent;
-            var destinationClock = isAtLeastAcquire ? runningThread.VC : runningThread.Fenced;
+            var destinationClock = isAtLeastAcquire ? runningThread.VC : runningThread.Fenced; // TODO: AcquireFenced
             destinationClock.Join(loadData.ReleasesToAcquire);  
             return loadData.Payload;
         }
@@ -155,8 +155,8 @@ namespace ConsoleApplication
         private AccessData<T> GetPossibleLoad(VectorClock releasesAcquired, int threadId)
         {
             int j = _history.CurrentIndex;
-            // Pick a random number up to _history.SizeOccupied
-            for(int i = 0; i < _history.SizeOccupied; ++i)
+            int lookBack = _history.SizeOccupied;//_random.Next(_history.SizeOccupied);
+            for(int i = 0; i < lookBack; ++i)
             {
                 if(!_history[j].IsInitialized)
                 {
@@ -168,13 +168,16 @@ namespace ConsoleApplication
                 // Has the loading thread synchronized-with a later release of the last storing thread to this variable?
                 if(releasesAcquired[accessData.LastStoredThreadId] >= accessData.LastStoredThreadClock)
                 {
+                    Console.WriteLine($"STOPPING: {releasesAcquired[accessData.LastStoredThreadId]} >= {accessData.LastStoredThreadClock}");
                     // If so, this is the oldest load that can be returned, since this thread has synchronized-with 
-                    // ("acquired a release" of) the storing thread at or after the one that made this store.
+                    // ("acquired a release" of) the storing thread at or after this store.
                     break;
                 }
+                    Console.WriteLine($"GOING BACK! {releasesAcquired[accessData.LastStoredThreadId]} < {accessData.LastStoredThreadClock}");
+                
                 // Has the loading thread synchronized-with any thread that has loaded a later value 
                 // of this variable?
-                if(releasesAcquired.IsAtOrAfter(accessData.LastSeen))
+                if(!releasesAcquired.IsAtOrBefore(accessData.LastSeen))
                 {
                     // If so, this is the oldest load that can be returned to the loading thread, otherwise it'd
                     // be going back in time, since it has synchronized-with ("acquired a release" of) a thread that has seen a later value 
@@ -191,25 +194,50 @@ namespace ConsoleApplication
     class MemoryOrdered<T> // TODO: restrict to atomic types.
     {
         private static TestEnvironment TE = TestEnvironment.TE;
-        private AccessHistory<T> _history;
+        private InternalMemoryOrdered<T> _memoryOrdered;
 
-        public MemoryOrdered()
+        private void MaybeInit()
         {
-            _history = new AccessHistory<T>(TE.HistoryLength, TE.NumThreads);
+            if(_memoryOrdered == null)
+            {
+                _memoryOrdered = new InternalMemoryOrdered<T>(TE.HistoryLength, TE.NumThreads);
+            }
         }
 
         public void Store(T data, MemoryOrder mo)
         {
+            MaybeInit();
             TE.Scheduler();
             TE.RunningThread.IncrementClock();
+            _memoryOrdered.Store(data, mo);
+        }
+
+        public T Load(MemoryOrder mo)
+        {
+            MaybeInit();
+            TE.Scheduler();
+            TE.RunningThread.IncrementClock();
+            return _memoryOrdered.Load(mo);
+        }
+    }
+
+    class InternalMemoryOrdered<T> 
+    {
+        private AccessHistory<T> _history;
+
+        public InternalMemoryOrdered(int historyLength, int numThreads)
+        {
+            _history = new AccessHistory<T>(historyLength, numThreads);
+        }
+
+        public void Store(T data, MemoryOrder mo)
+        {
             _history.RecordStore(mo, data);
         }
 
         public T Load(MemoryOrder mo)
         {
-            TE.Scheduler();
             T result = _history.RecordPossibleLoad(mo);
-            TE.RunningThread.IncrementClock();
             return result;
         }
 
@@ -230,21 +258,26 @@ namespace ConsoleApplication
             Size = size;
         }
 
-        // Are all clocks in other smaller or equal to this?
-        public bool IsAtOrAfter(VectorClock other)
+        private void CheckSize(VectorClock other)
         {
             if(Size != other.Size)
             {
                 throw new Exception($"Cannot compare vector clocks of different sizes, this size = {Size}, other size = {other.Size}");
             }
+        }
+
+        // Are all clocks in other smaller or equal to this?
+        public bool IsAtOrBefore(VectorClock other)
+        {
+            CheckSize(other);
             for(int i = 0; i < Size; ++i)
             {
-                if(other._clocks[i] > _clocks[i])
+                if(_clocks[i] >= other._clocks[i])
                 {
                     return false;
                 }
             }
-            // i.e., _clocks[i] <= other._clocks[i] for all i
+            // i.e., _clocks[i] < other._clocks[i] for all i
             return true;
           
         }
@@ -252,10 +285,7 @@ namespace ConsoleApplication
         // Are all clocks in other larger or equal to this?
         public bool IsNotAfter(VectorClock other) 
         {
-            if(Size != other.Size)
-            {
-                throw new Exception($"Cannot compare vector clocks of different sizes, this size = {Size}, other size = {other.Size}");
-            }
+            CheckSize(other);
             for(int i = 0; i < Size; ++i)
             {
                 if(other._clocks[i] >= _clocks[i])
@@ -281,17 +311,31 @@ namespace ConsoleApplication
 
         public void SetAllClocks(long v)
         {
-
+            for(int i = 0; i < Size; ++i)
+            {
+                _clocks[i] = v;
+            }
         }
 
         public void Join(VectorClock other)
         {
-
+            CheckSize(other);
+            for(int i = 0; i < Size; ++i)
+            {
+                if(other._clocks[i] > _clocks[i])
+                {
+                    _clocks[i] = other._clocks[i];
+                }
+            }
         }
 
         public void Assign(VectorClock other)
         {
-
+            CheckSize(other);
+            for(int i = 0; i < Size; ++i)
+            {
+                _clocks[i] = other._clocks[i];
+            }
         }
     }
 
@@ -344,7 +388,7 @@ namespace ConsoleApplication
   */  
     class ShadowThread
     {
-        public long Clock { get; private set; } // TODO: wrap "clock" in timestamp type.
+        public long Clock => VC[Id];
         
         public readonly VectorClock VC; // TODO: Think about better names for these. "ReleasesAcquired" ?
         public readonly VectorClock Fenced;  
@@ -354,11 +398,13 @@ namespace ConsoleApplication
         {
             Id = id;
             VC = new VectorClock(numThreads);
+            Fenced = new VectorClock(numThreads);
         }
 
         public void IncrementClock()
         {
-
+            VC[Id]++;
+            //Console.WriteLine($"Thread {Id} clock is {Clock}");
         }
     }
 
@@ -373,9 +419,9 @@ namespace ConsoleApplication
     {
         public static TestEnvironment TE = new TestEnvironment();
 
-        public ShadowThread RunningThread { get; private set; }
+        public ShadowThread RunningThread => _shadowThreads[_runningThreadIdx];
         public int NumThreads { get; private set; }
-        public int HistoryLength { get; private set; }
+        public int HistoryLength => 20;
 
         private int _runningThreadIdx;
 
@@ -422,7 +468,7 @@ namespace ConsoleApplication
         public void RunTest(ITest test)
         {
             NumThreads = test.ThreadEntries.Count;
-            HistoryLength = 20;
+
             _threads = new Thread[NumThreads];
             _threadStates = new ThreadState[NumThreads];
             _threadLocks = new Object[NumThreads];
@@ -498,6 +544,7 @@ namespace ConsoleApplication
     }
 
 
+
     public class PetersenTest : ITest 
     {
         private MemoryOrdered<int> flag0;
@@ -508,7 +555,7 @@ namespace ConsoleApplication
 
         public PetersenTest()
         {
-            ThreadEntries = new List<Action>{Thread1,Thread2,Thread1,Thread2,Thread1,Thread2};
+            ThreadEntries = new List<Action>{Thread1,Thread2};
             flag0 = new MemoryOrdered<int>();
             flag1 = new MemoryOrdered<int>();
         }
@@ -516,20 +563,21 @@ namespace ConsoleApplication
         private void Thread1()
         {
             //while(true)
-            for(int i = 0; i < 3; ++i)
+            for(int i = 0; i < 10; ++i)
             {
-                Console.WriteLine("3-Thread");
-                flag0.Store(10, MemoryOrder.Release);
+                //Console.WriteLine($"Storing {i}");
+                //flag0.Load(i, MemoryOrder.Acquire);
+                Console.WriteLine($"Loaded {flag0.Load(MemoryOrder.Acquire)}");
             }
         }
 
         private void Thread2()
         {
             //while(true)
-            for(int i = 0; i < 10; ++i)
+            for(int i = 0; i < 5; ++i)
             {
-                Console.WriteLine("10-Thread");
-                flag1.Store(20, MemoryOrder.Release);
+                Console.WriteLine($"Storing {i}");
+                flag0.Store(i, MemoryOrder.Release);
             }
         }
 
@@ -541,18 +589,5 @@ namespace ConsoleApplication
         //     turn = 0;
         }*/
     }
-    /*
-    public class TestRunner 
-    {
-        private static TestEnvironment TE = TestEnvironment.TE;
-
-        public static void Run(ITest test)
-        {
-            test.Setup();
-            TE.RunningTest = test;
-            int runningThread = 0;
-            TE.Scheduler();
-        }
-    }*/
 
 }
