@@ -94,6 +94,10 @@ namespace RelaSharp
                 }
             }            
             WakeThread(GetNextThreadIdx());
+            for(int i = 0; i < NumThreads; ++i)
+            {
+                _threads[i].Join();
+            }
         }
 
         private void WakeThread(int idx)
