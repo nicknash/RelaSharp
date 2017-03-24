@@ -18,7 +18,7 @@ namespace RelaSharp
             MaybeInit();
             TE.Scheduler();
             TE.RunningThread.IncrementClock();
-            _memoryOrdered.Store(data, mo);
+            _memoryOrdered.Store(data, mo, TE.RunningThread);
         }
 
         public T Load(MemoryOrder mo)
@@ -26,7 +26,7 @@ namespace RelaSharp
             MaybeInit();
             TE.Scheduler();
             TE.RunningThread.IncrementClock();
-            return _memoryOrdered.Load(mo);
+            return _memoryOrdered.Load(mo, TE.RunningThread);
         }
     }
 }

@@ -4,8 +4,6 @@ namespace RelaSharp
 {  
     class AccessHistory<T>
     {
-        private static TestEnvironment TE = TestEnvironment.TE; // TODO: remove, ultimately pass this around as shallowly as possible 
-
         private readonly AccessDataPool<T> _history;
         private readonly int _numThreads;
         private readonly Random _random;
@@ -17,17 +15,16 @@ namespace RelaSharp
             _random = new Random();
         }
         
-        public void RecordStore(MemoryOrder mo, T data)
+        public void RecordStore(T data, MemoryOrder mo, ShadowThread runningThread)
         {
-            var runningThread = TE.RunningThread;
             var storeTarget = _history.GetNext();
             storeTarget.RecordStore(runningThread.Id, runningThread.Clock, data);
 
             bool isAtLeastRelease = mo == MemoryOrder.Release || mo == MemoryOrder.AcquireRelease || mo == MemoryOrder.SequentiallyConsistent;
             
-            var sourceClock = isAtLeastRelease ? TE.RunningThread.VC : TE.RunningThread.Fenced;
+            var sourceClock = isAtLeastRelease ? runningThread.VC : runningThread.Fenced;
             var previous = _history[_history.CurrentIndex - 1];
-            bool isReleaseSequence = previous.IsInitialized && previous.LastStoredThreadId == TE.RunningThread.Id; // TODO: OR this is part of a read-modify-write
+            bool isReleaseSequence = previous.IsInitialized && previous.LastStoredThreadId == runningThread.Id; // TODO: OR this is part of a read-modify-write
             if(isReleaseSequence)
             {
                 storeTarget.ReleasesToAcquire.Assign(previous.ReleasesToAcquire);
@@ -39,9 +36,8 @@ namespace RelaSharp
             }
         }
 
-        public T RecordPossibleLoad(MemoryOrder mo)
+        public T RecordPossibleLoad(MemoryOrder mo, ShadowThread runningThread)
         {
-            var runningThread = TE.RunningThread;
             var loadData = GetPossibleLoad(runningThread.VC, runningThread.Id);
             loadData.RecordLoad(runningThread.Id, runningThread.Clock);
             bool isAtLeastAcquire = mo == MemoryOrder.Acquire || mo == MemoryOrder.AcquireRelease || mo == MemoryOrder.SequentiallyConsistent;
