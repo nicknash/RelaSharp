@@ -1,0 +1,140 @@
+using System;
+using System.Threading;
+
+namespace RelaSharp
+{
+    enum ThreadState 
+    {
+        Running,
+        Blocked,
+        Finished
+    }
+    
+    class TestEnvironment
+    {
+        public static TestEnvironment TE = new TestEnvironment();
+
+        public ShadowThread RunningThread => _shadowThreads[_runningThreadIdx];
+        public int NumThreads { get; private set; }
+        public int HistoryLength => 20;
+
+        private int _runningThreadIdx;
+
+        private int[] _unfinishedThreadIndices;
+        private int _numUnfinishedThreads; // TODO: wrap these two into a proper data structure when shape clearer.
+
+        private Thread[] _threads;
+        private ThreadState[] _threadStates;
+        private ShadowThread[] _shadowThreads;
+   
+        private Object[] _threadLocks;
+
+
+        private Random _random = new Random();
+
+        private void MakeThreadFunction(Action threadFunction, int threadIdx)
+        {
+            var l = _threadLocks[threadIdx]; 
+            
+            lock(l)
+            {
+                _threadStates[threadIdx] = ThreadState.Blocked;
+                Monitor.Pulse(l);                
+                Monitor.Wait(l);
+            }
+            threadFunction();
+            _threadStates[threadIdx] = ThreadState.Finished;
+            if(_numUnfinishedThreads > 1)
+            {
+                int i = Array.IndexOf(_unfinishedThreadIndices, threadIdx);
+                _unfinishedThreadIndices[i] = _unfinishedThreadIndices[_numUnfinishedThreads - 1];
+                _numUnfinishedThreads--;
+                int nextIdx = GetNextThreadIdx(); 
+                Console.WriteLine($"Thread {threadIdx} completed. Going to wake: {nextIdx}");
+                Console.Out.Flush();            
+                WakeThread(nextIdx);
+            }
+            else
+            {
+                Console.WriteLine($"I'm the last thread ({threadIdx}) Nobody to wake");
+            }
+        }
+
+        public void RunTest(ITest test)
+        {
+            NumThreads = test.ThreadEntries.Count;
+
+            _threads = new Thread[NumThreads];
+            _threadStates = new ThreadState[NumThreads];
+            _threadLocks = new Object[NumThreads];
+            _shadowThreads = new ShadowThread[NumThreads];
+            _unfinishedThreadIndices = new int[NumThreads];
+            _numUnfinishedThreads = NumThreads;
+            for(int i = 0; i < NumThreads; ++i)
+            {
+                _unfinishedThreadIndices[i] = i;
+                _threadLocks[i] = new Object();
+                int j = i;
+                Action threadEntry = test.ThreadEntries[j];
+                Action wrapped = () => MakeThreadFunction(threadEntry, j); 
+                _threadStates[i] = ThreadState.Running;
+                _threads[i] = new Thread(new ThreadStart(wrapped));
+                _threads[i].Start();
+                _shadowThreads[i] = new ShadowThread(i, NumThreads);
+            }
+            for(int i = 0; i < NumThreads; ++i)
+            {
+                var l = _threadLocks[i];
+                lock(l)
+                {
+                    while(_threadStates[i] == ThreadState.Running)
+                    {
+                        Monitor.Wait(l);
+                    }
+                }
+            }            
+            WakeThread(GetNextThreadIdx());
+        }
+
+        private void WakeThread(int idx)
+        {
+            _runningThreadIdx = idx;
+            _threadStates[idx] = ThreadState.Running;
+            var l = _threadLocks[idx];
+            lock(l)
+            {
+                Monitor.Pulse(l);
+            }
+        }
+
+        public void Scheduler()
+        {
+            int prevThreadIdx = _runningThreadIdx;
+            int nextThreadIdx = GetNextThreadIdx();
+            if(nextThreadIdx == prevThreadIdx)
+            {
+                return;
+            }
+            _threadStates[prevThreadIdx] = ThreadState.Blocked;
+            WakeThread(nextThreadIdx);             
+            var runningLock = _threadLocks[prevThreadIdx];
+            lock(runningLock)
+            {
+                while(_threadStates[prevThreadIdx] == ThreadState.Blocked) // I may get here, and be woken before I got a chance to sleep. That's OK. 
+                {
+                    Monitor.Wait(runningLock);
+                }
+
+            }        
+        }
+
+        private int GetNextThreadIdx()
+        {
+            if(_numUnfinishedThreads == 0)
+            {
+                throw new Exception("All threads finished. Who called?");
+            }
+            return _unfinishedThreadIndices[_random.Next(_numUnfinishedThreads)];
+        }
+    }    
+}
