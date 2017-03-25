@@ -10,6 +10,7 @@ namespace RelaSharp
             if(_memoryOrdered == null)
             {
                 _memoryOrdered = new InternalMemoryOrdered<T>(TE.HistoryLength, TE.NumThreads);
+                _memoryOrdered.Store(default(T), MemoryOrder.Relaxed, TE.RunningThread);
             }
         }
 
