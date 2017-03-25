@@ -49,7 +49,7 @@ namespace RelaSharp
         private AccessData<T> GetPossibleLoad(VectorClock releasesAcquired, int threadId)
         {
             int j = _history.CurrentIndex;
-            int lookBack = _history.SizeOccupied;//_random.Next(_history.SizeOccupied);
+            int lookBack = _random.Next(_history.SizeOccupied);
             for(int i = 0; i < lookBack; ++i)
             {
                 if(!_history[j].IsInitialized)
@@ -62,13 +62,10 @@ namespace RelaSharp
                 // Has the loading thread synchronized-with this or a later release of the last storing thread to this variable?
                 if(releasesAcquired[accessData.LastStoredThreadId] >= accessData.LastStoredThreadClock)
                 {
-                    Console.WriteLine($"STOPPING: {releasesAcquired[accessData.LastStoredThreadId]} >= {accessData.LastStoredThreadClock}");
                     // If so, this is the oldest load that can be returned, since this thread has synchronized-with 
                     // ("acquired a release" of) the storing thread at or after this store.
                     break;
                 }
-                Console.WriteLine($"GOING BACK! {releasesAcquired[accessData.LastStoredThreadId]} < {accessData.LastStoredThreadClock}");
-                
                 // Has the loading thread synchronized-with any thread that has loaded a later value 
                 // of this variable?
                 if(!releasesAcquired.IsAtOrBefore(accessData.LastSeen))

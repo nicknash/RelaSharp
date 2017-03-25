@@ -50,13 +50,13 @@ namespace RelaSharp
                 _unfinishedThreadIndices[i] = _unfinishedThreadIndices[_numUnfinishedThreads - 1];
                 _numUnfinishedThreads--;
                 int nextIdx = GetNextThreadIdx(); 
-                Console.WriteLine($"Thread {threadIdx} completed. Going to wake: {nextIdx}");
+               // Console.WriteLine($"Thread {threadIdx} completed. Going to wake: {nextIdx}");
                 Console.Out.Flush();            
                 WakeThread(nextIdx);
             }
             else
             {
-                Console.WriteLine($"I'm the last thread ({threadIdx}) Nobody to wake");
+                //Console.WriteLine($"I'm the last thread ({threadIdx}) Nobody to wake");
             }
         }
 
@@ -98,6 +98,7 @@ namespace RelaSharp
             {
                 _threads[i].Join();
             }
+            test.OnFinished();
         }
 
         private void WakeThread(int idx)

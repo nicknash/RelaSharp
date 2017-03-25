@@ -6,5 +6,6 @@ namespace RelaSharp
     interface ITest 
     {
         IReadOnlyList<Action> ThreadEntries { get; }
+        void OnFinished();
     }
 }
