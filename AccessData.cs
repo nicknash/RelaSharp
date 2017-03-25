@@ -18,7 +18,7 @@
 
         public void RecordStore(int threadIdx, long threadClock, T payload)
         {
-            LastSeen.SetAllClocks(VectorClock.BeforeAllTimes);
+            LastSeen.SetAllClocks(VectorClock.MaxTime);
             LastSeen[threadIdx] = threadClock;
             LastStoredThreadId = threadIdx;
             LastStoredThreadClock = threadClock;

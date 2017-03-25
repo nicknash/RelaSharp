@@ -1,15 +1,20 @@
 using System;
+using System.Text;
 
 namespace RelaSharp
 {
     class VectorClock
     {
-        public const long BeforeAllTimes = -1;
+        public const long MaxTime = long.MaxValue;
         private long[] _clocks;
         public readonly int Size;
         
         public VectorClock(int size)
         {
+            if(size <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(size));
+            }
             _clocks = new long[size];
             Size = size;
         }
@@ -92,6 +97,17 @@ namespace RelaSharp
             {
                 _clocks[i] = other._clocks[i];
             }
+        }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder(Size);
+            sb.Append(_clocks[0]);
+            for(int i = 1; i < Size; ++i)
+            {
+                sb.Append($"^{_clocks[i]}");
+            }
+            return sb.ToString();
         }
     }
 }
