@@ -54,9 +54,7 @@ namespace RelaSharp
             {
                 if(!_history[j].IsInitialized)
                 {
-                    // TODO: Replace with add to event log, throw exception
-                    // Perhaps can be made never to happen.
-                    Console.WriteLine("ACCESS TO UNINITIALIZED VARIABLE");
+                    throw new Exception($"This should never happen: access to uninitialized variable.");
                 }
                 var accessData = _history[j];
                 if(mo == MemoryOrder.SequentiallyConsistent && accessData.LastStoreWasSequentiallyConsistent)
