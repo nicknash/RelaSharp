@@ -3,7 +3,7 @@ using System.Text;
 
 namespace RelaSharp
 {
-    class VectorClock
+    class VectorClock // I guess this should really be named VersionVector 
     {
         public const long MaxTime = long.MaxValue;
         private long[] _clocks;
@@ -26,41 +26,29 @@ namespace RelaSharp
                 throw new Exception($"Cannot compare vector clocks of different sizes, this size = {Size}, other size = {other.Size}");
             }
         }
-        public bool IsAfter(VectorClock other)
+
+        public bool AnyGreaterOrEqual(VectorClock other)
         {
-            CheckSize(other);
+            return Any(other, (x, y) => x >= y);
+        }
+
+        public bool AnyGreater(VectorClock other)
+        {
+            return Any(other, (x, y) => x > y);
+        }
+
+        private bool Any(VectorClock other, Func<long, long, bool> cmp)
+        {
+            CheckSize(other);            
             for(int i = 0; i < Size; ++i)
             {
-                if(_clocks[i] > other._clocks[i])
+                if(cmp(_clocks[i], other._clocks[i]))
                 {
-                    // i.e., return true if there exists i such that _clocks[i] > other._clocks[i]                    
                     return true;
                 }
             }
-            // i.e., _clocks[i] <= other._clocks[i] for all i
-            return false;            
+            return false;
         }
-
-        public bool IsBefore(VectorClock other)
-        {
-           CheckSize(other);
-            for(int i = 0; i < Size; ++i)
-            {
-                if(_clocks[i] > other._clocks[i])
-                {
-                    // i.e., return false if there exists i such that _clocks[i] > other._clocks[i]                    
-                    return false;
-                }
-            }
-            // i.e., _clocks[i] <= other._clocks[i] for all i
-            return true;            
-        }
-
-        // TODO: Elaborate and possible rename "IsAfter" and "IsBefore"
-        // Noteworthy examples of IsAfter and IsBefore
-        // IsAfter(10, 01) == false 
-        // IsBefore(10, 01) == false
-        // i.e. IsAfter != !IsBefore
 
         public long this[int idx]
         {
