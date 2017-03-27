@@ -70,7 +70,7 @@ namespace RelaSharp
                 }
                 // Has the loading thread synchronized-with any thread that has loaded a later value 
                 // of this variable?
-                if(!releasesAcquired.IsAtOrBefore(accessData.LastSeen))
+                if(releasesAcquired.IsAfter(accessData.LastSeen))
                 {
                     // If so, this is the oldest load that can be returned to the loading thread, otherwise it'd
                     // be going back in time, since it has synchronized-with ("acquired a release" of) a thread that has seen a later value 

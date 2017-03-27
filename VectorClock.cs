@@ -26,36 +26,41 @@ namespace RelaSharp
                 throw new Exception($"Cannot compare vector clocks of different sizes, this size = {Size}, other size = {other.Size}");
             }
         }
-
-        // Are all clocks in other smaller or equal to this?
-        public bool IsAtOrBefore(VectorClock other)
+        public bool IsAfter(VectorClock other)
         {
             CheckSize(other);
             for(int i = 0; i < Size; ++i)
             {
-                if(_clocks[i] >= other._clocks[i])
+                if(_clocks[i] > other._clocks[i])
                 {
-                    return false;
+                    // i.e., return true if there exists i such that _clocks[i] > other._clocks[i]                    
+                    return true;
                 }
             }
-            // i.e., _clocks[i] < other._clocks[i] for all i
-            return true;
-          
+            // i.e., _clocks[i] <= other._clocks[i] for all i
+            return false;            
         }
 
-        // Are all clocks in other larger or equal to this?
-        public bool IsNotAfter(VectorClock other) 
+        public bool IsBefore(VectorClock other)
         {
-            CheckSize(other);
+           CheckSize(other);
             for(int i = 0; i < Size; ++i)
             {
-                if(other._clocks[i] >= _clocks[i])
+                if(_clocks[i] > other._clocks[i])
                 {
+                    // i.e., return false if there exists i such that _clocks[i] > other._clocks[i]                    
                     return false;
                 }
             }
-            return true;
+            // i.e., _clocks[i] <= other._clocks[i] for all i
+            return true;            
         }
+
+        // TODO: Elaborate and possible rename "IsAfter" and "IsBefore"
+        // Noteworthy examples of IsAfter and IsBefore
+        // IsAfter(10, 01) == false 
+        // IsBefore(10, 01) == false
+        // i.e. IsAfter != !IsBefore
 
         public long this[int idx]
         {
