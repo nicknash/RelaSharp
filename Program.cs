@@ -13,13 +13,75 @@ namespace RelaSharp
             
             //var test2 = new PetersenTest();
             //TestEnvironment.TE.RunTest(test2);
-
-            for(int i = 0; i < 25; ++i)
+            int numFailures = 0;
+            for(int i = 0; i < 50000; ++i)
             {
                 //Console.WriteLine($"{i} ***************");
-                var test = new StoreLoad();
+                //var test = new StoreLoad();
+                var test = new PetersenTest(MemoryOrder.Relaxed);
                 TestEnvironment.TE.RunTest(test);         
+                if(test.Failed)
+                {
+                    numFailures++;
+                }
             }
+            Console.WriteLine(numFailures);
+        }
+    }
+
+    class PetersenTest : ITest 
+    {
+        private MemoryOrdered<int> flag0;
+        private MemoryOrdered<int> flag1;
+        private MemoryOrdered<int> victim;
+        private MemoryOrder _memoryOrder;
+        public IReadOnlyList<Action> ThreadEntries { get; private set;}
+
+        int threadsPassed = 0;
+
+        public PetersenTest(MemoryOrder memoryOrder)
+        {
+            _memoryOrder = memoryOrder;
+            ThreadEntries = new List<Action>{Thread0,Thread1};
+            flag0 = new MemoryOrdered<int>();
+            flag1 = new MemoryOrdered<int>();
+            victim = new MemoryOrdered<int>();
+        }
+
+        private void Thread0()
+        {
+            flag0.Store(1, _memoryOrder);
+            victim.Store(0, _memoryOrder);            
+            while(flag1.Load(_memoryOrder) == 1 && victim.Load(_memoryOrder) == 0) ;        
+            ++threadsPassed;
+            AssertMutualExclusion();
+            flag0.Store(0, _memoryOrder);
+            --threadsPassed;
+        }
+
+        private void Thread1()
+        {
+            flag1.Store(1, _memoryOrder);
+            victim.Store(1, _memoryOrder);            
+            while(flag0.Load(_memoryOrder) == 1 && victim.Load(_memoryOrder) == 1) ;        
+            ++threadsPassed;
+            AssertMutualExclusion();
+            flag1.Store(0, _memoryOrder);
+            --threadsPassed;
+        }
+
+        private void AssertMutualExclusion()
+        {
+            if(threadsPassed > 1)
+            {
+                //Console.WriteLine("MUTEX FAILED!");
+                Failed = true;
+            }
+        }
+        public bool Failed;
+        public void OnFinished()
+        {
+
         }
     }
 
@@ -105,54 +167,5 @@ namespace RelaSharp
         }
     }
 
-    public class PetersenTest : ITest 
-    {
-        private MemoryOrdered<int> flag0;
-        private MemoryOrdered<int> flag1;
-        private MemoryOrdered<int> turn;
-
-        public IReadOnlyList<Action> ThreadEntries { get; private set;}
-
-        public PetersenTest()
-        {
-            ThreadEntries = new List<Action>{Thread1,Thread2};
-            flag0 = new MemoryOrdered<int>();
-            flag1 = new MemoryOrdered<int>();
-        }
-
-        private void Thread1()
-        {
-            //while(true)
-            for(int i = 0; i < 10; ++i)
-            {
-                //Console.WriteLine($"Storing {i}");
-                //flag0.Load(i, MemoryOrder.Acquire);
-                Console.WriteLine($"Loaded {flag0.Load(MemoryOrder.Acquire)}");
-            }
-        }
-
-        private void Thread2()
-        {
-            //while(true)
-            for(int i = 0; i < 5; ++i)
-            {
-                Console.WriteLine($"Storing {i}");
-                flag0.Store(i, MemoryOrder.Release);
-            }
-        }
-
-        public void OnFinished()
-        {
-
-        }
-
-/*
-        void Setup()
-        {
-        //     flag0 = 0;
-        //     flag1 = 0;
-        //     turn = 0;
-        }*/
-    }
 
 }
