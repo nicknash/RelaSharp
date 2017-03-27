@@ -18,7 +18,7 @@ namespace RelaSharp
         public void RecordStore(T data, MemoryOrder mo, ShadowThread runningThread)
         {
             var storeTarget = _history.GetNext();
-            storeTarget.RecordStore(runningThread.Id, runningThread.Clock, data);
+            storeTarget.RecordStore(runningThread.Id, runningThread.Clock, mo, data);
 
             bool isAtLeastRelease = mo == MemoryOrder.Release || mo == MemoryOrder.AcquireRelease || mo == MemoryOrder.SequentiallyConsistent;
             
@@ -38,7 +38,7 @@ namespace RelaSharp
 
         public T RecordPossibleLoad(MemoryOrder mo, ShadowThread runningThread)
         {
-            var loadData = GetPossibleLoad(runningThread.VC, runningThread.Id);
+            var loadData = GetPossibleLoad(runningThread.VC, runningThread.Id, mo);
             loadData.RecordLoad(runningThread.Id, runningThread.Clock);
             bool isAtLeastAcquire = mo == MemoryOrder.Acquire || mo == MemoryOrder.AcquireRelease || mo == MemoryOrder.SequentiallyConsistent;
             var destinationClock = isAtLeastAcquire ? runningThread.VC : runningThread.Fenced; // TODO: AcquireFenced
@@ -46,7 +46,7 @@ namespace RelaSharp
             return loadData.Payload;
         }
 
-        private AccessData<T> GetPossibleLoad(VectorClock releasesAcquired, int threadId)
+        private AccessData<T> GetPossibleLoad(VectorClock releasesAcquired, int threadId, MemoryOrder mo)
         {
             int j = _history.CurrentIndex;
             int lookBack = _random.Next(_history.SizeOccupied);
@@ -59,6 +59,10 @@ namespace RelaSharp
                     Console.WriteLine("ACCESS TO UNINITIALIZED VARIABLE");
                 }
                 var accessData = _history[j];
+                if(mo == MemoryOrder.SequentiallyConsistent && accessData.LastStoreWasSequentiallyConsistent)
+                {
+                    break;
+                }
                 // Has the loading thread synchronized-with this or a later release of the last storing thread to this variable?
                 if(releasesAcquired[accessData.LastStoredThreadId] >= accessData.LastStoredThreadClock)
                 {
