@@ -14,11 +14,11 @@ namespace RelaSharp
             _storeClock = new VectorClock(numThreads);
         }
 
-        public void Store(T data, ShadowThread runningThread, Action failTest)
+        public void Store(T data, ShadowThread runningThread, Action<string> failTest)
         {
             if(_loadClock.AnyGreater(runningThread.VC) || _storeClock.AnyGreater(runningThread.VC))
             {
-                failTest();
+                failTest($"Data race detected in store on thread {runningThread.Id} @ {runningThread.Clock}");
                 return;
             }
             runningThread.IncrementClock();
@@ -27,11 +27,11 @@ namespace RelaSharp
             return;
         }
 
-        public T Load(ShadowThread runningThread, Action failTest)
+        public T Load(ShadowThread runningThread, Action<string> failTest)
         {
             if(_storeClock.AnyGreater(runningThread.VC))  
             {
-                failTest();
+                failTest($"Data race detected in load on thread {runningThread.Id} @ {runningThread.Clock}");
                 return default(T);
             }
             runningThread.IncrementClock();

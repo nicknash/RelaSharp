@@ -7,25 +7,23 @@ namespace RelaSharp
     {
         public static void Main(string[] args)
         {
-        
-            //var test = new PetersenTest();
-            //TestEnvironment.TE.RunTest(test);
-            
-            //var test2 = new PetersenTest();
-            //TestEnvironment.TE.RunTest(test2);
-            int numFailures = 0;
-            for(int i = 0; i < 100; ++i)
+            int i;
+            for(i = 0; i < 100; ++i)
             {
-                Console.WriteLine($"{i} ***************");
                 //var test = new StoreLoad();
                 var test = new PetersenTest(MemoryOrder.AcquireRelease);
                 TestEnvironment.TE.RunTest(test);         
                 if(test.Failed)
                 {
-                    numFailures++;
+            
+                    break;
                 }
             }
-            Console.WriteLine(numFailures);
+            if(TestEnvironment.TE.TestFailed)
+            {
+                Console.WriteLine($"Test failed on iteration: {i}");
+                TestEnvironment.TE.DumpExecutionLog(Console.Out);
+            }
         }
     }
 

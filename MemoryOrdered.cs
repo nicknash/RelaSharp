@@ -23,7 +23,7 @@ namespace RelaSharp
             TE.RunningThread.IncrementClock();
             var runningThread = TE.RunningThread;
             _memoryOrdered.Store(data, mo, runningThread);
-            runningThread.AddEvent(new ExecutionEvent(memberName, sourceFilePath, sourceLineNumber, $"Store ({mo}): {data}"));            
+            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Store ({mo}) --> {data}");            
         }
 
         public T Load(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
@@ -33,7 +33,7 @@ namespace RelaSharp
             TE.RunningThread.IncrementClock();
             var runningThread = TE.RunningThread;
             var result = _memoryOrdered.Load(mo, runningThread);
-            runningThread.AddEvent(new ExecutionEvent(memberName, sourceFilePath, sourceLineNumber, $"Load ({mo}): {result}"));
+            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Load ({mo}): <-- {result}");
             return result;
         }
     }

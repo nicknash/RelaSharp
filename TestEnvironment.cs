@@ -1,5 +1,8 @@
 using System;
 using System.Threading;
+using System.Collections.Generic;
+using System.Linq;
+using System.IO;
 
 namespace RelaSharp
 {
@@ -18,25 +21,20 @@ namespace RelaSharp
     class TestEnvironment
     {
         public static TestEnvironment TE = new TestEnvironment();
-
         public ShadowThread RunningThread => _shadowThreads[_runningThreadIdx];
         public int NumThreads { get; private set; }
         public int HistoryLength => 20;
-
+        public bool TestFailed { get; private set; }
+        public string TestFailureReason { get; private set;}
         private int _runningThreadIdx;
-
         private int[] _unfinishedThreadIndices;
         private int _numUnfinishedThreads; // TODO: wrap these two into a proper data structure when shape clearer.
-
         private Thread[] _threads;
         private ThreadState[] _threadStates;
         private ShadowThread[] _shadowThreads;
-   
         private Object[] _threadLocks;
-
         private Random _random = new Random();
-
-        private bool _testFailed;
+        private List<ExecutionEvent> _eventLog;
 
         private void MakeThreadFunction(Action threadFunction, int threadIdx)
         {
@@ -52,9 +50,8 @@ namespace RelaSharp
             {
                 threadFunction();
             }
-            catch(TestFailedException e)
+            catch(TestFailedException)
             {
-                Console.WriteLine($"test failed on thread {threadIdx}");
             }
             _threadStates[threadIdx] = ThreadState.Finished;
             if(_numUnfinishedThreads > 1)
@@ -70,13 +67,15 @@ namespace RelaSharp
         public void RunTest(ITest test)
         {
             NumThreads = test.ThreadEntries.Count;
-            _testFailed = false;
+            TestFailed = false;
             _threads = new Thread[NumThreads];
             _threadStates = new ThreadState[NumThreads];
             _threadLocks = new Object[NumThreads];
             _shadowThreads = new ShadowThread[NumThreads];
             _unfinishedThreadIndices = new int[NumThreads];
             _numUnfinishedThreads = NumThreads;
+            _eventLog = new List<ExecutionEvent>();
+            
             for(int i = 0; i < NumThreads; ++i)
             {
                 _unfinishedThreadIndices[i] = i;
@@ -120,7 +119,7 @@ namespace RelaSharp
         }
         public void Scheduler()
         {
-            if(_testFailed)
+            if(TestFailed)
             {
                 throw new TestFailedException();
             }
@@ -142,10 +141,61 @@ namespace RelaSharp
             }        
         }
 
-        public void FailTest()
+        public void FailTest(string reason)
         {
-            _testFailed = true;
+            TestFailed = true;
+            TestFailureReason = reason;
         }
+
+        public void RecordEvent(string callingThreadFuncName, string sourceFilePath, int sourceLineNumber, string eventInfo)
+        {
+            _eventLog.Add(new ExecutionEvent(RunningThread.Id, RunningThread.Clock, callingThreadFuncName, sourceFilePath, sourceLineNumber, eventInfo));
+        }
+
+        public void DumpExecutionLog(TextWriter output)
+        {
+            output.WriteLine("----- Begin Test Execution Log ----");
+            output.WriteLine();
+            if(TestFailed)
+            {
+                output.WriteLine($"Test failed with reason: '{TestFailureReason}'");
+            }
+            else
+            {
+                output.WriteLine($"Test passed.");
+            }
+            var directories = _eventLog.Select(e => Path.GetDirectoryName(e.SourceFilePath)).Distinct();
+            output.WriteLine();            
+            output.WriteLine($"Code executed in directories: {string.Join(",", directories)}");
+            output.WriteLine();
+            output.WriteLine("Interleaved execution log");
+            output.WriteLine("*************************");
+            for(int i = 0; i < _eventLog.Count; ++i)
+            {
+                var e = _eventLog[i];
+                var fileName = Path.GetFileName(e.SourceFilePath);
+                output.WriteLine($"[{i}] {e.ThreadId}@{e.ThreadClock} in {fileName}:{e.CallingMemberName}:{e.SourceLineNumber} | {e.EventInfo}");
+            }
+            output.WriteLine();        
+            output.WriteLine("Individual thread logs");
+            output.WriteLine("**********************");
+            for(int i = 0; i < NumThreads; ++i)
+            {
+                output.WriteLine($"Thread {i}");
+                output.WriteLine("--------");
+                for(int j = 0; j < _eventLog.Count; ++j)
+                {
+                    var e = _eventLog[j];
+                    if(e.ThreadId == i)
+                    {
+                        var fileName = Path.GetFileName(e.SourceFilePath);
+                        output.WriteLine($"[{j}] {e.ThreadId}@{e.ThreadClock} in {fileName}:{e.CallingMemberName}:{e.SourceLineNumber} | {e.EventInfo}");
+                    }
+                }
+            }
+            output.WriteLine("----- End Test Execution Log ----");
+        }
+
 
         private int GetNextThreadIdx()
         {

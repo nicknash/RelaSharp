@@ -1,10 +1,6 @@
+
 namespace RelaSharp
 {
-    class ExecutionLog 
-    {
-
-    }
-
     class ShadowThread
     {
         public long Clock => VC[Id];
@@ -12,6 +8,7 @@ namespace RelaSharp
         public readonly VectorClock VC; // TODO: Think about better names for these. "ReleasesAcquired" ?
         public readonly VectorClock Fenced; // TODO: Need separate acquire and release fences
         public readonly int Id;
+
 
         public ShadowThread(int id, int numThreads)
         {
@@ -24,11 +21,5 @@ namespace RelaSharp
         {
             VC[Id]++;
         }
-
-        public void AddEvent(ExecutionEvent executionEvent)
-        {
-            System.Console.WriteLine(executionEvent.ToString()); // TODO: Add to event log.
-        }
-
     }
 }
