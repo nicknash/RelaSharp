@@ -10,12 +10,11 @@ namespace RelaSharp
             int i;
             for(i = 0; i < 100; ++i)
             {
-                //var test = new StoreLoad();
+               // var test = new StoreLoad();
                 var test = new PetersenTest(MemoryOrder.AcquireRelease);
                 TestEnvironment.TE.RunTest(test);         
-                if(test.Failed)
+                if(TestEnvironment.TE.TestFailed)
                 {
-            
                     break;
                 }
             }
@@ -24,11 +23,16 @@ namespace RelaSharp
                 Console.WriteLine($"Test failed on iteration: {i}");
                 TestEnvironment.TE.DumpExecutionLog(Console.Out);
             }
+            else
+            {
+                Console.WriteLine($"No failures after: {i} iterations");
+            }
         }
     }
 
     class PetersenTest : ITest 
     {
+        private static TestEnvironment TE = TestEnvironment.TE;
         private MemoryOrdered<int> flag0;
         private MemoryOrdered<int> flag1;
         private MemoryOrdered<int> victim;
@@ -36,7 +40,7 @@ namespace RelaSharp
         private MemoryOrder _memoryOrder;
         public IReadOnlyList<Action> ThreadEntries { get; private set;}
 
-        int threadsPassed = 0;
+        int _threadsPassed = 0;
 
         public PetersenTest(MemoryOrder memoryOrder)
         {
@@ -53,11 +57,11 @@ namespace RelaSharp
             flag0.Store(1, _memoryOrder);
             victim.Store(0, _memoryOrder);            
             while(flag1.Load(_memoryOrder) == 1 && victim.Load(_memoryOrder) == 0) ;        
-            _canary.Store(25);
-            ++threadsPassed;
-            AssertMutualExclusion();
+            //_canary.Store(25);
+            ++_threadsPassed;
+            TE.Assert(_threadsPassed == 1, $"Mutual exclusion not achieved, {_threadsPassed} threads currently in critical section!");            
             flag0.Store(0, _memoryOrder);
-            --threadsPassed;
+            --_threadsPassed;
         }
 
         private void Thread1()
@@ -65,22 +69,13 @@ namespace RelaSharp
             flag1.Store(1, _memoryOrder);
             victim.Store(1, _memoryOrder);            
             while(flag0.Load(_memoryOrder) == 1 && victim.Load(_memoryOrder) == 1) ;        
-            _canary.Store(25);
-            ++threadsPassed;
-            AssertMutualExclusion();
+            ++_threadsPassed;
+            TE.Assert(_threadsPassed == 1, $"Mutual exclusion not achieved, {_threadsPassed} threads currently in critical section!");
+            //_canary.Store(25);
             flag1.Store(0, _memoryOrder);
-            --threadsPassed;
+            --_threadsPassed;
         }
 
-        private void AssertMutualExclusion()
-        {
-            if(threadsPassed > 1)
-            {
-                //Console.WriteLine("MUTEX FAILED!");
-                Failed = true;
-            }
-        }
-        public bool Failed;
         public void OnFinished()
         {
 
