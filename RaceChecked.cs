@@ -9,13 +9,13 @@ namespace RelaSharp
         public void Store(T data)
         {
             MaybeInit();
-            _raceChecked.Store(data, TE.RunningThread);
+            _raceChecked.Store(data, TE.RunningThread, TE.FailTest);
         }
 
         public T Load()
         {
             MaybeInit();
-            return _raceChecked.Load(TE.RunningThread);
+            return _raceChecked.Load(TE.RunningThread, TE.FailTest);
         }
 
         private void MaybeInit()
@@ -23,7 +23,7 @@ namespace RelaSharp
             if(_raceChecked == null)
             {
                 _raceChecked = new InternalRaceChecked<T>(TE.NumThreads);
-                _raceChecked.Store(default(T), TE.RunningThread);
+                _raceChecked.Store(default(T), TE.RunningThread, TE.FailTest);
             }
         }
     }    

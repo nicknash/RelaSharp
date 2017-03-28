@@ -10,6 +10,11 @@ namespace RelaSharp
         Finished
     }
     
+    class TestFailedException : Exception 
+    {
+
+    }
+
     class TestEnvironment
     {
         public static TestEnvironment TE = new TestEnvironment();
@@ -29,8 +34,9 @@ namespace RelaSharp
    
         private Object[] _threadLocks;
 
-
         private Random _random = new Random();
+
+        private bool _testFailed;
 
         private void MakeThreadFunction(Action threadFunction, int threadIdx)
         {
@@ -42,7 +48,14 @@ namespace RelaSharp
                 Monitor.Pulse(l);                
                 Monitor.Wait(l);
             }
-            threadFunction();
+            try
+            {
+                threadFunction();
+            }
+            catch(TestFailedException e)
+            {
+                Console.WriteLine($"test failed on thread {threadIdx}");
+            }
             _threadStates[threadIdx] = ThreadState.Finished;
             if(_numUnfinishedThreads > 1)
             {
@@ -50,13 +63,7 @@ namespace RelaSharp
                 _unfinishedThreadIndices[i] = _unfinishedThreadIndices[_numUnfinishedThreads - 1];
                 _numUnfinishedThreads--;
                 int nextIdx = GetNextThreadIdx(); 
-               // Console.WriteLine($"Thread {threadIdx} completed. Going to wake: {nextIdx}");
-                Console.Out.Flush();            
                 WakeThread(nextIdx);
-            }
-            else
-            {
-                //Console.WriteLine($"I'm the last thread ({threadIdx}) Nobody to wake");
             }
         }
 
@@ -111,9 +118,12 @@ namespace RelaSharp
                 Monitor.Pulse(l);
             }
         }
-
         public void Scheduler()
         {
+            if(_testFailed)
+            {
+                throw new TestFailedException();
+            }
             int prevThreadIdx = _runningThreadIdx;
             int nextThreadIdx = GetNextThreadIdx();
             if(nextThreadIdx == prevThreadIdx)
@@ -129,9 +139,14 @@ namespace RelaSharp
                 {
                     Monitor.Wait(runningLock);
                 }
-
             }        
         }
+
+        public void FailTest()
+        {
+            _testFailed = true;
+        }
+
 
         private int GetNextThreadIdx()
         {

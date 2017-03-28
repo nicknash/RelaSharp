@@ -23,7 +23,7 @@ namespace RelaSharp
         {
             if(Size != other.Size)
             {
-                throw new Exception($"Cannot compare vector clocks of different sizes, this size = {Size}, other size = {other.Size}");
+                throw new Exception($"Cannot operate on vector clocks of different sizes, this size = {Size}, other size = {other.Size}");
             }
         }
 

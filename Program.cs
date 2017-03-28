@@ -14,11 +14,11 @@ namespace RelaSharp
             //var test2 = new PetersenTest();
             //TestEnvironment.TE.RunTest(test2);
             int numFailures = 0;
-            for(int i = 0; i < 50000; ++i)
+            for(int i = 0; i < 100; ++i)
             {
                 //Console.WriteLine($"{i} ***************");
                 //var test = new StoreLoad();
-                var test = new PetersenTest(MemoryOrder.Relaxed);
+                var test = new PetersenTest(MemoryOrder.AcquireRelease);
                 TestEnvironment.TE.RunTest(test);         
                 if(test.Failed)
                 {
@@ -34,6 +34,7 @@ namespace RelaSharp
         private MemoryOrdered<int> flag0;
         private MemoryOrdered<int> flag1;
         private MemoryOrdered<int> victim;
+        private RaceChecked<int> _canary;
         private MemoryOrder _memoryOrder;
         public IReadOnlyList<Action> ThreadEntries { get; private set;}
 
@@ -46,6 +47,7 @@ namespace RelaSharp
             flag0 = new MemoryOrdered<int>();
             flag1 = new MemoryOrdered<int>();
             victim = new MemoryOrdered<int>();
+            _canary = new RaceChecked<int>();
         }
 
         private void Thread0()
@@ -53,6 +55,7 @@ namespace RelaSharp
             flag0.Store(1, _memoryOrder);
             victim.Store(0, _memoryOrder);            
             while(flag1.Load(_memoryOrder) == 1 && victim.Load(_memoryOrder) == 0) ;        
+            _canary.Store(25);
             ++threadsPassed;
             AssertMutualExclusion();
             flag0.Store(0, _memoryOrder);
@@ -64,6 +67,7 @@ namespace RelaSharp
             flag1.Store(1, _memoryOrder);
             victim.Store(1, _memoryOrder);            
             while(flag0.Load(_memoryOrder) == 1 && victim.Load(_memoryOrder) == 1) ;        
+            _canary.Store(25);
             ++threadsPassed;
             AssertMutualExclusion();
             flag1.Store(0, _memoryOrder);

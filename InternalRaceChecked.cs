@@ -1,3 +1,5 @@
+using System;
+
 namespace RelaSharp
 {
     class InternalRaceChecked<T>
@@ -12,26 +14,25 @@ namespace RelaSharp
             _storeClock = new VectorClock(numThreads);
         }
 
-        public void Store(T data, ShadowThread runningThread)
+        public void Store(T data, ShadowThread runningThread, Action failTest)
         {
-            if(_loadClock.AnyGreater(runningThread.VC))
+            if(_loadClock.AnyGreater(runningThread.VC) || _storeClock.AnyGreater(runningThread.VC))
             {
-                // DATA RACE 
-            }
-            if(_storeClock.AnyGreater(runningThread.VC))
-            {
-                // DATA RACE 
+                failTest("Data race detected");
+                return;
             }
             runningThread.IncrementClock();
             _storeClock[runningThread.Id] = runningThread.Clock;
             _data = data;
+            return;
         }
 
-        public T Load(ShadowThread runningThread)
+        public T Load(ShadowThread runningThread, Action failTest)
         {
             if(_storeClock.AnyGreater(runningThread.VC))  
             {
-                // DATA RACE 
+                failTest("Data race detected");
+                return default(T);
             }
             runningThread.IncrementClock();
             _loadClock[runningThread.Id] = runningThread.Clock;
