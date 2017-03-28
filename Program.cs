@@ -10,8 +10,8 @@ namespace RelaSharp
             int i;
             for(i = 0; i < 100; ++i)
             {
-               // var test = new StoreLoad();
-                var test = new PetersenTest(MemoryOrder.AcquireRelease);
+                var test = new StoreLoad();
+                //var test = new PetersenTest(MemoryOrder.AcquireRelease);
                 TestEnvironment.TE.RunTest(test);         
                 if(TestEnvironment.TE.TestFailed)
                 {
@@ -85,6 +85,7 @@ namespace RelaSharp
     public class StoreLoad : ITest 
     {
         public IReadOnlyList<Action> ThreadEntries { get; private set; }
+        private static TestEnvironment TE = TestEnvironment.TE;
 
         private MemoryOrdered<int> x0, x1;
 
@@ -112,14 +113,8 @@ namespace RelaSharp
         public void OnFinished()
         {
             // This is kinda weird, what's the calling thread??
-            if(y0 == 0 && y1 == 0)
-            {
-                Console.WriteLine("Both zero!");
-            }
-            else
-            {
-                Console.WriteLine($"{y0},{y1}");
-            }
+            // Should throw an exception if any MemoryOrdered or RaceChecked are touched.
+            TE.Assert(y0 != 0 || y1 != 0, "Both of y0 and y1 are zero! (store load reordering!)");
         }
     }
 
