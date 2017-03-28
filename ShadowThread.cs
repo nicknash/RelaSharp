@@ -1,5 +1,10 @@
 namespace RelaSharp
 {
+    class ExecutionLog 
+    {
+
+    }
+
     class ShadowThread
     {
         public long Clock => VC[Id];
@@ -18,7 +23,12 @@ namespace RelaSharp
         public void IncrementClock()
         {
             VC[Id]++;
-            //Console.WriteLine($"Thread {Id} clock is {Clock}");
         }
+
+        public void AddEvent(ExecutionEvent executionEvent)
+        {
+            System.Console.WriteLine(executionEvent.ToString()); // TODO: Add to event log.
+        }
+
     }
 }

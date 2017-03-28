@@ -70,7 +70,7 @@ namespace RelaSharp
         public void RunTest(ITest test)
         {
             NumThreads = test.ThreadEntries.Count;
-
+            _testFailed = false;
             _threads = new Thread[NumThreads];
             _threadStates = new ThreadState[NumThreads];
             _threadLocks = new Object[NumThreads];
@@ -146,7 +146,6 @@ namespace RelaSharp
         {
             _testFailed = true;
         }
-
 
         private int GetNextThreadIdx()
         {

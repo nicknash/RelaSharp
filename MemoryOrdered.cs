@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace RelaSharp
 {
     class MemoryOrdered<T> // TODO: restrict to atomic types.
@@ -14,20 +16,25 @@ namespace RelaSharp
             }
         }
 
-        public void Store(T data, MemoryOrder mo)
+        public void Store(T data, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             MaybeInit();
             TE.Scheduler();
             TE.RunningThread.IncrementClock();
-            _memoryOrdered.Store(data, mo, TE.RunningThread);
+            var runningThread = TE.RunningThread;
+            _memoryOrdered.Store(data, mo, runningThread);
+            runningThread.AddEvent(new ExecutionEvent(memberName, sourceFilePath, sourceLineNumber, $"Store ({mo}): {data}"));            
         }
 
-        public T Load(MemoryOrder mo)
+        public T Load(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             MaybeInit();
             TE.Scheduler();
             TE.RunningThread.IncrementClock();
-            return _memoryOrdered.Load(mo, TE.RunningThread);
+            var runningThread = TE.RunningThread;
+            var result = _memoryOrdered.Load(mo, runningThread);
+            runningThread.AddEvent(new ExecutionEvent(memberName, sourceFilePath, sourceLineNumber, $"Load ({mo}): {result}"));
+            return result;
         }
     }
 }

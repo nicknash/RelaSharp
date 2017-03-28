@@ -18,7 +18,7 @@ namespace RelaSharp
         {
             if(_loadClock.AnyGreater(runningThread.VC) || _storeClock.AnyGreater(runningThread.VC))
             {
-                failTest("Data race detected");
+                failTest();
                 return;
             }
             runningThread.IncrementClock();
@@ -31,7 +31,7 @@ namespace RelaSharp
         {
             if(_storeClock.AnyGreater(runningThread.VC))  
             {
-                failTest("Data race detected");
+                failTest();
                 return default(T);
             }
             runningThread.IncrementClock();

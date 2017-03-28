@@ -16,7 +16,7 @@ namespace RelaSharp
             int numFailures = 0;
             for(int i = 0; i < 100; ++i)
             {
-                //Console.WriteLine($"{i} ***************");
+                Console.WriteLine($"{i} ***************");
                 //var test = new StoreLoad();
                 var test = new PetersenTest(MemoryOrder.AcquireRelease);
                 TestEnvironment.TE.RunTest(test);         
