@@ -35,6 +35,7 @@ namespace RelaSharp
         private Object[] _threadLocks;
         private Random _random = new Random();
         private List<ExecutionEvent> _eventLog;
+        private object _runningThreadLock = new object();
 
         private void MakeThreadFunction(Action threadFunction, int threadIdx)
         {
@@ -48,11 +49,13 @@ namespace RelaSharp
             }
             try
             {
+                Monitor.Enter(_runningThreadLock);
                 threadFunction();
             }
             catch(TestFailedException)
             {
             }
+            Monitor.Exit(_runningThreadLock);
             _threadStates[threadIdx] = ThreadState.Finished;
             if(_numUnfinishedThreads > 1)
             {
@@ -134,11 +137,13 @@ namespace RelaSharp
             var runningLock = _threadLocks[prevThreadIdx];
             lock(runningLock)
             {
+                Monitor.Exit(_runningThreadLock);
                 while(_threadStates[prevThreadIdx] == ThreadState.Blocked) // I may get here, and be woken before I got a chance to sleep. That's OK. 
                 {
                     Monitor.Wait(runningLock);
                 }
-            }        
+            }
+            Monitor.Enter(_runningThreadLock);        
         }
 
         public void Assert(bool shouldBeTrue, string reason)
