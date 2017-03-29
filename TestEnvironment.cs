@@ -141,9 +141,9 @@ namespace RelaSharp
             }        
         }
 
-        public void Assert(bool condition, string reason)
+        public void Assert(bool shouldBeTrue, string reason)
         {
-            if(!condition)
+            if(!shouldBeTrue)
             {
                 FailTest(reason);
             }
