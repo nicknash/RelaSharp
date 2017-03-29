@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace RelaSharp
 {
@@ -8,11 +9,14 @@ namespace RelaSharp
         public static void Main(string[] args)
         {
             int i;
-            for(i = 0; i < 100; ++i)
+            var sw = new Stopwatch();
+            int numIterations = 10000;
+            sw.Start();
+            for(i = 0; i < numIterations; ++i)
             {
-                var test = new WhoIsFirst(MemoryOrder.AcquireRelease);
                 //var test = new StoreLoad();
                 //var test = new PetersenTest(MemoryOrder.AcquireRelease);
+                var test = new TotalOrderTest(MemoryOrder.AcquireRelease);
                 TestEnvironment.TE.RunTest(test);         
                 if(TestEnvironment.TE.TestFailed)
                 {
@@ -28,6 +32,7 @@ namespace RelaSharp
             {
                 Console.WriteLine($"No failures after {i} iterations");
             }
+            Console.WriteLine($"Tested {i / sw.Elapsed.TotalSeconds} executions per second");
         }
     }
 
@@ -83,46 +88,82 @@ namespace RelaSharp
         }
     }
 
-    class WhoIsFirst : ITest 
+    class TotalOrderTest : ITest 
     {
-        public IReadOnlyList<Action> ThreadEntries { get; private set; }
         private static TestEnvironment TE = TestEnvironment.TE;
 
-        private MemoryOrdered<int> x, y;
+        private MemoryOrdered<int> a, b;
+        private int c, d;
+        private MemoryOrder _mo;
 
-        private MemoryOrder _memoryOrder;
-
-        private int y0, y1;
-        private bool _thread1IsFirst;
-        private bool _thread2IsFirst;
-
-        public WhoIsFirst(MemoryOrder memoryOrder)
+        public IReadOnlyList<Action> ThreadEntries { get; private set;}
+    
+        public TotalOrderTest(MemoryOrder mo)
         {
-            _memoryOrder = memoryOrder;
-            ThreadEntries = new List<Action> {Thread1,Thread2};
-            x = new MemoryOrdered<int>();
-            y = new MemoryOrdered<int>();
+            _mo = mo;
+            a = new MemoryOrdered<int>();
+            b = new MemoryOrdered<int>();
+            ThreadEntries = new List<Action> {Thread0, Thread1, Thread2, Thread3};
+        }
+
+        public void Thread0()
+        {
+            a.Store(1, _mo);
         }
 
         public void Thread1()
         {
-            x.Store(1, _memoryOrder);
-            _thread1IsFirst = y.Load(_memoryOrder) == 0;
-        }
+            b.Store(1, _mo);
+        } 
 
         public void Thread2()
         {
-             y.Store(1, _memoryOrder);
-            _thread2IsFirst = x.Load(_memoryOrder) == 0;
-       }
+            if(a.Load(_mo) == 1 && b.Load(_mo) == 0)
+            {
+                c = 1;
+            }
+        }
+
+        public void Thread3()
+        {
+            if(b.Load(_mo) == 1 && a.Load(_mo) == 0)
+            {
+                d = 1;
+            }
+        }
 
         public void OnFinished()
         {
-            TE.Assert(!_thread1IsFirst || !_thread2IsFirst, "Both threads were first! (store load reordering!)");
+            TE.Assert(c + d != 2, $"c + d == {c + d} ; neither of Thread0 or Thread1 ran first!");            
         }
     }
+/*
+shared int a,b = 0,0;
+result int c,d = 0,0;
 
+thread1 :
+  a = 1;
 
+thread2 : 
+  b = 1;
+
+thread3 :
+  local int A = a;
+  local int B = b;
+  if ( A == 1 && B == 0 )
+    c = 1;
+
+thread4 :
+  local int B = b;
+  local int A = a;
+  if ( B == 1 && A == 0 )
+    d = 1;
+
+// invariant :
+
+if memory order is seq_cst then (c+d) == 2 is impossible
+any other memory order and (c+d) == 2 is possible
+*/
     public class StoreLoad : ITest 
     {
         public IReadOnlyList<Action> ThreadEntries { get; private set; }
