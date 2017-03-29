@@ -10,7 +10,8 @@ namespace RelaSharp
             int i;
             for(i = 0; i < 100; ++i)
             {
-                var test = new StoreLoad();
+                var test = new WhoIsFirst(MemoryOrder.AcquireRelease);
+                //var test = new StoreLoad();
                 //var test = new PetersenTest(MemoryOrder.AcquireRelease);
                 TestEnvironment.TE.RunTest(test);         
                 if(TestEnvironment.TE.TestFailed)
@@ -25,7 +26,7 @@ namespace RelaSharp
             }
             else
             {
-                Console.WriteLine($"No failures after: {i} iterations");
+                Console.WriteLine($"No failures after {i} iterations");
             }
         }
     }
@@ -81,6 +82,46 @@ namespace RelaSharp
 
         }
     }
+
+    class WhoIsFirst : ITest 
+    {
+        public IReadOnlyList<Action> ThreadEntries { get; private set; }
+        private static TestEnvironment TE = TestEnvironment.TE;
+
+        private MemoryOrdered<int> x, y;
+
+        private MemoryOrder _memoryOrder;
+
+        private int y0, y1;
+        private bool _thread1IsFirst;
+        private bool _thread2IsFirst;
+
+        public WhoIsFirst(MemoryOrder memoryOrder)
+        {
+            _memoryOrder = memoryOrder;
+            ThreadEntries = new List<Action> {Thread1,Thread2};
+            x = new MemoryOrdered<int>();
+            y = new MemoryOrdered<int>();
+        }
+
+        public void Thread1()
+        {
+            x.Store(1, _memoryOrder);
+            _thread1IsFirst = y.Load(_memoryOrder) == 0;
+        }
+
+        public void Thread2()
+        {
+             y.Store(1, _memoryOrder);
+            _thread2IsFirst = x.Load(_memoryOrder) == 0;
+       }
+
+        public void OnFinished()
+        {
+            TE.Assert(!_thread1IsFirst || !_thread2IsFirst, "Both threads were first! (store load reordering!)");
+        }
+    }
+
 
     public class StoreLoad : ITest 
     {
