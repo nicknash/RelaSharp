@@ -4,6 +4,8 @@ namespace RelaSharp
     {
         private AccessHistory<T> _history;
 
+        public T CurrentValue => _history.CurrentValue;
+
         public InternalMemoryOrdered(int historyLength, int numThreads)
         {
             _history = new AccessHistory<T>(historyLength, numThreads);

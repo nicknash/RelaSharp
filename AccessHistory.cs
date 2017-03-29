@@ -8,6 +8,8 @@ namespace RelaSharp
         private readonly int _numThreads;
         private readonly Random _random;
 
+        public T CurrentValue => _history[_history.CurrentIndex].Payload;
+
         public AccessHistory(int length, int numThreads)
         {
             _history = new AccessDataPool<T>(length, numThreads);
