@@ -4,6 +4,13 @@ using System.Diagnostics;
 
 namespace RelaSharp
 {
+    class RInterlocked<T> where T : IEquatable<T>
+    {
+        private MemoryOrdered<T> _data;
+
+    }
+
+
     public class Program
     {
         public static void Main(string[] args)
@@ -137,33 +144,7 @@ namespace RelaSharp
             TE.Assert(c + d != 2, $"c + d == {c + d} ; neither of Thread0 or Thread1 ran first!");            
         }
     }
-/*
-shared int a,b = 0,0;
-result int c,d = 0,0;
 
-thread1 :
-  a = 1;
-
-thread2 : 
-  b = 1;
-
-thread3 :
-  local int A = a;
-  local int B = b;
-  if ( A == 1 && B == 0 )
-    c = 1;
-
-thread4 :
-  local int B = b;
-  local int A = a;
-  if ( B == 1 && A == 0 )
-    d = 1;
-
-// invariant :
-
-if memory order is seq_cst then (c+d) == 2 is impossible
-any other memory order and (c+d) == 2 is possible
-*/
     public class StoreLoad : ITest 
     {
         public IReadOnlyList<Action> ThreadEntries { get; private set; }

@@ -2,17 +2,7 @@ using System.Runtime.CompilerServices;
 
 namespace RelaSharp
 {
-    class RVolatile
-    {
-
-    }
-
-    class RInterlocked
-    {
-
-    }
-
-    class MemoryOrdered<T> where T : struct, System.IEquatable<T> // TODO: restrict to atomic types.
+    class MemoryOrdered<T> where T : System.IEquatable<T> // TODO: restrict to atomic types.
     {
         private static TestEnvironment TE = TestEnvironment.TE;
         private InternalMemoryOrdered<T> _memoryOrdered;
