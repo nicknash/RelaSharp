@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 namespace RelaSharp
 {
@@ -8,6 +10,47 @@ namespace RelaSharp
     {
         private MemoryOrdered<T> _data;
 
+        private int y = 12345;
+
+
+        private HashSet<long> seen = new HashSet<long>();
+        private List<GCHandle> handles = new List<GCHandle>();
+        public unsafe void f(ref int x)
+        {
+            fixed(int* p = &x)
+            {
+                long q = (long) p;
+                if(seen.Add(q))
+                {
+                    Console.WriteLine(q);
+                    GCHandle pin = GCHandle.Alloc(x, GCHandleType.Pinned);
+                    GCHandle pin2 = GCHandle.Alloc(*p, GCHandleType.Pinned);
+                    Console.WriteLine(pin.AddrOfPinnedObject());
+                    handles.Add(pin);            
+                }
+                /*if(seen.Count > 1)
+                {
+                    Console.WriteLine("MOVED");
+                }*/
+                //Console.WriteLine(q);
+            }
+            /*
+            GCHandle pin = GCHandle.Alloc(x, GCHandleType.Pinned);
+            x = 98765;
+            Console.WriteLine(pin.AddrOfPinnedObject());
+            */
+        }
+
+        public void g()
+        {
+            for(int i = 0; i < 100000; ++i) 
+            {
+                int[] x = new int[1234];
+                //GC.Collect();
+                f(ref y);
+            }
+            Console.WriteLine(y);
+        }
     }
 
 
@@ -23,7 +66,8 @@ namespace RelaSharp
             {
                 //var test = new StoreLoad();
                 //var test = new PetersenTest(MemoryOrder.AcquireRelease);
-                var test = new TotalOrderTest(MemoryOrder.AcquireRelease);
+                //var test = new TotalOrderTest(MemoryOrder.AcquireRelease);
+                var test = new BoundedSPSCQueueTest(MemoryOrder.Relaxed, 3);
                 TestEnvironment.TE.RunTest(test);         
                 if(TestEnvironment.TE.TestFailed)
                 {
@@ -42,6 +86,104 @@ namespace RelaSharp
             Console.WriteLine($"Tested {i / sw.Elapsed.TotalSeconds} executions per second");
         }
     }
+
+    class BoundedSPSCQueueTest : ITest
+    {
+        class BoundedSPSCQueue 
+        {
+            private MemoryOrdered<object>[] _data;
+            private RaceChecked<int> _read = new RaceChecked<int>();
+            private RaceChecked<int> _write = new RaceChecked<int>();
+
+            private int _size;
+
+            private MemoryOrder _memoryOrder;
+            public BoundedSPSCQueue(int size, MemoryOrder memoryOrder)
+            {
+                _data = new MemoryOrdered<object>[size];
+                for(int i = 0; i < size; ++i)
+                {
+                    _data[i] = new MemoryOrdered<object>();
+                }
+                _size = size;
+                _memoryOrder = memoryOrder;
+            }
+
+            public bool Enqueue(object x)
+            {
+                var w = _write.Load();
+                if(_data[w].Load(_memoryOrder) != null)
+                {
+                    return false;
+                }
+                _data[w].Store(x, _memoryOrder);
+                _write.Store((w + 1) % _size);
+                return true;
+            }
+
+            public object Dequeue()
+            {
+                var r = _read.Load();
+                var result = _data[r].Load(_memoryOrder);
+                if(result == null)
+                {
+                    return null;
+                }
+                _data[r].Store(null, _memoryOrder);
+                _read.Store((r + 1) % _size);
+                return result;
+            }
+        
+        }
+        public IReadOnlyList<Action> ThreadEntries { get; private set;}
+
+        private BoundedSPSCQueue _queue;
+
+        private MemoryOrder _memoryOrder;
+
+        private int _size;
+
+        public BoundedSPSCQueueTest(MemoryOrder memoryOrder, int size)
+        {
+            ThreadEntries = new List<Action>{Producer, Consumer};
+            _queue = new BoundedSPSCQueue(size, memoryOrder);
+            _memoryOrder = memoryOrder;
+            _size = size;
+        }
+        private static TestEnvironment TE = TestEnvironment.TE;
+
+        private void Producer()
+        {
+            for(int i = 0; i < _size; ++i)
+            {
+                var x = new MemoryOrdered<int>();
+                x.Store(i, MemoryOrder.Relaxed);
+                _queue.Enqueue(x);
+            }
+        }
+
+        private void Consumer()
+        {
+            int numDequeued = 0;
+            while(numDequeued < _size)
+            {
+                var x = _queue.Dequeue();
+                if(x != null)
+                {
+                    var y = (MemoryOrdered<int>) x;
+                    var z = y.Load(MemoryOrder.Relaxed);
+                    TE.Assert(z == numDequeued, $"Partially constructed object detected: value = {z}, numDequeued = {numDequeued}");
+                    numDequeued++;
+                }
+            }
+        }
+
+        public void OnFinished()
+        {
+
+        }
+    }
+
 
     class PetersenTest : ITest 
     {
