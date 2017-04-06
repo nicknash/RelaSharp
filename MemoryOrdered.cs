@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 
 namespace RelaSharp
 {
-    class MemoryOrdered<T> where T : System.IEquatable<T> // TODO: restrict to atomic types.
+    class MemoryOrdered<T> //where T : System.IEquatable<T> // TODO: restrict to atomic types.
     {
         private static TestEnvironment TE = TestEnvironment.TE;
         private InternalMemoryOrdered<T> _memoryOrdered;
@@ -38,6 +38,11 @@ namespace RelaSharp
             return result;
         }
 
+        public override string ToString()
+        {
+            return _memoryOrdered.CurrentValue.ToString();
+        }
+/*
         public bool CompareExchange(T comparand, T newData, MemoryOrder mo)
         {
             //T currentData = // get
@@ -48,7 +53,7 @@ namespace RelaSharp
             }
             // TODO: Implement successful path
             return true;
-        }
+        }*/
     }
 }
 
