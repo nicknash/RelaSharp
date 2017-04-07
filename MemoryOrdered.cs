@@ -2,6 +2,14 @@ using System.Runtime.CompilerServices;
 
 namespace RelaSharp
 {
+    class Fence
+    {
+        public static void Fence(MemoryOrder mo)
+        {
+
+        }
+    }
+
     class MemoryOrdered<T> //where T : System.IEquatable<T> // TODO: restrict to atomic types.
     {
         private static TestEnvironment TE = TestEnvironment.TE;
