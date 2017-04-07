@@ -36,13 +36,7 @@ namespace RelaSharp
             return result;
         }
 
-        public static void Fence(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
-        {
-            TE.Scheduler();
-            var runningThread = TE.RunningThread;
-            runningThread.Fence(mo);
-            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Fence: {mo}");
-        }
+ 
 
         public override string ToString()
         {
