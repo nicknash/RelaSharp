@@ -60,7 +60,7 @@ namespace RelaSharp
         {
             int i;
             var sw = new Stopwatch();
-            int numIterations = 10000;
+            int numIterations = 25000;
             sw.Start();
             for(i = 0; i < numIterations; ++i)
             {
@@ -116,6 +116,7 @@ namespace RelaSharp
                 {
                     return false;
                 }
+                Fence.Insert(MemoryOrder.Release);
                 _data[w].Store(x, _memoryOrder);
                 _write.Store((w + 1) % _size);
                 return true;
@@ -125,6 +126,7 @@ namespace RelaSharp
             {
                 var r = _read.Load();
                 var result = _data[r].Load(_memoryOrder);
+                Fence.Insert(MemoryOrder.Acquire);
                 if(result == null)
                 {
                     return null;
@@ -157,7 +159,7 @@ namespace RelaSharp
             for(int i = 0; i < _size; ++i)
             {
                 var x = new MemoryOrdered<int>();
-                x.Store(i, MemoryOrder.Relaxed);
+                x.Store(123 + i, MemoryOrder.Relaxed);
                 _queue.Enqueue(x);
             }
         }
@@ -172,7 +174,7 @@ namespace RelaSharp
                 {
                     var y = (MemoryOrdered<int>) x;
                     var z = y.Load(MemoryOrder.Relaxed);
-                    TE.Assert(z == numDequeued, $"Partially constructed object detected: value = {z}, numDequeued = {numDequeued}");
+                    TE.Assert(z == 123 + numDequeued, $"Partially constructed object detected: value = {z}, numDequeued = {numDequeued}");
                     numDequeued++;
                 }
             }
