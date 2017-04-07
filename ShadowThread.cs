@@ -42,11 +42,11 @@ namespace RelaSharp
 
         private void AcquireFence()
         {
-            ReleasesAcquired.Join(FenceReleasesAcquired); // TODO: BACKWARDS! 
+            ReleasesAcquired.Join(FenceReleasesToAcquire); // TODO: BACKWARDS! 
         }
         private void ReleaseFence()
         {
-            FenceReleasesToAcquire.Join(ReleasesAcquired);
+            FenceReleasesAcquired.Assign(ReleasesAcquired);
         }
         private void AcquireReleaseFence()
         {
