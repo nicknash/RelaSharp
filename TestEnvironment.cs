@@ -3,6 +3,7 @@ using System.Threading;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
+using System.Runtime.CompilerServices;
 
 namespace RelaSharp
 {
@@ -146,8 +147,10 @@ namespace RelaSharp
             Monitor.Enter(_runningThreadLock);        
         }
 
-        public void Assert(bool shouldBeTrue, string reason)
+        public void Assert(bool shouldBeTrue, string reason, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
+            string assertResult = shouldBeTrue ? "passed" : "failed";
+            RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Assert ({assertResult}): {reason}");
             if(!shouldBeTrue)
             {
                 FailTest(reason);
