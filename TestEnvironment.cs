@@ -138,7 +138,7 @@ namespace RelaSharp
             lock(runningLock)
             {
                 Monitor.Exit(_runningThreadLock);
-                while(_threadStates[prevThreadIdx] == ThreadState.Blocked) // I may get here, and be woken before I got a chance to sleep. That's OK. 
+                while(_threadStates[prevThreadIdx] == ThreadState.Blocked)
                 {
                     Monitor.Wait(runningLock);
                 }

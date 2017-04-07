@@ -16,7 +16,7 @@ namespace RelaSharp
 
         public void Store(T data, ShadowThread runningThread, Action<string> failTest)
         {
-            if(_loadClock.AnyGreater(runningThread.VC) || _storeClock.AnyGreater(runningThread.VC))
+            if(_loadClock.AnyGreater(runningThread.ReleasesAcquired) || _storeClock.AnyGreater(runningThread.ReleasesAcquired))
             {
                 failTest($"Data race detected in store on thread {runningThread.Id} @ {runningThread.Clock}");
                 return;
@@ -29,7 +29,7 @@ namespace RelaSharp
 
         public T Load(ShadowThread runningThread, Action<string> failTest)
         {
-            if(_storeClock.AnyGreater(runningThread.VC))  
+            if(_storeClock.AnyGreater(runningThread.ReleasesAcquired))  
             {
                 failTest($"Data race detected in load on thread {runningThread.Id} @ {runningThread.Clock}");
                 return default(T);

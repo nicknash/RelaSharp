@@ -24,7 +24,7 @@ namespace RelaSharp
 
             bool isAtLeastRelease = mo == MemoryOrder.Release || mo == MemoryOrder.AcquireRelease || mo == MemoryOrder.SequentiallyConsistent;
             
-            var sourceClock = isAtLeastRelease ? runningThread.VC : runningThread.Fenced;
+            var sourceClock = isAtLeastRelease ? runningThread.ReleasesAcquired : runningThread.Fenced;
             var previous = _history[_history.CurrentIndex - 1];
             bool isReleaseSequence = previous.IsInitialized && previous.LastStoredThreadId == runningThread.Id; // TODO: OR this is part of a read-modify-write
             if(isReleaseSequence)
@@ -40,10 +40,10 @@ namespace RelaSharp
 
         public T RecordPossibleLoad(MemoryOrder mo, ShadowThread runningThread)
         {
-            var loadData = GetPossibleLoad(runningThread.VC, runningThread.Id, mo);
+            var loadData = GetPossibleLoad(runningThread.ReleasesAcquired, runningThread.Id, mo);
             loadData.RecordLoad(runningThread.Id, runningThread.Clock);
             bool isAtLeastAcquire = mo == MemoryOrder.Acquire || mo == MemoryOrder.AcquireRelease || mo == MemoryOrder.SequentiallyConsistent;
-            var destinationClock = isAtLeastAcquire ? runningThread.VC : runningThread.Fenced; // TODO: AcquireFenced
+            var destinationClock = isAtLeastAcquire ? runningThread.ReleasesAcquired : runningThread.Fenced; // TODO: AcquireFenced
             destinationClock.Join(loadData.ReleasesToAcquire);  
             return loadData.Payload;
         }
