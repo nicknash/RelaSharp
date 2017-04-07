@@ -1,3 +1,4 @@
+using System;
 
 namespace RelaSharp
 {
@@ -17,6 +18,41 @@ namespace RelaSharp
             FenceReleasesAcquired = new VectorClock(numThreads);
         }
 
+        public void Fence(MemoryOrder mo)
+        {
+            switch(mo)
+            {
+                case MemoryOrder.Acquire:
+                    AcquireFence();
+                break;
+                case MemoryOrder.Release:
+                    ReleaseFence();
+                break;
+                case MemoryOrder.AcquireRelease:
+                    AcquireFence();
+                    ReleaseFence();
+                break;
+                case MemoryOrder.SequentiallyConsistent:
+                    throw new Exception("SEQCST FENCE NICKTODO");
+                break;
+                default:
+                    throw new Exception($"Unsupported memory fence order {mo}");
+            }
+        }
+
+        private void AcquireFence()
+        {
+            ReleasesAcquired.Join(FenceReleasesAcquired); // TODO: BACKWARDS! 
+        }
+        private void ReleaseFence()
+        {
+            FenceReleasesToAcquire.Join(ReleasesAcquired);
+        }
+        private void AcquireReleaseFence()
+        {
+            AcquireFence();
+            ReleaseFence();
+        }
         public void IncrementClock()
         {
             ReleasesAcquired[Id]++;
