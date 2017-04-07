@@ -24,7 +24,13 @@ namespace RelaSharp
 
             bool isAtLeastRelease = mo == MemoryOrder.Release || mo == MemoryOrder.AcquireRelease || mo == MemoryOrder.SequentiallyConsistent;
             
+            // Here 'sourceClock' is the clock that other threads must synchronize with if they read-acquire this data.
+            // If this store is a release (or stronger), then those threads must synchronize with the latest clocks that 
+            // this thread has synchronized with (i.e. the releases it has acquired: runningThread.ReleasesAcquired).
+            // Otherwise, if this store is relaxed, then those threads need only synchronize with the latest release fence of this thread
+            // (i.e. runningThread.FenceReleasesAcquired)
             var sourceClock = isAtLeastRelease ? runningThread.ReleasesAcquired : runningThread.FenceReleasesAcquired;
+            
             var previous = _history[_history.CurrentIndex - 1];
             bool isReleaseSequence = previous.IsInitialized && previous.LastStoredThreadId == runningThread.Id; // TODO: OR this is part of a read-modify-write
             if(isReleaseSequence)
@@ -43,6 +49,13 @@ namespace RelaSharp
             var loadData = GetPossibleLoad(runningThread.ReleasesAcquired, runningThread.Id, mo);
             loadData.RecordLoad(runningThread.Id, runningThread.Clock);
             bool isAtLeastAcquire = mo == MemoryOrder.Acquire || mo == MemoryOrder.AcquireRelease || mo == MemoryOrder.SequentiallyConsistent;
+            
+            // Here 'destinationClock' is the clock that must be sychronize with the last release to this data. 
+            // If this load is an acquire (or stronger), then this thread's clock must synchronize with the last release
+            // (i.e. it should acquire the release to this data so runningThread.ReleasesAcquired must update).
+            // Otherwise, if this load is relaxed, then other threads must only synchronize with the last release to this data 
+            // if an acquire fence is issued. So to allow for updating the releases acquired by this thread in the case of an acquire 
+            // fence being issued, update runningThread.FenceReleasesToAcquire 
             var destinationClock = isAtLeastAcquire ? runningThread.ReleasesAcquired : runningThread.FenceReleasesToAcquire;
             destinationClock.Join(loadData.ReleasesToAcquire);  
             return loadData.Payload;
