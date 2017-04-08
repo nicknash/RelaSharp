@@ -50,12 +50,12 @@ namespace RelaSharp
             loadData.RecordLoad(runningThread.Id, runningThread.Clock);
             bool isAtLeastAcquire = mo == MemoryOrder.Acquire || mo == MemoryOrder.AcquireRelease || mo == MemoryOrder.SequentiallyConsistent;
             
-            // Here 'destinationClock' is the clock that must be sychronize with the last release to this data. 
+            // Here 'destinationClock' is the clock that must sychronize with the last release to this data. 
             // If this load is an acquire (or stronger), then this thread's clock must synchronize with the last release
             // (i.e. it should acquire the release to this data so runningThread.ReleasesAcquired must update).
             // Otherwise, if this load is relaxed, then other threads must only synchronize with the last release to this data 
             // if an acquire fence is issued. So to allow for updating the releases acquired by this thread in the case of an acquire 
-            // fence being issued, update runningThread.FenceReleasesToAcquire 
+            // fence being issued at some point, update runningThread.FenceReleasesToAcquire 
             var destinationClock = isAtLeastAcquire ? runningThread.ReleasesAcquired : runningThread.FenceReleasesToAcquire;
             destinationClock.Join(loadData.ReleasesToAcquire);  
             return loadData.Payload;

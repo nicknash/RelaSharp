@@ -68,7 +68,7 @@ namespace RelaSharp
             }
         }
 
-        public void RunTest(ITest test)
+        public void RunTest(IRelaTest test)
         {
             NumThreads = test.ThreadEntries.Count;
             TestFailed = false;

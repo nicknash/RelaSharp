@@ -87,7 +87,7 @@ namespace RelaSharp
         }
     }
 
-    class BoundedSPSCQueueTest : ITest
+    class BoundedSPSCQueueTest : IRelaTest
     {
         class BoundedSPSCQueue 
         {
@@ -187,7 +187,7 @@ namespace RelaSharp
     }
 
 
-    class PetersenTest : ITest 
+    class PetersenTest : IRelaTest 
     {
         private static TestEnvironment TE = TestEnvironment.TE;
         private MemoryOrdered<int> flag0;
@@ -239,7 +239,7 @@ namespace RelaSharp
         }
     }
 
-    class TotalOrderTest : ITest 
+    class TotalOrderTest : IRelaTest 
     {
         private static TestEnvironment TE = TestEnvironment.TE;
 
@@ -289,7 +289,7 @@ namespace RelaSharp
         }
     }
 
-    public class StoreLoad : ITest 
+    public class StoreLoad : IRelaTest 
     {
         public IReadOnlyList<Action> ThreadEntries { get; private set; }
         private static TestEnvironment TE = TestEnvironment.TE;
@@ -325,7 +325,7 @@ namespace RelaSharp
         }
     }
 
-    public class AcqRelTest : ITest
+    public class AcqRelTest : IRelaTest
     {
         public IReadOnlyList<Action> ThreadEntries { get; private set;}
         

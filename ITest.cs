@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace RelaSharp
 {
-    interface ITest 
+    interface IRelaTest 
     {
         IReadOnlyList<Action> ThreadEntries { get; }
         void OnFinished();
