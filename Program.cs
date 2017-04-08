@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Runtime.CompilerServices;
 
 namespace RelaSharp
 {
@@ -11,46 +9,6 @@ namespace RelaSharp
         private MemoryOrdered<T> _data;
 
         private int y = 12345;
-
-
-        private HashSet<long> seen = new HashSet<long>();
-        private List<GCHandle> handles = new List<GCHandle>();
-        public unsafe void f(ref int x)
-        {
-            fixed(int* p = &x)
-            {
-                long q = (long) p;
-                if(seen.Add(q))
-                {
-                    Console.WriteLine(q);
-                    GCHandle pin = GCHandle.Alloc(x, GCHandleType.Pinned);
-                    GCHandle pin2 = GCHandle.Alloc(*p, GCHandleType.Pinned);
-                    Console.WriteLine(pin.AddrOfPinnedObject());
-                    handles.Add(pin);            
-                }
-                /*if(seen.Count > 1)
-                {
-                    Console.WriteLine("MOVED");
-                }*/
-                //Console.WriteLine(q);
-            }
-            /*
-            GCHandle pin = GCHandle.Alloc(x, GCHandleType.Pinned);
-            x = 98765;
-            Console.WriteLine(pin.AddrOfPinnedObject());
-            */
-        }
-
-        public void g()
-        {
-            for(int i = 0; i < 100000; ++i) 
-            {
-                int[] x = new int[1234];
-                //GC.Collect();
-                f(ref y);
-            }
-            Console.WriteLine(y);
-        }
     }
 
 
@@ -58,35 +16,46 @@ namespace RelaSharp
     {
         public static void Main(string[] args)
         {
-            int i;
-            var sw = new Stopwatch();
-            int numIterations = 25000;
-            sw.Start();
-            for(i = 0; i < numIterations; ++i)
+            var example = new Examples.StoreLoad();
+            while (example.SetNextConfiguration())
             {
-                //var test = new StoreLoad();
-                //var test = new PetersenTest(MemoryOrder.AcquireRelease);
-                //var test = new TotalOrderTest(MemoryOrder.AcquireRelease);
-                var test = new BoundedSPSCQueueTest(MemoryOrder.Relaxed, 3);
-                TestEnvironment.TE.RunTest(test);         
-                if(TestEnvironment.TE.TestFailed)
+                int i;
+                var sw = new Stopwatch();
+                int numIterations = 25000;
+                sw.Start();
+                for (i = 0; i < numIterations; ++i)
                 {
-                    break;
+                    //var test = new StoreLoad();
+                    //var test = new PetersenTest(MemoryOrder.AcquireRelease);
+                    //var test = new TotalOrderTest(MemoryOrder.AcquireRelease);
+                    //var test = new BoundedSPSCQueueTest(MemoryOrder.Relaxed, 3);
+                    TestEnvironment.TE.RunTest(example);
+                    if (TestEnvironment.TE.TestFailed)
+                    {
+                        break;
+                    }
                 }
+                if (TestEnvironment.TE.TestFailed)
+                {
+                    Console.WriteLine($"Example failed on iteration: {i}");
+                    if(example.ExpectedToFail)
+                    {
+                        Console.WriteLine("Uh-oh: This example was not expected to fail.");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Not to worry, this failure was expected");
+                    }
+                    TestEnvironment.TE.DumpExecutionLog(Console.Out);
+                }
+                else
+                {
+                    Console.WriteLine($"No failures after {i} iterations");
+                }
+                Console.WriteLine($"Tested {i / sw.Elapsed.TotalSeconds} executions per second");
             }
-            if(TestEnvironment.TE.TestFailed)
-            {
-                Console.WriteLine($"Test failed on iteration: {i}");
-                TestEnvironment.TE.DumpExecutionLog(Console.Out);
-            }
-            else
-            {
-                Console.WriteLine($"No failures after {i} iterations");
-            }
-            Console.WriteLine($"Tested {i / sw.Elapsed.TotalSeconds} executions per second");
         }
     }
-
     class BoundedSPSCQueueTest : IRelaTest
     {
         class BoundedSPSCQueue 
@@ -286,42 +255,6 @@ namespace RelaSharp
         public void OnFinished()
         {
             TE.Assert(c + d != 2, $"c + d == {c + d} ; neither of Thread0 or Thread1 ran first!");            
-        }
-    }
-
-    public class StoreLoad : IRelaTest 
-    {
-        public IReadOnlyList<Action> ThreadEntries { get; private set; }
-        private static TestEnvironment TE = TestEnvironment.TE;
-
-        private MemoryOrdered<int> x0, x1;
-
-        private int y0, y1;
-
-        public StoreLoad()
-        {
-            ThreadEntries = new List<Action> {Thread1,Thread2};
-            x0 = new MemoryOrdered<int>();
-            x1 = new MemoryOrdered<int>();
-        }
-
-        public void Thread1()
-        {
-            x0.Store(1, MemoryOrder.Release);
-            y0 = x1.Load(MemoryOrder.Acquire);
-        }
-
-        public void Thread2()
-        {
-            x1.Store(1, MemoryOrder.Release);
-            y1 = x0.Load(MemoryOrder.Acquire);
-        }
-
-        public void OnFinished()
-        {
-            // This is kinda weird, what's the calling thread??
-            // Should throw an exception if any MemoryOrdered or RaceChecked are touched.
-            TE.Assert(y0 != 0 || y1 != 0, "Both of y0 and y1 are zero! (store load reordering!)");
         }
     }
 
