@@ -64,7 +64,7 @@ namespace RelaSharp
         private AccessData<T> GetPossibleLoad(VectorClock releasesAcquired, int threadId, MemoryOrder mo)
         {
             int j = _history.CurrentIndex;
-            int lookBack = _random.Next(_history.SizeOccupied);
+            int lookBack = _random.Next(_history.SizeOccupied + 1); 
             for(int i = 0; i < lookBack; ++i)
             {
                 if(!_history[j].IsInitialized)
