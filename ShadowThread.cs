@@ -34,7 +34,6 @@ namespace RelaSharp
                 break;
                 case MemoryOrder.SequentiallyConsistent:
                     throw new Exception("SEQCST FENCE NICKTODO");
-                break;
                 default:
                     throw new Exception($"Unsupported memory fence order {mo}");
             }
