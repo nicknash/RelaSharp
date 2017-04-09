@@ -17,11 +17,15 @@ namespace RelaSharp
         public static void Main(string[] args)
         {
             var example = new Examples.StoreLoad();
+            Console.WriteLine($"Testing example: {example.Name}");
             while (example.SetNextConfiguration())
             {
+                var expectedResult = example.ExpectedToFail ? "fail" : "pass";
+                Console.WriteLine($"***** Current configuration for {example.Name} is '{example.Description}', this is expected to {expectedResult}");
+                
                 int i;
                 var sw = new Stopwatch();
-                int numIterations = 25000;
+                int numIterations = 50000;
                 sw.Start();
                 for (i = 0; i < numIterations; ++i)
                 {
@@ -38,21 +42,16 @@ namespace RelaSharp
                 if (TestEnvironment.TE.TestFailed)
                 {
                     Console.WriteLine($"Example failed on iteration: {i}");
-                    if(example.ExpectedToFail)
-                    {
-                        Console.WriteLine("Uh-oh: This example was not expected to fail.");
-                    }
-                    else
-                    {
-                        Console.WriteLine("Not to worry, this failure was expected");
-                    }
+                    Console.WriteLine(example.ExpectedToFail ?  "Not to worry, this failure was expected" : "Uh-oh: This example was not expected to fail.");
                     TestEnvironment.TE.DumpExecutionLog(Console.Out);
                 }
                 else
                 {
                     Console.WriteLine($"No failures after {i} iterations");
+                    Console.WriteLine(example.ExpectedToFail ? "Uh-oh: This example was expected to fail." : "That's good, this example wasn't expected to fail.");
                 }
                 Console.WriteLine($"Tested {i / sw.Elapsed.TotalSeconds} executions per second");
+                Console.WriteLine("..........................");
             }
         }
     }
