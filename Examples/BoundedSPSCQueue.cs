@@ -24,25 +24,40 @@ namespace RelaSharp.Examples
                 ExpectedToFail = expectedToFail;
             }
         }
+
+        private class QueueEntry
+        {
+            public readonly MemoryOrdered<int> Data;
+
+            public QueueEntry()
+            {
+                Data = new MemoryOrdered<int>();
+            }
+
+            public override string ToString()
+            {
+                return Data.ToString();
+            }
+        }
         private class Queue 
         {
-            private MemoryOrdered<object>[] _data;
+            private MemoryOrdered<QueueEntry>[] _data;
             private RaceChecked<int> _read = new RaceChecked<int>();
             private RaceChecked<int> _write = new RaceChecked<int>();
             private int _size;
             private Config _config;
             public Queue(int size, Config config)
             {
-                _data = new MemoryOrdered<object>[size];
+                _data = new MemoryOrdered<QueueEntry>[size];
                 for(int i = 0; i < size; ++i)
                 {
-                    _data[i] = new MemoryOrdered<object>();
+                    _data[i] = new MemoryOrdered<QueueEntry>();
                 }
                 _size = size;
                 _config = config;
             }
 
-            public bool Enqueue(object x)
+            public bool Enqueue(QueueEntry x)
             {
                 var w = _write.Load();
                 if(_data[w].Load(MemoryOrder.Relaxed) != null)
@@ -58,7 +73,7 @@ namespace RelaSharp.Examples
                 return true;
             }
 
-            public object Dequeue()
+            public QueueEntry Dequeue()
             {
                 var r = _read.Load();
                 var result = _data[r].Load(_config.DequeueMemoryOrder);
@@ -100,13 +115,13 @@ namespace RelaSharp.Examples
                                               };
             _configs = configList.GetEnumerator();
         }
-
+        private const int _offset = 123;
         private void Producer()
         {
             for(int i = 0; i < _size; ++i)
             {
-                var x = new MemoryOrdered<int>();
-                x.Store(123 + i, MemoryOrder.Relaxed);
+                var x = new QueueEntry();
+                x.Data.Store(i + _offset, MemoryOrder.Relaxed);
                 _queue.Enqueue(x);
             }
         }
@@ -118,9 +133,9 @@ namespace RelaSharp.Examples
                 var x = _queue.Dequeue();
                 if(x != null)
                 {
-                    var y = (MemoryOrdered<int>) x;
-                    var z = y.Load(MemoryOrder.Relaxed);
-                    TE.Assert(z == 123 + numDequeued, $"Partially constructed object detected: value = {z}, numDequeued = {numDequeued}");
+                    var z = x.Data.Load(MemoryOrder.Relaxed);
+                    int expected = _offset + numDequeued;
+                    TE.Assert(z == expected, $"Partially initialised object detected: Data = {z}, expected to be {expected}");
                     numDequeued++;
                 }
             }
