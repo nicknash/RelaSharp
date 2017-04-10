@@ -8,7 +8,7 @@ namespace RelaSharp
     {
         public static void Main(string[] args)
         {
-            var examples = new IRelaExample[]{new SimpleAcquireRelease(), new StoreLoad(), new BoundedSPSCQueue()};
+            var examples = new IRelaExample[]{new SimpleAcquireRelease(), new StoreLoad(), new BoundedSPSCQueue(), new TotalOrder()};
             foreach(var example in examples)
             {
                 Console.WriteLine($"Testing example: {example.Name}");
