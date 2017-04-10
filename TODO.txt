@@ -1,7 +1,7 @@
-* Command line arguments to Program, as per comments there.
 * RMW instructions
 * RInterlocked
 * Example lock-free algorithms, once RMW working 
 * Seq cst fence
 * Condition variable (RMonitor)
 * Left/Right RelaExample
+* Exhaustive scheduler (clean up TestEnvironment before this)
