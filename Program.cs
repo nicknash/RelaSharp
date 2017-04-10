@@ -40,6 +40,24 @@ namespace RelaSharp
                 return new Options(help, quietMode, selfTest, testTag, iterations);
             }
 
+            private static T GetOptionValue<T>(string option, Dictionary<string, string> argMap, Func<string, T> getValue, T defaultValue, TextWriter output)
+            {
+                string optionValue;
+                if (!argMap.TryGetValue(option, out optionValue))
+                {
+                    return defaultValue;
+                }
+                try
+                {
+                    return getValue(optionValue);
+                }
+                catch (Exception)
+                {
+                    output.WriteLine($"Error parsing option {option} using {defaultValue} instead.");
+                    return defaultValue;
+                }
+            }
+
             public static string GetHelp()
             {
                 var allOptions = new Dictionary<string, string> { {"--quiet", "Suppress output of execution logs (defaults to false)"}, 
@@ -76,24 +94,6 @@ namespace RelaSharp
                     }
                     RunExample(tag, example, options);
                 }
-            }
-        }
-
-        private static T GetOptionValue<T>(string option, Dictionary<string, string> argMap, Func<string, T> getValue, T defaultValue, TextWriter output)
-        {
-            string optionValue;
-            if(!argMap.TryGetValue(option, out optionValue))
-            {
-                return defaultValue;
-            }
-            try
-            {
-                return getValue(optionValue); 
-            }
-            catch(Exception)
-            {
-                output.WriteLine($"Error parsing option {option} using {defaultValue} instead.");
-                return defaultValue;
             }
         }
 
