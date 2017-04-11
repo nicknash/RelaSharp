@@ -2,7 +2,12 @@ using System.Runtime.CompilerServices;
 
 namespace RelaSharp
 {
-    class MemoryOrdered<T> //where T : System.IEquatable<T> // TODO: restrict to atomic types.
+    class InvalidAPIUseException : System.Exception  
+    {
+
+    }
+
+    class MemoryOrdered<T>
     {
         private static TestEnvironment TE = TestEnvironment.TE;
         private InternalMemoryOrdered<T> _memoryOrdered;
@@ -36,24 +41,26 @@ namespace RelaSharp
             return result;
         }
 
- 
+        public bool CompareExchange(T comparand, T newData, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0) 
+        {
+            MaybeInit();
+            TE.Scheduler();
+            var runningThread = TE.RunningThread;
+            runningThread.IncrementClock();
+            var success = _memoryOrdered.CompareExchange(comparand, newData, mo, runningThread);
+            // TODO: TE.RecordEvent(memberName, sor)
+            return success;
+        }
+
+        public T Exchange(T newData, MemoryOrder mo)
+        {
+            return default(T);
+        }
 
         public override string ToString()
         {
             return _memoryOrdered.CurrentValue.ToString();
         }
-/*
-        public bool CompareExchange(T comparand, T newData, MemoryOrder mo)
-        {
-            //T currentData = // get
-            if(!comparand.Equals(_memoryOrdered.CurrentValue)) // TODO: == 
-            {
-                // event log ?
-                return false;
-            }
-            // TODO: Implement successful path
-            return true;
-        }*/
     }
 }
 

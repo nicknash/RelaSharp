@@ -21,8 +21,17 @@ namespace RelaSharp
             T result = _history.RecordPossibleLoad(mo, runningThread);
             return result;
         }
-        // Atomics ...
-        // TODO: Need lock(..), fence, cmp exch, wrappers...    
+
+        public bool CompareExchange(T comparand, T newData, MemoryOrder mo, ShadowThread runningThread)
+        {
+            T data = _history.RecordPossibleLoad(mo, runningThread);
+            if(data.Equals(comparand))
+            {
+                _history.RecordStore(newData, mo, runningThread);
+                return true;
+            }
+            return false;
+        }
     }
 }
 
