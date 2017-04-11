@@ -41,14 +41,16 @@ namespace RelaSharp
             return result;
         }
 
-        public bool CompareExchange(T comparand, T newData, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0) 
+        public bool CompareExchange(T newData, T comparand, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0) 
         {
             MaybeInit();
             TE.Scheduler();
             var runningThread = TE.RunningThread;
             runningThread.IncrementClock();
-            var success = _memoryOrdered.CompareExchange(comparand, newData, mo, runningThread);
-            // TODO: TE.RecordEvent(memberName, sor)
+            T loadedData;
+            var success = _memoryOrdered.CompareExchange(newData, comparand, mo, runningThread, out loadedData);
+            var description = success ? $"Success: {comparand} == {loadedData}" : $"Failed: {comparand} != {loadedData}";
+            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"CompareExchange ({mo}): --> {newData} ({description})");
             return success;
         }
 

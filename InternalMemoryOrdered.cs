@@ -22,10 +22,10 @@ namespace RelaSharp
             return result;
         }
 
-        public bool CompareExchange(T comparand, T newData, MemoryOrder mo, ShadowThread runningThread)
+        public bool CompareExchange(T newData, T comparand, MemoryOrder mo, ShadowThread runningThread, out T loadedData)
         {
-            T data = _history.RecordPossibleLoad(mo, runningThread);
-            if(data.Equals(comparand))
+            loadedData = _history.RecordPossibleLoad(mo, runningThread);
+            if(loadedData.Equals(comparand))
             {
                 _history.RecordStore(newData, mo, runningThread);
                 return true;
