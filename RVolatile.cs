@@ -1,9 +1,8 @@
-using System;
 using System.Runtime.CompilerServices;
 
 namespace RelaSharp
 {
-    static class RVolatile<T> where T : IEquatable<T>
+    static class RVolatile<T>
     {
         public static T Read(MemoryOrdered<T> data, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
