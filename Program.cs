@@ -63,7 +63,7 @@ namespace RelaSharp
                 var allOptions = new Dictionary<string, string> { {"--quiet", "Suppress output of execution logs (defaults to false)"}, 
                                                                   {"--iterations=X", $"Run for X iterations (defaults to {DefaultIterations}"}, 
                                                                   {"--self-test", "Run self test mode (suppress all output and only report results that differ from expected results)"},
-                                                                  {"--tag", "Run examples whose name contain the tag (case insensitive, run all examples if unspecified)"},
+                                                                  {"--tag=X", "Run examples whose name contain the tag (case insensitive, run all examples if unspecified)"},
                                                                   {"--help", "Print this message and exit"}
                                                                 };
                 var result = String.Join(Environment.NewLine, allOptions.Select(kvp => $"{kvp.Key}\r\t\t{kvp.Value}"));
@@ -71,39 +71,12 @@ namespace RelaSharp
             }
         }
 
-        private class CASTest : IRelaTest
-        {
-            public IReadOnlyList<Action> ThreadEntries => _threads;
-       
-            private List<Action> _threads;
-            public CASTest()
-            {
-               _threads = new List<Action>{Thread};
-            }
-
-            public void Thread()
-            {
-                var q = new MemoryOrdered<int>();
-                q.Store(123, MemoryOrder.SequentiallyConsistent);
-                Console.WriteLine(q.CompareExchange(1234, 123, MemoryOrder.AcquireRelease));
-                TestEnvironment.TE.Assert(false, "deliberate failure");
-            }
-
-            public void OnFinished()
-            {
-
-            }
-        }
-
         public static void Main(string[] args)
         {
-            TestEnvironment.TE.RunTest(new CASTest());
-                        TestEnvironment.TE.DumpExecutionLog(Console.Out);
-
-            return;
             var options = Options.GetOptions(args);
             if(args.Length == 0 || options.Help)
             {
+                Console.WriteLine("Usage: ");
                 Console.WriteLine(Options.GetHelp());
                 return;
             }
@@ -183,7 +156,8 @@ namespace RelaSharp
                 }
                 if(!options.SelfTest)
                 {
-                    Console.WriteLine($"Tested {(i + 1) / sw.Elapsed.TotalSeconds} iterations per second.");
+                    var elapsed = sw.Elapsed.TotalSeconds;
+                    Console.WriteLine($"Tested {(i + 1) / elapsed} iterations per second for {elapsed} seconds.");
                     Console.WriteLine("..........................");
                 }
             }
