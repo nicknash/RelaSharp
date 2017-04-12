@@ -50,6 +50,17 @@ namespace RelaSharp
             return success;
         }
 
+        public T Exchange(T newData, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0) 
+        {
+            MaybeInit();
+            TE.Scheduler();
+            var runningThread = TE.RunningThread;
+            runningThread.IncrementClock();
+            var oldData = _memoryOrdered.Exchange(newData, mo, runningThread);
+            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Exchange ({mo}): --> {newData} ({oldData})");
+            return oldData;
+        }
+
         public T Exchange(T newData, MemoryOrder mo)
         {
             return default(T);

@@ -32,6 +32,13 @@ namespace RelaSharp
             }
             return false;
         }
+
+        public T Exchange(T newData, MemoryOrder mo, ShadowThread runningThread)
+        {
+            var oldData = _history.RecordRMWLoad(mo, runningThread);
+            _history.RecordRMWStore(newData, mo, runningThread);
+            return oldData;
+        }
     }
 }
 
