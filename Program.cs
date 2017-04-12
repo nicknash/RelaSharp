@@ -82,7 +82,7 @@ namespace RelaSharp
             }
             Func<string, IRelaExample, Tuple<string, IRelaExample>> c = (s, i) =>  Tuple.Create<string, IRelaExample>(s, i); 
             var examples = new Tuple<string, IRelaExample>[]{c("SimpleAcquireRelease", new SimpleAcquireRelease()), c("StoreLoad", new StoreLoad()), c("SPSC", new BoundedSPSCQueue()), 
-                                                             c("Petersen", new Petersen()), c("TotalOrder", new TotalOrder())};
+                                                             c("Petersen", new Petersen()), c("TotalOrder", new TotalOrder()), c("LiveLock", new LiveLock())};
             for(int i = 0; i < examples.Length; ++i)
             {
                 var tag = examples[i].Item1;

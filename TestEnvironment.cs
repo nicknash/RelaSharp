@@ -25,6 +25,7 @@ namespace RelaSharp
         public ShadowThread RunningThread => _shadowThreads[_runningThreadIdx];
         public int NumThreads { get; private set; }
         public int HistoryLength => 20;
+        public int LiveLockLimit = 5000;
         public bool TestFailed { get; private set; }
         public string TestFailureReason { get; private set;}
         private int _runningThreadIdx;
@@ -37,6 +38,7 @@ namespace RelaSharp
         private Random _random = new Random();
         private List<ExecutionEvent> _eventLog;
         private object _runningThreadLock = new object();
+        private int _executionLength = 0;
 
         private void MakeThreadFunction(Action threadFunction, int threadIdx)
         {
@@ -79,6 +81,7 @@ namespace RelaSharp
             _unfinishedThreadIndices = new int[NumThreads];
             _numUnfinishedThreads = NumThreads;
             _eventLog = new List<ExecutionEvent>();
+            _executionLength = 0;
             
             for(int i = 0; i < NumThreads; ++i)
             {
@@ -123,10 +126,15 @@ namespace RelaSharp
         }
         public void Scheduler()
         {
+            if(_executionLength > LiveLockLimit)
+            {
+                FailTest($"Possible live-lock: execution length has exceeded {LiveLockLimit}");
+            }
             if(TestFailed)
             {
                 throw new TestFailedException();
             }
+            ++_executionLength;
             int prevThreadIdx = _runningThreadIdx;
             int nextThreadIdx = GetNextThreadIdx();
             if(nextThreadIdx == prevThreadIdx)

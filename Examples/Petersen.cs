@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace RelaSharp.Examples
 {
-   class Config
+    class Config
     {
         public readonly string Description;
         public readonly MemoryOrder MemoryOrder;

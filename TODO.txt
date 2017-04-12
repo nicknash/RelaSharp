@@ -3,6 +3,7 @@
 * Example lock-free algorithms, once RMW working 
 * Seq cst fence
 * Condition variable (RMonitor)
+* Deadlock detection
 * Left/Right RelaExample
 * Exhaustive scheduler (clean up TestEnvironment before this)
 * Restrict MemoryOrdered to atomic types (i.e. int/long + exception on construction?) or do at R-API level?
