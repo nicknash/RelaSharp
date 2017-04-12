@@ -102,7 +102,7 @@ namespace RelaSharp
 
             return;
             var options = Options.GetOptions(args);
-            if(options.Help)
+            if(args.Length == 0 || options.Help)
             {
                 Console.WriteLine(Options.GetHelp());
                 return;
