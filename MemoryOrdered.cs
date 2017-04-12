@@ -16,22 +16,25 @@ namespace RelaSharp
             }
         }
         
-        public void Store(T data, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        private ShadowThread Preamble()
         {
             MaybeInit();
             TE.Scheduler();
             var runningThread = TE.RunningThread;
             runningThread.IncrementClock();
+            return runningThread;
+        }
+
+        public void Store(T data, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            var runningThread = Preamble();
             _memoryOrdered.Store(data, mo, runningThread);
             TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Store ({mo}) --> {data}");            
         }
 
         public T Load(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
-            MaybeInit();
-            TE.Scheduler();
-            var runningThread = TE.RunningThread;
-            runningThread.IncrementClock();
+            var runningThread = Preamble();
             var result = _memoryOrdered.Load(mo, runningThread);
             TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Load ({mo}): <-- {result}");
             return result;
@@ -39,10 +42,7 @@ namespace RelaSharp
 
         public bool CompareExchange(T newData, T comparand, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0) 
         {
-            MaybeInit();
-            TE.Scheduler();
-            var runningThread = TE.RunningThread;
-            runningThread.IncrementClock();
+            var runningThread = Preamble();
             T loadedData;
             var success = _memoryOrdered.CompareExchange(newData, comparand, mo, runningThread, out loadedData);
             var description = success ? $"Success: {comparand} == {loadedData}" : $"Failed: {comparand} != {loadedData}";
@@ -52,10 +52,7 @@ namespace RelaSharp
 
         public T Exchange(T newData, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0) 
         {
-            MaybeInit();
-            TE.Scheduler();
-            var runningThread = TE.RunningThread;
-            runningThread.IncrementClock();
+            var runningThread = Preamble();
             var oldData = _memoryOrdered.Exchange(newData, mo, runningThread);
             TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Exchange ({mo}): --> {newData} ({oldData})");
             return oldData;
