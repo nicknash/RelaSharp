@@ -58,11 +58,6 @@ namespace RelaSharp
             return oldData;
         }
 
-        public T Exchange(T newData, MemoryOrder mo)
-        {
-            return default(T);
-        }
-
         public override string ToString()
         {
             return _memoryOrdered.CurrentValue.ToString();
