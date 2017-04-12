@@ -2,11 +2,6 @@ using System.Runtime.CompilerServices;
 
 namespace RelaSharp
 {
-    class InvalidAPIUseException : System.Exception  
-    {
-
-    }
-
     class MemoryOrdered<T>
     {
         private static TestEnvironment TE = TestEnvironment.TE;
@@ -20,6 +15,7 @@ namespace RelaSharp
                 _memoryOrdered.Store(default(T), MemoryOrder.Relaxed, TE.RunningThread);
             }
         }
+        
         public void Store(T data, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             MaybeInit();

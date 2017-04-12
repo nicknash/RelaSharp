@@ -17,7 +17,18 @@ namespace RelaSharp
             _random = new Random();
         }
         
+        public void RecordRMWStore(T data, MemoryOrder mo, ShadowThread runningThread)
+        {
+            RecordStore(data, mo, runningThread, true);
+        }
+
         public void RecordStore(T data, MemoryOrder mo, ShadowThread runningThread)
+        {
+            var previous = _history[_history.CurrentIndex - 1];
+            RecordStore(data, mo, runningThread, previous.IsInitialized && previous.LastStoredThreadId == runningThread.Id);
+        }
+
+        private void RecordStore(T data, MemoryOrder mo, ShadowThread runningThread, bool isReleaseSequence)
         {
             var storeTarget = _history.GetNext();
             storeTarget.RecordStore(runningThread.Id, runningThread.Clock, mo, data);
@@ -32,7 +43,6 @@ namespace RelaSharp
             var sourceClock = isAtLeastRelease ? runningThread.ReleasesAcquired : runningThread.FenceReleasesAcquired;
             
             var previous = _history[_history.CurrentIndex - 1];
-            bool isReleaseSequence = previous.IsInitialized && previous.LastStoredThreadId == runningThread.Id; // TODO: OR this is part of a read-modify-write
             if(isReleaseSequence)
             {
                 storeTarget.ReleasesToAcquire.Assign(previous.ReleasesToAcquire);
@@ -44,9 +54,21 @@ namespace RelaSharp
             }
         }
 
+
+        public T RecordRMWLoad(MemoryOrder mo, ShadowThread runningThread)
+        {
+            var loadData = _history[_history.CurrentIndex];
+            return RecordLoad(mo, runningThread, loadData);
+        }
+
         public T RecordPossibleLoad(MemoryOrder mo, ShadowThread runningThread)
         {
             var loadData = GetPossibleLoad(runningThread.ReleasesAcquired, runningThread.Id, mo);
+            return RecordLoad(mo, runningThread, loadData);
+        }
+
+        private T RecordLoad(MemoryOrder mo, ShadowThread runningThread, AccessData<T> loadData)
+        {
             loadData.RecordLoad(runningThread.Id, runningThread.Clock);
             bool isAtLeastAcquire = mo == MemoryOrder.Acquire || mo == MemoryOrder.AcquireRelease || mo == MemoryOrder.SequentiallyConsistent;
             
@@ -63,8 +85,8 @@ namespace RelaSharp
 
         private AccessData<T> GetPossibleLoad(VectorClock releasesAcquired, int threadId, MemoryOrder mo)
         {
-            int j = _history.CurrentIndex;
             int lookBack = _random.Next(_history.SizeOccupied + 1); 
+            int j = _history.CurrentIndex;
             for(int i = 0; i < lookBack; ++i)
             {
                 if(!_history[j].IsInitialized)
