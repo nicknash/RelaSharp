@@ -71,8 +71,36 @@ namespace RelaSharp
             }
         }
 
+        private class CASTest : IRelaTest
+        {
+            public IReadOnlyList<Action> ThreadEntries => _threads;
+       
+            private List<Action> _threads;
+            public CASTest()
+            {
+               _threads = new List<Action>{Thread};
+            }
+
+            public void Thread()
+            {
+                var q = new MemoryOrdered<int>();
+                q.Store(123, MemoryOrder.SequentiallyConsistent);
+                Console.WriteLine(q.CompareExchange(1234, 123, MemoryOrder.AcquireRelease));
+                TestEnvironment.TE.Assert(false, "deliberate failure");
+            }
+
+            public void OnFinished()
+            {
+
+            }
+        }
+
         public static void Main(string[] args)
         {
+            TestEnvironment.TE.RunTest(new CASTest());
+                        TestEnvironment.TE.DumpExecutionLog(Console.Out);
+
+            return;
             var options = Options.GetOptions(args);
             if(options.Help)
             {
