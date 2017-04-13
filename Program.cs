@@ -71,6 +71,7 @@ namespace RelaSharp
             }
         }
 
+
         public static void Main(string[] args)
         {
             var options = Options.GetOptions(args);
@@ -100,6 +101,7 @@ namespace RelaSharp
 
         private static void RunExample(string exampleTag, IRelaExample example, Options options)
         {
+            var TE = TestEnvironment.TE;
             while (example.SetNextConfiguration())
             {
                 if(!options.SelfTest)
@@ -107,36 +109,37 @@ namespace RelaSharp
                     var expectedResult = example.ExpectedToFail ? "fail" : "pass";
                     Console.WriteLine($"***** Current configuration for '{example.Name}' is '{example.Description}', this is expected to {expectedResult}");
                 }
-                int i;
                 var sw = new Stopwatch();
                 sw.Start();
-                for (i = 0; i < options.Iterations; ++i)
+                int numIterations = 0;
+                ulong totalOperations = 0;
+                bool testFailed = false;
+                while(numIterations < options.Iterations && !testFailed)
                 {
                     example.PrepareForIteration();
-                    TestEnvironment.TE.RunTest(example);
-                    if (TestEnvironment.TE.TestFailed)
-                    {
-                        break;
-                    }
+                    TE.RunTest(example);
+                    testFailed = TE.TestFailed;
+                    totalOperations += TE.ExecutionLength;
+                    ++numIterations;
                 }
                 var panic = "*\n*\n*\n*\n*\n*\n*\n*";
-                if (TestEnvironment.TE.TestFailed)
+                if (TE.TestFailed)
                 {
                     if(options.SelfTest)
                     {
                         if(!example.ExpectedToFail) 
                         {
-                            Console.WriteLine($"{exampleTag}['{example.Description}'] expected to pass but failed on {i + 1}th iteration.");
+                            Console.WriteLine($"{exampleTag}['{example.Description}'] expected to pass but failed on iteration number {numIterations}.");
                         }
                     }
                     else
                     {
-                        Console.WriteLine($"Example failed on iteration: {i}");
+                        Console.WriteLine($"Example failed on iteration number: {numIterations}");
                         Console.WriteLine(example.ExpectedToFail ?  "Not to worry, this failure was expected" : $"{panic}\tUh-oh: This example was expected to pass.\n{panic}");
                     }
                     if(!options.QuietMode && !options.SelfTest)
                     {
-                        TestEnvironment.TE.DumpExecutionLog(Console.Out);
+                        TE.DumpExecutionLog(Console.Out);
                     }
                 }
                 else
@@ -145,19 +148,19 @@ namespace RelaSharp
                     {
                         if(example.ExpectedToFail)
                         {
-                            Console.WriteLine($"{exampleTag}['{example.Description}'] expected to fail but survived {i} iterations.");
+                            Console.WriteLine($"{exampleTag}['{example.Description}'] expected to fail but survived {numIterations} iterations.");
                         }
                     }
                     else
                     {
-                        Console.WriteLine($"No failures after {i} iterations");
+                        Console.WriteLine($"No failures after {numIterations} iterations");
                         Console.WriteLine(example.ExpectedToFail ? $"{panic}\tUh-oh: This example was expected to fail.\n{panic}" : "That's good, this example was expected to pass.");
                     }
                 }
                 if(!options.SelfTest)
                 {
                     var elapsed = sw.Elapsed.TotalSeconds;
-                    Console.WriteLine($"Tested {(i + 1) / elapsed} iterations per second for {elapsed} seconds.");
+                    Console.WriteLine($"Tested {totalOperations / elapsed} operations per second ({numIterations} iterations at {(numIterations) / elapsed} iterations per second) for {elapsed} seconds.");
                     Console.WriteLine("..........................");
                 }
             }
