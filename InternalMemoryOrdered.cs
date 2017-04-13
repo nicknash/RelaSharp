@@ -25,7 +25,7 @@ namespace RelaSharp
         public bool CompareExchange(T newData, T comparand, MemoryOrder mo, ShadowThread runningThread, out T loadedData)
         {
             loadedData = _history.RecordRMWLoad(mo, runningThread);
-            if(loadedData.Equals(comparand))
+            if(loadedData == null && comparand == null || loadedData != null && loadedData.Equals(comparand)) // sketchy!
             {
                 _history.RecordRMWStore(newData, mo, runningThread);
                 return true;
