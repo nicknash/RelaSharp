@@ -2,10 +2,10 @@ using System.Runtime.CompilerServices;
 
 namespace RelaSharp
 {
-    class MemoryOrdered<T>
+    class MemoryOrdered<T> // MAybe just rename Atomic<T> ?
     {
         private static TestEnvironment TE = TestEnvironment.TE;
-        private InternalMemoryOrdered<T> _memoryOrdered;
+        protected InternalMemoryOrdered<T> _memoryOrdered;
 
         private void MaybeInit()
         {
@@ -16,7 +16,7 @@ namespace RelaSharp
             }
         }
         
-        private ShadowThread Preamble()
+        protected ShadowThread Preamble()
         {
             MaybeInit();
             TE.Scheduler();
@@ -58,10 +58,64 @@ namespace RelaSharp
             return oldData;
         }
 
+   
+
         public override string ToString()
         {
             return _memoryOrdered.CurrentValue.ToString();
         }
     }
+
+    class MemoryOrderedInt32 : MemoryOrdered<int>
+    {
+        public int Add(int x, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            var runningThread = Preamble();
+            var result = _memoryOrdered.CurrentValue + x;
+            _memoryOrdered.Exchange(result, mo, runningThread);
+            return result;
+        }
+
+        public int Increment(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            var runningThread = Preamble();
+            _memoryOrdered.Exchange(_memoryOrdered.CurrentValue + 1, mo, runningThread);
+            return -9999;
+        }
+
+        public int Decrement(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            var runningThread = Preamble();
+            _memoryOrdered.Exchange(_memoryOrdered.CurrentValue - 1, mo, runningThread);
+            return -9999;
+        }
+    }
+
+    class MemoryOrderedInt64 : MemoryOrdered<long>
+    {
+        public long Add(long x, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            var runningThread = Preamble();
+            var result = _memoryOrdered.CurrentValue + x;
+            _memoryOrdered.Exchange(result, mo, runningThread);
+            return result;
+        }
+
+        public long Increment(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            var runningThread = Preamble();
+            _memoryOrdered.Exchange(_memoryOrdered.CurrentValue + 1, mo, runningThread);
+            return -9999;
+        }
+
+        public long Decrement(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            var runningThread = Preamble();
+            _memoryOrdered.Exchange(_memoryOrdered.CurrentValue - 1, mo, runningThread);
+            return -9999;
+        }
+    }
+
+
 }
 
