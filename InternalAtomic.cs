@@ -1,12 +1,12 @@
 namespace RelaSharp
 {    
-    class InternalMemoryOrdered<T> 
+    class InternalAtomic<T> 
     {
         private AccessHistory<T> _history;
 
         public T CurrentValue => _history.CurrentValue;
 
-        public InternalMemoryOrdered(int historyLength, int numThreads)
+        public InternalAtomic(int historyLength, int numThreads)
         {
             _history = new AccessHistory<T>(historyLength, numThreads);
         }

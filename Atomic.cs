@@ -5,13 +5,13 @@ namespace RelaSharp
     class Atomic<T> 
     {
         private static TestEnvironment TE = TestEnvironment.TE;
-        protected InternalMemoryOrdered<T> _memoryOrdered;
+        protected InternalAtomic<T> _memoryOrdered;
 
         private void MaybeInit()
         {
             if(_memoryOrdered == null)
             {
-                _memoryOrdered = new InternalMemoryOrdered<T>(TE.HistoryLength, TE.NumThreads);
+                _memoryOrdered = new InternalAtomic<T>(TE.HistoryLength, TE.NumThreads);
                 _memoryOrdered.Store(default(T), MemoryOrder.Relaxed, TE.RunningThread);
             }
         }
