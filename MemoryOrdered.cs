@@ -29,14 +29,14 @@ namespace RelaSharp
         {
             var runningThread = Preamble();
             _memoryOrdered.Store(data, mo, runningThread);
-            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Store ({mo}) --> {data}");            
+            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Store ({mo}) --> {Str(data)}");            
         }
 
         public T Load(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             var runningThread = Preamble();
             var result = _memoryOrdered.Load(mo, runningThread);
-            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Load ({mo}): <-- {result}");
+            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Load ({mo}): <-- {Str(result)}");
             return result;
         }
 
@@ -45,8 +45,8 @@ namespace RelaSharp
             var runningThread = Preamble();
             T loadedData;
             var success = _memoryOrdered.CompareExchange(newData, comparand, mo, runningThread, out loadedData);
-            var description = success ? $"Success: {comparand} == {loadedData}" : $"Failed: {comparand} != {loadedData}";
-            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"CompareExchange ({mo}): --> {newData} ({description})");
+            var description = success ? $"Success: {Str(comparand)} == {Str(loadedData)}" : $"Failed: {Str(comparand)} != {Str(loadedData)}";
+            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"CompareExchange ({mo}): --> {Str(newData)} ({description})");
             return success;
         }
 
@@ -54,11 +54,14 @@ namespace RelaSharp
         {
             var runningThread = Preamble();
             var oldData = _memoryOrdered.Exchange(newData, mo, runningThread);
-            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Exchange ({mo}): --> {newData} ({oldData})");
+            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Exchange ({mo}): --> {Str(newData)} ({Str(oldData)})");
             return oldData;
         }
 
-   
+        private static string Str(T y)
+        {
+            return y == null ? "null" : y.ToString();
+        }
 
         public override string ToString()
         {
