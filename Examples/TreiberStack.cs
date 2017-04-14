@@ -5,7 +5,7 @@ namespace RelaSharp.Examples
 {
     public class TreiberStack : IRelaExample 
     {
-        class Config
+        private class Config
         {
             public readonly string Description;
             public readonly int NumPushingThreads;
@@ -27,13 +27,14 @@ namespace RelaSharp.Examples
             }
         }
 
-        class Node
+        private class Node
         {
             public readonly int Value;
-            public Node Next;
+            public Atomic<Node> Next;
             public Node(int v)
             {
                 Value = v;
+                Next = new Atomic<Node>();
             }
 
             public override string ToString()
@@ -42,7 +43,7 @@ namespace RelaSharp.Examples
             }
         }
 
-        class NaiveLockFreeStack
+        private class NaiveLockFreeStack
         {
             private Atomic<Node> _head;
 
@@ -57,27 +58,26 @@ namespace RelaSharp.Examples
                 Node newHead = new Node(n);
                 do 
                 {
-                    currentHead = _head.Load(MemoryOrder.Relaxed);
-                    newHead.Next = currentHead;
+                    currentHead = _head.Load(MemoryOrder.Acquire); // TODO, add tests with these relaxed
+                    newHead.Next.Store(currentHead, MemoryOrder.Release);
                 } while(!_head.CompareExchange(newHead, currentHead, MemoryOrder.AcquireRelease));
             }
 
             public int? Pop()
             {
                 Node currentHead;
+                Node newHead;
                 int? result;
                 do
                 {
-                    currentHead = _head.Load(MemoryOrder.Relaxed);
+                    currentHead = _head.Load(MemoryOrder.Acquire); // TODO, add tests with this relaxed
                     result = currentHead?.Value;
-                } while(!_head.CompareExchange(currentHead?.Next, currentHead, MemoryOrder.AcquireRelease));
+                    newHead = currentHead?.Next.Load(MemoryOrder.Release); // TODO, add tests with this relaxed
+                } while(!_head.CompareExchange(newHead, currentHead, MemoryOrder.AcquireRelease));
                 return result;
             }
         }
-
-
         public IReadOnlyList<Action> ThreadEntries { get; private set; }
-
         public string Name => "Treiber Stack";
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;
@@ -86,7 +86,7 @@ namespace RelaSharp.Examples
         private Config ActiveConfig => _configs.Current;
         private NaiveLockFreeStack _stack;
         private Atomic<bool> _pushingThreadFinished;
-        HashSet<int> _popped;
+        List<int> _popped;
         List<int> _poppedInOrder;
 
         public TreiberStack()
@@ -105,11 +105,13 @@ namespace RelaSharp.Examples
 
         private void VerifyAllPushedWerePopped()
         {
+            var distinctPopped = new HashSet<int>(_popped);
+            TE.Assert(distinctPopped.Count == _popped.Count, "Duplicates popped!");
             for(int i = 0; i < ActiveConfig.NumPushingThreads * ActiveConfig.NumPushedPerThread; ++i)
             {
-                TE.Assert(_popped.Remove(i), $"Couldn't find {i} in data popped from stack");
+                TE.Assert(distinctPopped.Remove(i), $"Couldn't find {i} in data popped from stack");
             }
-            TE.Assert(_popped.Count == 0, "More data popped than pushed!");
+            TE.Assert(distinctPopped.Count == 0, "More data popped than pushed!");
         }
 
         private void VerifyAllPoppedInReverseOrder()
@@ -167,7 +169,7 @@ namespace RelaSharp.Examples
         private void PrepareForNewConfig()
         {
             _stack = new NaiveLockFreeStack();
-            _popped = new HashSet<int>();
+            _popped = new List<int>();
             _poppedInOrder = new List<int>();
             _pushingThreadFinished = new Atomic<bool>();
         }        
