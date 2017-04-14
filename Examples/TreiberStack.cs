@@ -44,11 +44,11 @@ namespace RelaSharp.Examples
 
         class NaiveLockFreeStack
         {
-            private MemoryOrdered<Node> _head;
+            private Atomic<Node> _head;
 
             public NaiveLockFreeStack()
             {
-                _head = new MemoryOrdered<Node>();
+                _head = new Atomic<Node>();
             }
 
             public void Push(int n)
@@ -85,7 +85,7 @@ namespace RelaSharp.Examples
         private IEnumerator<Config> _configs;
         private Config ActiveConfig => _configs.Current;
         private NaiveLockFreeStack _stack;
-        private MemoryOrdered<bool> _pushingThreadFinished;
+        private Atomic<bool> _pushingThreadFinished;
         HashSet<int> _popped;
         List<int> _poppedInOrder;
 
@@ -169,7 +169,7 @@ namespace RelaSharp.Examples
             _stack = new NaiveLockFreeStack();
             _popped = new HashSet<int>();
             _poppedInOrder = new List<int>();
-            _pushingThreadFinished = new MemoryOrdered<bool>();
+            _pushingThreadFinished = new Atomic<bool>();
         }        
         
         private void SetupActiveConfig()

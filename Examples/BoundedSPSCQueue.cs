@@ -27,11 +27,11 @@ namespace RelaSharp.Examples
 
         private class QueueEntry
         {
-            public readonly MemoryOrdered<int> Data;
+            public readonly Atomic<int> Data;
 
             public QueueEntry()
             {
-                Data = new MemoryOrdered<int>();
+                Data = new Atomic<int>();
             }
 
             public override string ToString()
@@ -41,17 +41,17 @@ namespace RelaSharp.Examples
         }
         private class Queue 
         {
-            private MemoryOrdered<QueueEntry>[] _data;
+            private Atomic<QueueEntry>[] _data;
             private RaceChecked<int> _read = new RaceChecked<int>();
             private RaceChecked<int> _write = new RaceChecked<int>();
             private int _size;
             private Config _config;
             public Queue(int size, Config config)
             {
-                _data = new MemoryOrdered<QueueEntry>[size];
+                _data = new Atomic<QueueEntry>[size];
                 for(int i = 0; i < size; ++i)
                 {
-                    _data[i] = new MemoryOrdered<QueueEntry>();
+                    _data[i] = new Atomic<QueueEntry>();
                 }
                 _size = size;
                 _config = config;

@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 
 namespace RelaSharp
 {
-    class MemoryOrdered<T> // MAybe just rename Atomic<T> ?
+    class Atomic<T> 
     {
         private static TestEnvironment TE = TestEnvironment.TE;
         protected InternalMemoryOrdered<T> _memoryOrdered;
@@ -69,7 +69,7 @@ namespace RelaSharp
         }
     }
 
-    class MemoryOrderedInt32 : MemoryOrdered<int>
+    class Atomic32 : Atomic<int>
     {
         public int Add(int x, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
@@ -94,7 +94,7 @@ namespace RelaSharp
         }
     }
 
-    class MemoryOrderedInt64 : MemoryOrdered<long>
+    class Atomic64 : Atomic<long>
     {
         public long Add(long x, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {

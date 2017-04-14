@@ -26,9 +26,9 @@ namespace RelaSharp.Examples
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;
         private IEnumerator<Config> _configs;
         private Config ActiveConfig => _configs.Current;
-        private MemoryOrdered<int> flag0;
-        private MemoryOrdered<int> flag1;
-        private MemoryOrdered<int> victim;
+        private Atomic<int> flag0;
+        private Atomic<int> flag1;
+        private Atomic<int> victim;
         private MemoryOrder MemoryOrder => ActiveConfig.MemoryOrder;
         public IReadOnlyList<Action> ThreadEntries { get; private set;}
         int _threadsPassed;
@@ -88,9 +88,9 @@ namespace RelaSharp.Examples
         }
 
         private void PrepareForNewConfig()
-        {
-            flag0 = new MemoryOrdered<int>();
-            flag1 = new MemoryOrdered<int>();
+        {Atomic
+            flag0 = new Atomic<int>();
+            flag1 = new MAtomicint>();
             victim = new MemoryOrdered<int>();
             _threadsPassed = 0;
         }

@@ -12,7 +12,7 @@ namespace RelaSharp.Examples
         private IEnumerator<SimpleConfig> _configs;
         private SimpleConfig ActiveConfig => _configs.Current;
 
-        private MemoryOrdered<int> a, b;
+        private Atomic<int> a, b;
         private int c, d;
 
         public IReadOnlyList<Action> ThreadEntries { get; private set;}
@@ -62,8 +62,8 @@ namespace RelaSharp.Examples
 
         private void PrepareForNewConfig()
         {
-            a = new MemoryOrdered<int>();
-            b = new MemoryOrdered<int>();
+            a = new Atomic<int>();
+            b = new Atomic<int>();
             c = d = 0;
         }
         public bool SetNextConfiguration()

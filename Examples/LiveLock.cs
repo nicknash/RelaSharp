@@ -11,8 +11,8 @@ namespace RelaSharp.Examples
         public string Description => "All operations sequentially consistent";
         public bool ExpectedToFail => true;
         private static TestEnvironment TE = TestEnvironment.TE;
-        private MemoryOrdered<int> interested0;
-        private MemoryOrdered<int> interested1;
+        private Atomic<int> interested0;
+        private Atomic<int> interested1;
         private bool _hasRun;
 
         public LiveLock()
@@ -45,8 +45,8 @@ namespace RelaSharp.Examples
 
         private void PrepareForNewConfig()
         {
-            interested0 = new MemoryOrdered<int>();
-            interested1 = new MemoryOrdered<int>();
+            interested0 = new Atomic<int>();
+            interested1 = new Atomic<int>();
         }
 
         public bool SetNextConfiguration()

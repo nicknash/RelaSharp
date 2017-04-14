@@ -11,7 +11,7 @@ namespace RelaSharp.Examples
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;
         private static TestEnvironment TE = TestEnvironment.TE;
-        private MemoryOrdered<int> x0, x1;
+        private Atomic<int> x0, x1;
         private int y0, y1;
 
         private IEnumerator<SimpleConfig> _configs;
@@ -50,8 +50,8 @@ namespace RelaSharp.Examples
 
         private void PrepareForNewConfig()
         {
-            x0 = new MemoryOrdered<int>();
-            x1 = new MemoryOrdered<int>();
+            x0 = new Atomic<int>();
+            x1 = new Atomic<int>();
         }
 
         public bool SetNextConfiguration()

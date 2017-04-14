@@ -25,8 +25,8 @@ namespace RelaSharp.Examples
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;
         public IReadOnlyList<Action> ThreadEntries { get; private set;}
         private static TestEnvironment TE = TestEnvironment.TE;        
-        private MemoryOrdered<int> _flag;
-        private MemoryOrdered <int> _x;
+        private Atomic<int> _flag;
+        private Atomic <int> _x;
         private IEnumerator<Config> _configs;
         private Config ActiveConfig => _configs.Current;
 
@@ -72,8 +72,8 @@ namespace RelaSharp.Examples
         }
         private void PrepareForNewConfig()
         {
-            _flag = new MemoryOrdered<int>();
-            _x = new MemoryOrdered<int>();
+            _flag = new Atomic<int>();
+            _x = new Atomic<int>();
         }
         public bool SetNextConfiguration()
         {
