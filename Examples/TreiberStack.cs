@@ -59,7 +59,7 @@ namespace RelaSharp.Examples
                 do 
                 {
                     currentHead = _head.Load(MemoryOrder.Acquire); // TODO, add tests with these relaxed
-                    newHead.Next.Store(currentHead, MemoryOrder.Release);
+                    newHead.Next.Store(currentHead, MemoryOrder.Relaxed);
                 } while(!_head.CompareExchange(newHead, currentHead, MemoryOrder.AcquireRelease));
             }
 
@@ -72,7 +72,7 @@ namespace RelaSharp.Examples
                 {
                     currentHead = _head.Load(MemoryOrder.Acquire); // TODO, add tests with this relaxed
                     result = currentHead?.Value;
-                    newHead = currentHead?.Next.Load(MemoryOrder.Release); // TODO, add tests with this relaxed
+                    newHead = currentHead?.Next.Load(MemoryOrder.Relaxed); // TODO, add tests with this relaxed
                 } while(!_head.CompareExchange(newHead, currentHead, MemoryOrder.AcquireRelease));
                 return result;
             }
@@ -91,8 +91,8 @@ namespace RelaSharp.Examples
 
         public TreiberStack()
         {
-            var configList = new List<Config>{new Config("3 threads pushing 5 elements each, interleaved with 2 threads popping, threads interleaved.", 3, 5, 2, false, VerifyAllPushedWerePopped, false), 
-                                              new Config("1 thread pushing 20 elements each, interleaved with 10 threads popping, threads interleaved.", 1, 20, 10, false, VerifyAllPushedWerePopped, false),
+            var configList = new List<Config>{new Config("3 threads pushing 5 elements each, interleaved with 2 threads popping", 3, 5, 2, false, VerifyAllPushedWerePopped, false), 
+                                              new Config("1 thread pushing 20 elements each, interleaved with 10 threads popping", 1, 20, 10, false, VerifyAllPushedWerePopped, false),
                                               new Config("1 thread pushing 30 elements, then 5 threads popping, all pushes before any pops.", 1, 30, 5, true, VerifyAllPoppedInReverseOrder, false)
                                              };
             _configs = configList.GetEnumerator();
@@ -124,7 +124,10 @@ namespace RelaSharp.Examples
                 TE.Assert(_poppedInOrder[i] == expected, $"Expected to find {expected} in popped list but found {_poppedInOrder[i]}.");
             }
         }
-
+        public void OnBegin()
+        {
+            
+        }
         public void OnFinished()
         {
             ActiveConfig.PostCondition();

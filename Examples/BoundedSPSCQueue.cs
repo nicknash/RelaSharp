@@ -141,6 +141,10 @@ namespace RelaSharp.Examples
             }
         }
 
+        public void OnBegin()
+        {
+            
+        }
         public void OnFinished()
         {
 

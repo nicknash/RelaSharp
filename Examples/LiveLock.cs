@@ -38,7 +38,9 @@ namespace RelaSharp.Examples
             while(interested0.Load(MemoryOrder.SequentiallyConsistent) == 1) ;
             interested1.Store(0, MemoryOrder.SequentiallyConsistent);        
         }
-
+        public void OnBegin()
+        {
+        }
         public void OnFinished()
         {
         }

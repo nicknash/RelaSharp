@@ -66,9 +66,12 @@ namespace RelaSharp.Examples
             TE.Assert(result == 2, $"Expected to load 2 into result, but loaded {result} instead!");
         }
 
+        public void OnBegin()
+        {
+            
+        }
         public void OnFinished()
         {
-
         }
         private void PrepareForNewConfig()
         {

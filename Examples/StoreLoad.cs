@@ -42,7 +42,9 @@ namespace RelaSharp.Examples
             x1.Store(1, ActiveConfig.MemoryOrder);
             y1 = x0.Load(ActiveConfig.MemoryOrder);
         }
-
+        public void OnBegin()
+        {
+        }
         public void OnFinished()
         {
             TE.Assert(y0 != 0 || y1 != 0, "Both of y0 and y1 are zero! (store load reordering!)");

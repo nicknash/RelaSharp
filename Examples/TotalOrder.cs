@@ -50,7 +50,10 @@ namespace RelaSharp.Examples
                 d = 1;
             }
         }
+        public void OnBegin()
+        {
 
+        }
         public void OnFinished()
         {
             TE.Assert(c + d != 2, $"c + d == {c + d} ; neither of Thread0 or Thread1 ran first!");            

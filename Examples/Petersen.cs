@@ -77,10 +77,11 @@ namespace RelaSharp.Examples
             flag1.Store(0, MemoryOrder);
             --_threadsPassed;
         }
-
+        public void OnBegin()
+        {
+        }
         public void OnFinished()
         {
-
         }
         public void PrepareForIteration()
         {
@@ -88,10 +89,10 @@ namespace RelaSharp.Examples
         }
 
         private void PrepareForNewConfig()
-        {Atomic
+        {
             flag0 = new Atomic<int>();
-            flag1 = new MAtomicint>();
-            victim = new MemoryOrdered<int>();
+            flag1 = new Atomic<int>();
+            victim = new Atomic<int>();
             _threadsPassed = 0;
         }
 
