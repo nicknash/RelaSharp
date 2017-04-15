@@ -40,6 +40,7 @@ namespace RelaSharp
         private Random _random = new Random();
         private List<ExecutionEvent> _eventLog;
         private object _runningThreadLock = new object();
+        private bool _testStarted;
 
         private void MakeThreadFunction(Action threadFunction, int threadIdx)
         {
@@ -82,6 +83,7 @@ namespace RelaSharp
             _unfinishedThreadIndices = new int[NumThreads];
             _numUnfinishedThreads = NumThreads;
             _eventLog = new List<ExecutionEvent>();
+            _testStarted = false;
             ExecutionLength = 0;
             
             for(int i = 0; i < NumThreads; ++i)
@@ -106,7 +108,9 @@ namespace RelaSharp
                         Monitor.Wait(l);
                     }
                 }
-            }            
+            }    
+            test.OnBegin();
+            _testStarted = true;      
             WakeThread(GetNextThreadIdx());
             for(int i = 0; i < NumThreads; ++i)
             {
@@ -127,6 +131,10 @@ namespace RelaSharp
         }
         public void Scheduler()
         {
+            if(!_testStarted)
+            {
+                return;
+            }
             if(ExecutionLength > LiveLockLimit)
             {
                 FailTest($"Possible live-lock: execution length has exceeded {LiveLockLimit}");

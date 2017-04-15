@@ -6,6 +6,7 @@ namespace RelaSharp
     interface IRelaTest 
     {
         IReadOnlyList<Action> ThreadEntries { get; }
+        void OnBegin();
         void OnFinished();
     }
 }
