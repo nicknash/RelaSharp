@@ -77,16 +77,13 @@ namespace RelaSharp.Examples
                         // thread (i.e., we must do this to ensure the data structure is lock-free)
                         _tail.CompareExchange(localTailNext, localTail, MemoryOrder.AcquireRelease);
                     }
-                    else
+                    // Otherwise, if tail is still the true end of the queue, try and make its next pointer point at the newNode
+                    else if (tailNow.Next.CompareExchange(newNode, null, MemoryOrder.AcquireRelease))
                     {
-                        // If tail is still the true end of the queue, make its next pointer point at the newNode
-                        if (tailNow.Next.CompareExchange(newNode, null, MemoryOrder.AcquireRelease))
-                        {
-                            // Now we need to try and get the tail back in sync. This is to maintain the at-most-one-behind
-                            // invariant. If we fail, it's OK, someone else did this for us.
-                            _tail.CompareExchange(newNode, tailNow, MemoryOrder.AcquireRelease);
-                            return;
-                        }
+                        // Now we need to try and get the tail back in sync. This is to maintain the at-most-one-behind
+                        // invariant. If we fail, it's OK, someone else did this for us.
+                        _tail.CompareExchange(newNode, tailNow, MemoryOrder.AcquireRelease);
+                        return;
                     }
                 }
             }
@@ -106,12 +103,9 @@ namespace RelaSharp.Examples
                     {
                         return null;
                     }
-                    else
+                    if (_head.CompareExchange(localHeadNext, localHead, MemoryOrder.AcquireRelease))
                     {
-                        if (_head.CompareExchange(localHeadNext, localHead, MemoryOrder.AcquireRelease))
-                        {
-                            return localHeadNext.Value;
-                        }
+                        return localHeadNext.Value;
                     }
                 }
             }
@@ -131,30 +125,41 @@ namespace RelaSharp.Examples
         {
             var configList = new List<Config>{
                 new Config("1 threads enqueuing 5 elements, 1 non-interleaved thread dequeuing afterward.", 1, 5, 1, true, VerifyAllDequeuedInOrder, false),                
-                new Config("1 thread enqueuing 10 element interleaved with 3 threads dequeing.", 1, 10, 3, false, VerifyAllDequeuedInOrder, false)};
+                new Config("1 thread enqueuing 10 elements interleaved with 3 threads dequeuing.", 1, 10, 3, false, VerifyAllDequeuedInOrder, false),
+                new Config("3 threads enqueuing 5 elements interleaved with 3 threads dequeuing.", 3, 5, 3, false, VerifyAllDequeuedInOrder, false)
+                };
             _configs = configList.GetEnumerator();
         }
         private void VerifyAllDequeuedInOrder()
         {
             int expectedNumRemoved = ActiveConfig.NumAddingThreads * ActiveConfig.NumAddedPerThread; 
             TE.Assert(_dequeued.Count == expectedNumRemoved, $"Incorrect data dequeued: expected {expectedNumRemoved} but found {_dequeued.Count}");
+            var nextFromExpectedFromThread = new int[ActiveConfig.NumAddingThreads];
+            for(int i = 0; i < ActiveConfig.NumAddingThreads; ++i)
+            {
+                nextFromExpectedFromThread[i] = i * ActiveConfig.NumAddedPerThread;
+            }
             for(int i = 0; i < _dequeued.Count; ++i)
             {
-                TE.Assert(_dequeued[i] == i, $"Expected to find {i} in dequeued list but found {_dequeued[i]}.");
+                var here = _dequeued[i];
+                int addingThread = here / ActiveConfig.NumAddedPerThread;
+                var nextExpected = nextFromExpectedFromThread[addingThread];
+                TE.Assert(here == nextExpected, $"Expected to find {nextExpected} in dequeued list but found {here}.");
+                nextFromExpectedFromThread[addingThread]++;
             }
         }
 
         private Action MakeEnqueuingThread(int threadIndex, int numPushedPerThread)
         {
-            return () => PushingThread(threadIndex, numPushedPerThread);
+            return () => EnqueuingThread(threadIndex, numPushedPerThread);
         }
 
         private Action MakeDequeuingThread()
         {
-            return PoppingThread; 
+            return DequeuingThread; 
         }
 
-        private void PushingThread(int threadIndex, int numAddedPerThread)
+        private void EnqueuingThread(int threadIndex, int numAddedPerThread)
         {
             for (int i = 0; i < numAddedPerThread; ++i)
             {
@@ -163,7 +168,7 @@ namespace RelaSharp.Examples
             _enqueuingThreadFinished.Store(true, MemoryOrder.Release);
         }
 
-        private void PoppingThread()
+        private void DequeuingThread()
         {
             if(ActiveConfig.AddAllBeforeRemove)
             {
