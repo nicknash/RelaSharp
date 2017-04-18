@@ -18,7 +18,7 @@ namespace RelaSharp
             FenceReleasesAcquired = new VectorClock(numThreads);
         }
 
-        public void Fence(MemoryOrder mo)
+        public void Fence(MemoryOrder mo, VectorClock sequentiallyConsistentFence)
         {
             switch(mo)
             {
@@ -33,7 +33,11 @@ namespace RelaSharp
                     ReleaseFence();
                 break;
                 case MemoryOrder.SequentiallyConsistent:
-                    throw new Exception("SEQCST FENCE NICKTODO");
+                    AcquireFence();
+                    sequentiallyConsistentFence.Join(ReleasesAcquired);
+                    ReleasesAcquired.Assign(sequentiallyConsistentFence);
+                    ReleaseFence();
+                break;
                 default:
                     throw new Exception($"Unsupported memory fence order {mo}");
             }

@@ -41,6 +41,7 @@ namespace RelaSharp
         private List<ExecutionEvent> _eventLog;
         private object _runningThreadLock = new object();
         private bool _testStarted;
+        public VectorClock SequentiallyConsistentFence;
 
         private void MakeThreadFunction(Action threadFunction, int threadIdx)
         {
@@ -72,6 +73,11 @@ namespace RelaSharp
             }
         }
 
+        // private MakeOnBeginThread(Action onBegin)
+        // {
+        //     MakeThreadFunction()
+        // }
+
         public void RunTest(IRelaTest test)
         {
             NumThreads = test.ThreadEntries.Count;
@@ -84,6 +90,7 @@ namespace RelaSharp
             _numUnfinishedThreads = NumThreads;
             _eventLog = new List<ExecutionEvent>();
             _testStarted = false;
+            SequentiallyConsistentFence = new VectorClock(NumThreads);
             ExecutionLength = 0;
             
             for(int i = 0; i < NumThreads; ++i)
@@ -228,8 +235,6 @@ namespace RelaSharp
             }
             output.WriteLine("----- End Test Execution Log ----");
         }
-
-
         private int GetNextThreadIdx()
         {
             if(_numUnfinishedThreads == 0)

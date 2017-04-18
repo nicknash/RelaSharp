@@ -10,7 +10,7 @@
         {
             TE.Scheduler();
             var runningThread = TE.RunningThread;
-            runningThread.Fence(mo);
+            runningThread.Fence(mo, TE.SequentiallyConsistentFence);
             TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Fence: {mo}");
         }
     }

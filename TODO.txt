@@ -1,8 +1,8 @@
-* RInterlocked
-* Example lock-free algorithms: Treiber, Michael-Scott, bounded SPMC?  
+* Finish Seq cst fence
 * Place OnBegin/OnFinished on threads (with seq cst fences?) rather than current weirdness?
+* Finish RInterlocked
+* Example lock-free algorithms: Treiber, Michael-Scott, bounded SPMC, LCRQ, Fetch-Add Queue?  
 * Add Invariant() feature
-* Seq cst fence
 * Condition variable (RMonitor)
 * Deadlock detection
 * Left/Right RelaExample
