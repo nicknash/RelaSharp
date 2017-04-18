@@ -9,5 +9,6 @@
 * Left/Right RelaExample
 * Exhaustive scheduler (clean up TestEnvironment before this)
 * Restrict MemoryOrdered to atomic types (i.e. int/long/ref type + exception on construction?) or do at R-API level?
-* Perf. optimizations.
+* Perf. optimizations. 
+* Multi-threaded test runner?
 * Interesting statistics?
