@@ -50,8 +50,8 @@ namespace RelaSharp.Examples
                 _head = new Atomic<Node>();
                 _tail = new Atomic<Node>();
                 var dummy = new Node(0);
-                _head.Store(dummy, MemoryOrder.SequentiallyConsistent);
-                _tail.Store(dummy, MemoryOrder.SequentiallyConsistent);
+                _head.Store(dummy, MemoryOrder.Relaxed);
+                _tail.Store(dummy, MemoryOrder.Relaxed);
             }
 
             public void Enqueue(int n)
@@ -59,10 +59,9 @@ namespace RelaSharp.Examples
                 var newNode = new Node(n);
                 while(true)
                 {
-                    var localTail = _tail.Load(MemoryOrder.SequentiallyConsistent); // TODO: review
-                    var localTailNext = localTail.Next.Load(MemoryOrder.Acquire);
-
-                    var tailNow = _tail.Load(MemoryOrder.Acquire); // TODO: Try .Relaxed here in sanity tests.
+                    var localTail = _tail.Load(MemoryOrder.Relaxed); 
+                    var localTailNext = localTail.Next.Load(MemoryOrder.Relaxed);
+                    var tailNow = _tail.Load(MemoryOrder.Relaxed); 
                     bool tailHasChanged = tailNow != localTail;
                     if(tailHasChanged)
                     {
@@ -92,9 +91,9 @@ namespace RelaSharp.Examples
             {
                 while(true)
                 {
-                    var localHead = _head.Load(MemoryOrder.SequentiallyConsistent);
-                    var localHeadNext = localHead.Next.Load(MemoryOrder.Acquire);
-                    bool headHasChanged = localHead != _head.Load(MemoryOrder.Acquire); //  TODO: Try .Relaxed here in sanity tests.
+                    var localHead = _head.Load(MemoryOrder.Relaxed);
+                    var localHeadNext = localHead.Next.Load(MemoryOrder.Relaxed);
+                    bool headHasChanged = localHead != _head.Load(MemoryOrder.Relaxed); 
                     if(headHasChanged)
                     {
                         continue;
@@ -161,6 +160,7 @@ namespace RelaSharp.Examples
 
         private void EnqueuingThread(int threadIndex, int numAddedPerThread)
         {
+            Fence.Insert(MemoryOrder.SequentiallyConsistent);
             for (int i = 0; i < numAddedPerThread; ++i)
             {
                 _queue.Enqueue(numAddedPerThread * threadIndex + i);
@@ -174,6 +174,7 @@ namespace RelaSharp.Examples
             {
                 while(!_enqueuingThreadFinished.Load(MemoryOrder.Acquire)) ;
             }
+            Fence.Insert(MemoryOrder.SequentiallyConsistent);
             while (_dequeued.Count < ActiveConfig.NumAddingThreads * ActiveConfig.NumAddedPerThread)
             {
                 int? x = _queue.Dequeue();
@@ -191,6 +192,7 @@ namespace RelaSharp.Examples
         public void OnBegin()
         {
             _queue = new NaiveLockFreeQueue();
+            Fence.Insert(MemoryOrder.SequentiallyConsistent);
         }
  
         public void OnFinished()
