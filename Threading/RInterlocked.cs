@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace RelaSharp.Examples
+namespace RelaSharp.Threading
 {      
     class RInterlocked<T>
     {
