@@ -1,10 +1,13 @@
-* Finish Seq cst fence
+* Condition variable (RMonitor) <- most value in doing this next.
+* CLR style Examples
+* Deadlock detection
+* Review Seq cst fence
 * Place OnBegin/OnFinished on threads (with seq cst fences?) rather than current weirdness?
 * Finish RInterlocked
-* Example lock-free algorithms: Treiber, Michael-Scott, bounded SPMC, LCRQ, Fetch-Add Queue?  
+* More Example lock-free algorithms: CRQ/LCRQ, Fetch-Add Queue, bounded SPMC/MPMC.  
 * Add Invariant() feature
-* Condition variable (RMonitor)
-* Deadlock detection
 * Left/Right RelaExample
 * Exhaustive scheduler (clean up TestEnvironment before this)
 * Restrict MemoryOrdered to atomic types (i.e. int/long/ref type + exception on construction?) or do at R-API level?
+* Perf. optimizations.
+* Interesting statistics?
