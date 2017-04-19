@@ -1,7 +1,4 @@
 using System;
-using System.Threading;
-using System.Collections.Generic;
-using System.Linq;
 using System.IO;
 using System.Runtime.CompilerServices;
 
@@ -20,26 +17,25 @@ namespace RelaSharp
     {
 
     }
-
-    
-
-    class TestEnvironment // Rename to TestRunner when scheduling removed?
+  
+    class TestEnvironment // Rename to TestRunner?
     {
-        public static TestEnvironment TE = new TestEnvironment();
-        public ShadowThread RunningThread => _shadowThreads[_scheduler.RunningThreadId];
-        public int NumThreads { get; private set; }
         public int HistoryLength => 20;
         public ulong LiveLockLimit = 5000;
+        public static TestEnvironment TE = new TestEnvironment();
+        public ShadowThread RunningThread => _shadowThreads[_scheduler.RunningThreadId];
+
+        public int NumThreads { get; private set; }
         public bool TestFailed { get; private set; }
         public string TestFailureReason { get; private set;}
         public ulong ExecutionLength { get; private set; }
-
+        public VectorClock SequentiallyConsistentFence { get; private set; }
+        
         private RandomScheduler _scheduler;
         private TestThreads _testThreads;
         private ShadowThread[] _shadowThreads;
-        private List<ExecutionEvent> _eventLog;
+        private EventLog _eventLog;
         private bool _testStarted;
-        public  VectorClock SequentiallyConsistentFence;
 
         public void RunTest(IRelaTest test)
         {
@@ -47,7 +43,7 @@ namespace RelaSharp
             TestFailed = false;
             _shadowThreads = new ShadowThread[NumThreads];
             _scheduler = new RandomScheduler(NumThreads);
-            _eventLog = new List<ExecutionEvent>();
+            _eventLog = new EventLog(NumThreads);
             _testStarted = false;
             SequentiallyConsistentFence = new VectorClock(NumThreads);
             ExecutionLength = 0;
@@ -120,17 +116,17 @@ namespace RelaSharp
             }
         }
 
+        public void RecordEvent(string callingThreadFuncName, string sourceFilePath, int sourceLineNumber, string eventInfo)
+        {
+            _eventLog.RecordEvent(RunningThread.Id, RunningThread.Clock, callingThreadFuncName, sourceFilePath, sourceLineNumber, eventInfo);
+        }
+
         public void FailTest(string reason)
         {
             TestFailed = true;
             TestFailureReason = reason;
         }
-
-        public void RecordEvent(string callingThreadFuncName, string sourceFilePath, int sourceLineNumber, string eventInfo)
-        {
-            _eventLog.Add(new ExecutionEvent(RunningThread.Id, RunningThread.Clock, callingThreadFuncName, sourceFilePath, sourceLineNumber, eventInfo));
-        }
-
+  
         public void DumpExecutionLog(TextWriter output)
         {
             output.WriteLine("----- Begin Test Execution Log ----");
@@ -143,35 +139,7 @@ namespace RelaSharp
             {
                 output.WriteLine($"Test passed.");
             }
-            var directories = _eventLog.Select(e => Path.GetDirectoryName(e.SourceFilePath)).Distinct();
-            output.WriteLine();            
-            output.WriteLine($"Code executed in directories: {string.Join(",", directories)}");
-            output.WriteLine();
-            output.WriteLine("Interleaved execution log");
-            output.WriteLine("*************************");
-            for(int i = 0; i < _eventLog.Count; ++i)
-            {
-                var e = _eventLog[i];
-                var fileName = Path.GetFileName(e.SourceFilePath);
-                output.WriteLine($"[{i}] {e.ThreadId}@{e.ThreadClock} in {fileName}:{e.CallingMemberName}:{e.SourceLineNumber} | {e.EventInfo}");
-            }
-            output.WriteLine();        
-            output.WriteLine("Individual thread logs");
-            output.WriteLine("**********************");
-            for(int i = 0; i < NumThreads; ++i)
-            {
-                output.WriteLine($"Thread {i}");
-                output.WriteLine("--------");
-                for(int j = 0; j < _eventLog.Count; ++j)
-                {
-                    var e = _eventLog[j];
-                    if(e.ThreadId == i)
-                    {
-                        var fileName = Path.GetFileName(e.SourceFilePath);
-                        output.WriteLine($"[{j}] {e.ThreadId}@{e.ThreadClock} in {fileName}:{e.CallingMemberName}:{e.SourceLineNumber} | {e.EventInfo}");
-                    }
-                }
-            }
+            _eventLog.Dump(output);
             output.WriteLine("----- End Test Execution Log ----");
         }
     }    
