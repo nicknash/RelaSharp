@@ -21,6 +21,8 @@ namespace RelaSharp
 
     }
 
+    
+
     class TestEnvironment // Rename to TestRunner when scheduling removed?
     {
         public static TestEnvironment TE = new TestEnvironment();
@@ -33,55 +35,16 @@ namespace RelaSharp
         public ulong ExecutionLength { get; private set; }
 
         private RandomScheduler _scheduler;
-        private Thread[] _threads;
-        private ThreadState[] _threadStates;
+        private TestThreads _testThreads;
         private ShadowThread[] _shadowThreads;
-        private Object[] _threadLocks;
         private List<ExecutionEvent> _eventLog;
-        private object _runningThreadLock = new object();
         private bool _testStarted;
         public  VectorClock SequentiallyConsistentFence;
-
-        private void MakeThreadFunction(Action threadFunction, int threadIdx)
-        {
-            var l = _threadLocks[threadIdx]; 
-            
-            lock(l)
-            {
-                _threadStates[threadIdx] = ThreadState.Blocked;
-                Monitor.Pulse(l);                
-                Monitor.Wait(l);
-            }
-            try
-            {
-                Monitor.Enter(_runningThreadLock);
-                threadFunction();
-            }
-            catch(TestFailedException)
-            {
-            }
-            Monitor.Exit(_runningThreadLock);
-            _threadStates[threadIdx] = ThreadState.Finished;
-            _scheduler.ThreadFinished(threadIdx);
-            if(!_scheduler.AllThreadsFinished)
-            {
-                _scheduler.MaybeSwitch();
-                WakeThread();
-            }
-        }
-
-        // private MakeOnBeginThread(Action onBegin)
-        // {
-        //     MakeThreadFunction()
-        // }
 
         public void RunTest(IRelaTest test)
         {
             NumThreads = test.ThreadEntries.Count;
             TestFailed = false;
-            _threads = new Thread[NumThreads];
-            _threadStates = new ThreadState[NumThreads];
-            _threadLocks = new Object[NumThreads];
             _shadowThreads = new ShadowThread[NumThreads];
             _scheduler = new RandomScheduler(NumThreads);
             _eventLog = new List<ExecutionEvent>();
@@ -91,45 +54,15 @@ namespace RelaSharp
             
             for(int i = 0; i < NumThreads; ++i)
             {
-                _threadLocks[i] = new Object();
-                int j = i;
-                Action threadEntry = test.ThreadEntries[j];
-                Action wrapped = () => MakeThreadFunction(threadEntry, j); 
-                _threadStates[i] = ThreadState.Running;
-                _threads[i] = new Thread(new ThreadStart(wrapped));
-                _threads[i].Start();
                 _shadowThreads[i] = new ShadowThread(i, NumThreads);
             }
-            for(int i = 0; i < NumThreads; ++i)
-            {
-                var l = _threadLocks[i];
-                lock(l)
-                {
-                    while(_threadStates[i] == ThreadState.Running)
-                    {
-                        Monitor.Wait(l);
-                    }
-                }
-            }    
+
+            _testThreads = new TestThreads(test, _scheduler);
             test.OnBegin();
             _testStarted = true;   
-            WakeThread();
-            for(int i = 0; i < NumThreads; ++i)
-            {
-                _threads[i].Join();
-            }
+            _testThreads.WakeThread();
+            _testThreads.Join();
             test.OnFinished();
-        }
-
-        private void WakeThread()
-        {
-            int idx = _scheduler.RunningThreadId;
-            _threadStates[idx] = ThreadState.Running;
-            var l = _threadLocks[idx];
-            lock(l)
-            {
-                Monitor.Pulse(l);
-            }
         }
 
         private void SchedulingPreamble()
@@ -142,22 +75,6 @@ namespace RelaSharp
             {
                 throw new TestFailedException();
             }
-        }
-
-        private void WakeThreadAndBlock(int previousThreadId)
-        {
-            _threadStates[previousThreadId] = ThreadState.Blocked;
-            WakeThread();             
-            var runningLock = _threadLocks[previousThreadId];
-            lock(runningLock)
-            {
-                Monitor.Exit(_runningThreadLock);
-                while(_threadStates[previousThreadId] == ThreadState.Blocked)
-                {
-                    Monitor.Wait(runningLock);
-                }
-            }
-            Monitor.Enter(_runningThreadLock);        
         }
 
         public void MaybeSwitch()
@@ -174,7 +91,7 @@ namespace RelaSharp
             {
                 return;
             }
-            WakeThreadAndBlock(previousThreadId);        
+            _testThreads.WakeNewThreadAndBlockPrevious(previousThreadId);        
         }
 
         public void ThreadWaiting()
@@ -190,9 +107,8 @@ namespace RelaSharp
             {
                 FailTest("DEADLOCK");
             }
-            WakeThreadAndBlock(previousThreadId);        
+            _testThreads.WakeNewThreadAndBlockPrevious(previousThreadId);        
         }
-
 
         public void Assert(bool shouldBeTrue, string reason, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
