@@ -1,6 +1,7 @@
 * Condition variable (RMonitor) <- most value in doing this next.
 * CLR style Examples
 * Deadlock detection
+* scheduler Yield/Back off
 * Review Seq cst fence
 * Place OnBegin/OnFinished on threads (with seq cst fences?) rather than current weirdness?
 * Finish RInterlocked
