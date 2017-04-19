@@ -1,23 +1,8 @@
-using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 
 namespace RelaSharp
-{
-    enum ThreadState 
-    {
-        Running,
-        Blocked,
-        Waiting,
-        Finished
-    }
-    
- 
-    class TestFailedException : Exception 
-    {
-
-    }
-  
+{ 
     class TestEnvironment // Rename to TestRunner?
     {
         public int HistoryLength => 20;
