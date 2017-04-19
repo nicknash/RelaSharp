@@ -7,6 +7,7 @@ namespace RelaSharp
         private Random _random = new Random();
         private int[] _unfinishedThreadIds;
         private int[] _waitingThreadIds;
+        private int _numWaitingThreads;
         private int _numUnfinishedThreads; // TODO: wrap these two into a proper data structure when shape clearer.
 
         public bool AllThreadsFinished => _numUnfinishedThreads == 0;
@@ -37,14 +38,20 @@ namespace RelaSharp
 
         public bool ThreadWaiting()
         {
-            return false; /// TODO return true if deadlock.
+            if(Array.IndexOf(_waitingThreadIds, RunningThreadId) == -1)
+            {
+                _waitingThreadIds[_numWaitingThreads] = RunningThreadId;
+                _numWaitingThreads++;
+            }
+            bool deadlock = _numWaitingThreads == _numUnfinishedThreads;
+            return deadlock;
         } 
 
-        public void ThreadFinished(int threadId)
+        public void ThreadFinished()
         {
             if(_numUnfinishedThreads > 0)
             {
-                int i = Array.IndexOf(_unfinishedThreadIds, threadId);
+                int i = Array.IndexOf(_unfinishedThreadIds, RunningThreadId);
                 _unfinishedThreadIds[i] = _unfinishedThreadIds[_numUnfinishedThreads - 1];
                 _numUnfinishedThreads--;
             }
