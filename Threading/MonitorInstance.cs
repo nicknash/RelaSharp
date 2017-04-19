@@ -11,13 +11,15 @@ namespace RelaSharp.Threading
 
         private Queue<ShadowThread> _waiting;
         private Queue<ShadowThread> _ready;
+        private HashSet<int> _waitingThreadIds;
 
         private ShadowThread _heldBy;
 
         public MonitorInstance()
         {
             _waiting = new Queue<ShadowThread>();
-            _ready = new Queue<ShadowThread>();
+            _waitingThreadIds = new HashSet<int>();
+            _ready = new Queue<ShadowThread>(); // Seems to be no need for this?
         }
 
         public void Enter()
@@ -30,12 +32,19 @@ namespace RelaSharp.Threading
                 runningThread.ReleasesAcquired.Join(_lockClock);
                 // Event log
             }
-            else
+            else 
             {
-                _ready.Enqueue(runningThread);
-                // Event log
-                // Tell scheduler thread is blocked.
-                TE.MaybeSwitch(ThreadState.Waiting);
+                if(_heldBy != runningThread)
+                {
+                    while(_heldBy != null)
+                    {
+                        TE.ThreadWaiting();
+                    }
+                    _heldBy = runningThread;
+                    runningThread.ReleasesAcquired.Join(_lockClock);
+                }
+                // TODO: should increment recursion count if heldBy == runningThread
+                // TODO: Event log
             }
         }
 
@@ -72,6 +81,7 @@ namespace RelaSharp.Threading
             // event log
             if(_waiting.Count > 0)
             {
+                // _waitingThreadIds.Remove(_waiting.Dequeue().Id);
                 _ready.Enqueue(_waiting.Dequeue());
             }
 
@@ -87,6 +97,7 @@ namespace RelaSharp.Threading
             }
             foreach(var thread in _waiting)
             {
+                // _waitingThreadIds.Remove(_waiting.Dequeue().Id);
                 _ready.Enqueue(thread);
             }
             // event log
@@ -102,8 +113,13 @@ namespace RelaSharp.Threading
             }
             // Event log
             _waiting.Enqueue(runningThread);
+            _waitingThreadIds.Add(runningThread.Id);
             Exit();
-            // Tell scheduler thread is blocked
+            while(_ready.Count == 0 || _ready.Peek().Id != runningThread.Id/*  _waitingThreadIds.Contains(runningThread.Id)*/)
+            {
+                TE.ThreadWaiting();
+            }
+            _ready.Dequeue();
             Enter();
             // Event log
             return true;
