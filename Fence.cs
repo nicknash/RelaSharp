@@ -8,7 +8,7 @@
        
         public static void Insert(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
-            TE.Scheduler();
+            TE.MaybeSwitch();
             var runningThread = TE.RunningThread;
             runningThread.Fence(mo, TE.SequentiallyConsistentFence);
             TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Fence: {mo}");

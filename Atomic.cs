@@ -19,7 +19,7 @@ namespace RelaSharp
         protected ShadowThread Preamble()
         {
             MaybeInit();
-            TE.Scheduler();
+            TE.MaybeSwitch();
             var runningThread = TE.RunningThread;
             runningThread.IncrementClock();
             return runningThread;

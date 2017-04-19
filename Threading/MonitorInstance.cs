@@ -22,7 +22,7 @@ namespace RelaSharp.Threading
 
         public void Enter()
         {
-            TE.Scheduler();
+            TE.MaybeSwitch();
             var runningThread = TE.RunningThread;
             if(_heldBy == null)
             {
@@ -35,6 +35,7 @@ namespace RelaSharp.Threading
                 _ready.Enqueue(runningThread);
                 // Event log
                 // Tell scheduler thread is blocked.
+                TE.MaybeSwitch(ThreadState.Waiting);
             }
         }
 
@@ -48,7 +49,7 @@ namespace RelaSharp.Threading
 
         public void Exit()
         {
-            TE.Scheduler();
+            TE.MaybeSwitch();
             var runningThread = TE.RunningThread;
             if(_heldBy != runningThread)
             {
@@ -57,12 +58,12 @@ namespace RelaSharp.Threading
             // Event log
             _lockClock.Join(_heldBy.ReleasesAcquired);
             _heldBy = null;
-            TE.Scheduler();
+            TE.MaybeSwitch();
         }
 
         public void Pulse()
         {
-            TE.Scheduler();
+            TE.MaybeSwitch();
             var runningThread = TE.RunningThread;
             if(_heldBy != runningThread)
             {
@@ -78,7 +79,7 @@ namespace RelaSharp.Threading
 
         public void PulseAll()
         {
-            TE.Scheduler();
+            TE.MaybeSwitch();
             var runningThread = TE.RunningThread;
             if(_heldBy != runningThread)
             {
@@ -93,7 +94,7 @@ namespace RelaSharp.Threading
 
         public bool Wait()
         {
-            TE.Scheduler();
+            TE.MaybeSwitch();
             var runningThread = TE.RunningThread;
             if(_heldBy != runningThread)
             {

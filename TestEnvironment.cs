@@ -11,18 +11,20 @@ namespace RelaSharp
     {
         Running,
         Blocked,
+        Waiting,
         Finished
     }
     
+ 
     class TestFailedException : Exception 
     {
 
     }
 
-    class TestEnvironment
+    class TestEnvironment // Rename to TestRunner when scheduling removed?
     {
         public static TestEnvironment TE = new TestEnvironment();
-        public ShadowThread RunningThread => _shadowThreads[_runningThreadIdx];
+        public ShadowThread RunningThread => _shadowThreads[_scheduler.RunningThreadId];
         public int NumThreads { get; private set; }
         public int HistoryLength => 20;
         public ulong LiveLockLimit = 5000;
@@ -30,18 +32,15 @@ namespace RelaSharp
         public string TestFailureReason { get; private set;}
         public ulong ExecutionLength { get; private set; }
 
-        private int _runningThreadIdx;
-        private int[] _unfinishedThreadIndices;
-        private int _numUnfinishedThreads; // TODO: wrap these two into a proper data structure when shape clearer.
+        private RandomScheduler _scheduler;
         private Thread[] _threads;
         private ThreadState[] _threadStates;
         private ShadowThread[] _shadowThreads;
         private Object[] _threadLocks;
-        private Random _random = new Random();
         private List<ExecutionEvent> _eventLog;
         private object _runningThreadLock = new object();
         private bool _testStarted;
-        public VectorClock SequentiallyConsistentFence;
+        public  VectorClock SequentiallyConsistentFence;
 
         private void MakeThreadFunction(Action threadFunction, int threadIdx)
         {
@@ -63,13 +62,11 @@ namespace RelaSharp
             }
             Monitor.Exit(_runningThreadLock);
             _threadStates[threadIdx] = ThreadState.Finished;
-            if(_numUnfinishedThreads > 1)
+            _scheduler.ThreadFinished(threadIdx);
+            if(!_scheduler.AllThreadsFinished)
             {
-                int i = Array.IndexOf(_unfinishedThreadIndices, threadIdx);
-                _unfinishedThreadIndices[i] = _unfinishedThreadIndices[_numUnfinishedThreads - 1];
-                _numUnfinishedThreads--;
-                int nextIdx = GetNextThreadIdx(); 
-                WakeThread(nextIdx);
+                _scheduler.MaybeSwitch();
+                WakeThread();
             }
         }
 
@@ -86,8 +83,7 @@ namespace RelaSharp
             _threadStates = new ThreadState[NumThreads];
             _threadLocks = new Object[NumThreads];
             _shadowThreads = new ShadowThread[NumThreads];
-            _unfinishedThreadIndices = new int[NumThreads];
-            _numUnfinishedThreads = NumThreads;
+            _scheduler = new RandomScheduler(NumThreads);
             _eventLog = new List<ExecutionEvent>();
             _testStarted = false;
             SequentiallyConsistentFence = new VectorClock(NumThreads);
@@ -95,7 +91,6 @@ namespace RelaSharp
             
             for(int i = 0; i < NumThreads; ++i)
             {
-                _unfinishedThreadIndices[i] = i;
                 _threadLocks[i] = new Object();
                 int j = i;
                 Action threadEntry = test.ThreadEntries[j];
@@ -117,8 +112,8 @@ namespace RelaSharp
                 }
             }    
             test.OnBegin();
-            _testStarted = true;      
-            WakeThread(GetNextThreadIdx());
+            _testStarted = true;   
+            WakeThread();
             for(int i = 0; i < NumThreads; ++i)
             {
                 _threads[i].Join();
@@ -126,9 +121,9 @@ namespace RelaSharp
             test.OnFinished();
         }
 
-        private void WakeThread(int idx)
+        private void WakeThread()
         {
-            _runningThreadIdx = idx;
+            int idx = _scheduler.RunningThreadId;
             _threadStates[idx] = ThreadState.Running;
             var l = _threadLocks[idx];
             lock(l)
@@ -136,12 +131,9 @@ namespace RelaSharp
                 Monitor.Pulse(l);
             }
         }
-        public void Scheduler()
-        {
-            if(!_testStarted)
-            {
-                return;
-            }
+
+        private void SchedulingPreamble()
+        {          
             if(ExecutionLength > LiveLockLimit)
             {
                 FailTest($"Possible live-lock: execution length has exceeded {LiveLockLimit}");
@@ -150,26 +142,57 @@ namespace RelaSharp
             {
                 throw new TestFailedException();
             }
-            ++ExecutionLength;
-            int prevThreadIdx = _runningThreadIdx;
-            int nextThreadIdx = GetNextThreadIdx();
-            if(nextThreadIdx == prevThreadIdx)
-            {
-                return;
-            }
-            _threadStates[prevThreadIdx] = ThreadState.Blocked;
-            WakeThread(nextThreadIdx);             
-            var runningLock = _threadLocks[prevThreadIdx];
+        }
+
+        private void WakeThreadAndBlock(int previousThreadId)
+        {
+            _threadStates[previousThreadId] = ThreadState.Blocked;
+            WakeThread();             
+            var runningLock = _threadLocks[previousThreadId];
             lock(runningLock)
             {
                 Monitor.Exit(_runningThreadLock);
-                while(_threadStates[prevThreadIdx] == ThreadState.Blocked)
+                while(_threadStates[previousThreadId] == ThreadState.Blocked)
                 {
                     Monitor.Wait(runningLock);
                 }
             }
             Monitor.Enter(_runningThreadLock);        
         }
+
+        public void MaybeSwitch()
+        {
+            if(!_testStarted)
+            {
+                return;
+            }
+            SchedulingPreamble();
+            ++ExecutionLength;
+            int previousThreadId = _scheduler.RunningThreadId;
+            int nextThreadId = _scheduler.MaybeSwitch();
+            if(nextThreadId == previousThreadId)
+            {
+                return;
+            }
+            WakeThreadAndBlock(previousThreadId);        
+        }
+
+        public void ThreadWaiting()
+        {
+           if(!_testStarted)
+            {
+                return;
+            }
+            SchedulingPreamble();
+            ++ExecutionLength;
+            int previousThreadId = _scheduler.RunningThreadId;
+            if(_scheduler.ThreadWaiting())
+            {
+                FailTest("DEADLOCK");
+            }
+            WakeThreadAndBlock(previousThreadId);        
+        }
+
 
         public void Assert(bool shouldBeTrue, string reason, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
@@ -234,14 +257,6 @@ namespace RelaSharp
                 }
             }
             output.WriteLine("----- End Test Execution Log ----");
-        }
-        private int GetNextThreadIdx()
-        {
-            if(_numUnfinishedThreads == 0)
-            {
-                throw new Exception("All threads finished. Who called?");
-            }
-            return _unfinishedThreadIndices[_random.Next(_numUnfinishedThreads)];
         }
     }    
 }
