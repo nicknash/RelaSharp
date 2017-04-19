@@ -6,6 +6,14 @@ namespace RelaSharp
 {
     class TestThreads
     {
+        private enum ThreadState
+        {
+            Running,
+            Blocked,
+            Waiting,
+            Finished
+        }
+
         private Thread[] _threads;
         private ThreadState[] _threadStates;
         private Object[] _threadLocks;
@@ -103,7 +111,7 @@ namespace RelaSharp
             }
             Monitor.Exit(_runningThreadLock);
             _threadStates[threadIdx] = ThreadState.Finished;
-            _scheduler.ThreadFinished(threadIdx);
+            _scheduler.ThreadFinished();
             if(!_scheduler.AllThreadsFinished)
             {
                 _scheduler.MaybeSwitch();
