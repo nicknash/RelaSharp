@@ -23,7 +23,8 @@ namespace RelaSharp.EntryPoint
                                                              c("TotalOrder", new TotalOrder()), 
                                                              c("LiveLock", new LiveLock()),
                                                              c("Treiber", new TreiberStack()),
-                                                             c("MichaelScott", new MichaelScottQueue())};
+                                                             c("MichaelScott", new MichaelScottQueue()),
+                                                             c("Deadlock", new Deadlock())};
             for(int i = 0; i < examples.Length; ++i)
             {
                 var tag = examples[i].Item1;

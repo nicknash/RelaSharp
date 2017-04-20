@@ -21,6 +21,7 @@ namespace RelaSharp
             _numUnfinishedThreads = numThreads;
             for(int i = 0; i < numThreads; ++i)
             {
+                _waitingThreadIds[i] = -1;
                 _unfinishedThreadIds[i] = i;
             }
             MaybeSwitch();
@@ -53,9 +54,16 @@ namespace RelaSharp
             return deadlock;
         } 
 
+        public void ThreadFinishedWaiting()
+        {
+            int idx = Array.IndexOf(_waitingThreadIds, RunningThreadId);
+            _numWaitingThreads--;
+            _waitingThreadIds[idx] = _waitingThreadIds[_numWaitingThreads];  
+        }
+
         public void ThreadFinished()
         {
-            if(_numUnfinishedThreads > 0)
+            if(_numUnfinishedThreads > 0) // Why check this and not fail loudly?
             {
                 int i = Array.IndexOf(_unfinishedThreadIds, RunningThreadId);
                 _unfinishedThreadIds[i] = _unfinishedThreadIds[_numUnfinishedThreads - 1];
@@ -63,5 +71,4 @@ namespace RelaSharp
             }
         }
     }
-
 }

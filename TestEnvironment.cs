@@ -89,7 +89,11 @@ namespace RelaSharp
             _testThreads.WakeNewThreadAndBlockPrevious(previousThreadId);        
         }
 
-
+        public void ThreadFinishedWaiting()
+        {
+            _scheduler.ThreadFinishedWaiting();
+            MaybeSwitch(); // TODO: Do here or by caller?
+        }
 
         public void Assert(bool shouldBeTrue, string reason, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {

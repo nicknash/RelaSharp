@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace RelaSharp.Threading
 {
@@ -13,14 +14,15 @@ namespace RelaSharp.Threading
             if(!_lockToMonitor.TryGetValue(lockObject, out instance))
             {
                 instance = new MonitorInstance();
+                _lockToMonitor.Add(lockObject, instance);
             }
             return instance;
         }
 
-        public static void Enter(Object lockObject)
+        public static void Enter(Object lockObject, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             var instance = GetMonitorInstance(lockObject);
-            instance.Enter();
+            instance.Enter(memberName, sourceFilePath, sourceLineNumber);
         }
 
         public static void Enter(Object lockObject, ref bool lockTaken)
@@ -29,9 +31,10 @@ namespace RelaSharp.Threading
             instance.Enter(ref lockTaken);
         }
 
-        public static void Exit(Object lockObject)
+        public static void Exit(Object lockObject, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
-            throw new NotImplementedException();
+            var instance = GetMonitorInstance(lockObject);
+            instance.Exit(memberName, sourceFilePath, sourceLineNumber);
         }
 
         public static bool IsEntered(Object lockObject)
