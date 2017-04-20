@@ -2,7 +2,7 @@ using System;
 
 namespace RelaSharp
 {
-    class RandomScheduler // TestEnvironment/TestRunner calls the scheduler.
+    class RandomScheduler
     {
         private Random _random = new Random();
         private int[] _unfinishedThreadIds;
@@ -17,6 +17,7 @@ namespace RelaSharp
         public RandomScheduler(int numThreads)
         {
             _unfinishedThreadIds = new int[numThreads];
+            _waitingThreadIds = new int[numThreads];
             _numUnfinishedThreads = numThreads;
             for(int i = 0; i < numThreads; ++i)
             {
@@ -25,7 +26,7 @@ namespace RelaSharp
             MaybeSwitch();
         }
 
-        public int MaybeSwitch()
+        public void MaybeSwitch()
         {
             if(_numUnfinishedThreads == 0)
             {
@@ -33,7 +34,7 @@ namespace RelaSharp
             }
             var idx = _random.Next(_numUnfinishedThreads);
             RunningThreadId =_unfinishedThreadIds[idx]; 
-            return RunningThreadId;
+            return;
         }
 
         public bool ThreadWaiting()
@@ -44,6 +45,11 @@ namespace RelaSharp
                 _numWaitingThreads++;
             }
             bool deadlock = _numWaitingThreads == _numUnfinishedThreads;
+            int originalId = RunningThreadId;
+            while(RunningThreadId == originalId) 
+            {
+                MaybeSwitch();
+            }
             return deadlock;
         } 
 
