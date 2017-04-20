@@ -10,7 +10,6 @@ namespace RelaSharp
         {
             Running,
             Blocked,
-            Waiting,
             Finished
         }
 
