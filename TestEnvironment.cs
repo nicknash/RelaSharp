@@ -67,8 +67,8 @@ namespace RelaSharp
             SchedulingPreamble();
             ++ExecutionLength;
             int previousThreadId = _scheduler.RunningThreadId;
-            int nextThreadId = _scheduler.MaybeSwitch();
-            if(nextThreadId == previousThreadId)
+            _scheduler.MaybeSwitch();
+            if(_scheduler.RunningThreadId == previousThreadId)
             {
                 return;
             }
