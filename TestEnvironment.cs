@@ -46,7 +46,7 @@ namespace RelaSharp
             test.OnFinished();
         }
 
-        private void SchedulingPreamble()
+        private int SchedulingPreamble()
         {          
             if(ExecutionLength > LiveLockLimit)
             {
@@ -56,6 +56,8 @@ namespace RelaSharp
             {
                 throw new TestFailedException();
             }
+            ++ExecutionLength;
+            return _scheduler.RunningThreadId;
         }
 
         public void MaybeSwitch()
@@ -64,9 +66,7 @@ namespace RelaSharp
             {
                 return;
             }
-            SchedulingPreamble();
-            ++ExecutionLength;
-            int previousThreadId = _scheduler.RunningThreadId;
+            int previousThreadId = SchedulingPreamble();
             _scheduler.MaybeSwitch();
             if(_scheduler.RunningThreadId == previousThreadId)
             {
@@ -77,19 +77,19 @@ namespace RelaSharp
 
         public void ThreadWaiting()
         {
-           if(!_testStarted)
+            if(!_testStarted)
             {
                 return;
             }
-            SchedulingPreamble();
-            ++ExecutionLength;
-            int previousThreadId = _scheduler.RunningThreadId;
+            int previousThreadId = SchedulingPreamble();
             if(_scheduler.ThreadWaiting())
             {
-                FailTest("DEADLOCK");
+                FailTest($"Deadlock detected: all threads waiting.");
             }
             _testThreads.WakeNewThreadAndBlockPrevious(previousThreadId);        
         }
+
+
 
         public void Assert(bool shouldBeTrue, string reason, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
