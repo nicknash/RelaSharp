@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace RelaSharp.Threading
 {
@@ -9,43 +10,62 @@ namespace RelaSharp.Threading
 
         private VectorClock _lockClock;
 
-        private Queue<ShadowThread> _waiting;
-        private Queue<ShadowThread> _ready;
-        private HashSet<int> _waitingThreadIds;
+        private Queue<int> _waiting;
+        private Queue<int> _ready;
 
         private ShadowThread _heldBy;
+        private int _timesEntered;
 
         public MonitorInstance()
         {
-            _waiting = new Queue<ShadowThread>();
-            _waitingThreadIds = new HashSet<int>();
-            _ready = new Queue<ShadowThread>(); // Seems to be no need for this?
+            _waiting = new Queue<int>();
+            _ready = new Queue<int>();
+
         }
 
-        public void Enter()
+        private bool IsHeld => _timesEntered > 0;
+
+        public void Enter([CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             TE.MaybeSwitch();
             var runningThread = TE.RunningThread;
-            if(_heldBy == null)
-            {
-                _heldBy = runningThread;
-                runningThread.ReleasesAcquired.Join(_lockClock);
-                // Event log
-            }
-            else 
+            if(IsHeld) 
             {
                 if(_heldBy != runningThread)
                 {
-                    while(_heldBy != null)
+                    _timesEntered++;
+                }
+                else
+                {
+                    while(IsHeld)
                     {
+                        TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Monitor.Enter (waiting)."); // TODO give lock-obj addr
                         TE.ThreadWaiting();
                     }
-                    _heldBy = runningThread;
-                    runningThread.ReleasesAcquired.Join(_lockClock);
                 }
-                // TODO: should increment recursion count if heldBy == runningThread
-                // TODO: Event log
             }
+            AcquireLock(runningThread, memberName, sourceFilePath, sourceLineNumber);
+        }
+
+        private void AcquireLock(ShadowThread runningThread, string memberName, string sourceFilePath, int sourceLineNumber)
+        {
+            runningThread.ReleasesAcquired.Join(_lockClock);
+            _heldBy = runningThread;
+            _timesEntered++;
+            // TODO give lock-obj addr in event-log
+            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Monitor.Enter: Lock-acquired ({_timesEntered}."); 
+            // TE.MaybeSwitch() ?
+        }
+
+        private void ReleaseLock()
+        {
+            _lockClock.Join(_heldBy.ReleasesAcquired);
+            _timesEntered--;
+            if(_timesEntered == 0)
+            {
+                _heldBy = null;
+            }
+            // TE.MaybeSwitch() ?
         }
 
         public void Enter(ref bool lockTaken)
@@ -62,12 +82,11 @@ namespace RelaSharp.Threading
             var runningThread = TE.RunningThread;
             if(_heldBy != runningThread)
             {
-                // FAIL TEST.
+                var lockHeldBy = _heldBy == null ? "Nobody" : $"{_heldBy.Id}";
+                TE.FailTest($"Attempt to Monitor.Exit on thread {runningThread.Id}, but lock is held by {lockHeldBy}");
+                return;
             }
-            // Event log
-            _lockClock.Join(_heldBy.ReleasesAcquired);
-            _heldBy = null;
-            TE.MaybeSwitch();
+            ReleaseLock();
         }
 
         public void Pulse()
@@ -81,7 +100,6 @@ namespace RelaSharp.Threading
             // event log
             if(_waiting.Count > 0)
             {
-                // _waitingThreadIds.Remove(_waiting.Dequeue().Id);
                 _ready.Enqueue(_waiting.Dequeue());
             }
 
@@ -97,7 +115,6 @@ namespace RelaSharp.Threading
             }
             foreach(var thread in _waiting)
             {
-                // _waitingThreadIds.Remove(_waiting.Dequeue().Id);
                 _ready.Enqueue(thread);
             }
             // event log
@@ -112,10 +129,10 @@ namespace RelaSharp.Threading
                 // FAIL TEST.
             }
             // Event log
-            _waiting.Enqueue(runningThread);
-            _waitingThreadIds.Add(runningThread.Id);
-            Exit();
-            while(_ready.Count == 0 || _ready.Peek().Id != runningThread.Id/*  _waitingThreadIds.Contains(runningThread.Id)*/)
+            _waiting.Enqueue(runningThread.Id);
+            // _waitingThreadIds.Add(runningThread.Id);
+            Exit(); // maybe don't call this, but do same semantics..
+            while(_ready.Count == 0 || _ready.Peek() != runningThread.Id/*  _waitingThreadIds.Contains(runningThread.Id)*/)
             {
                 TE.ThreadWaiting();
             }
