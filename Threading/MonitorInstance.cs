@@ -25,16 +25,16 @@ namespace RelaSharp.Threading
 
         private bool IsHeld => _heldBy != null;
 
-//        public void Enter([CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         public void Enter(string memberName, string sourceFilePath, int sourceLineNumber)
         {
             TE.MaybeSwitch();
             var runningThread = TE.RunningThread;
+            runningThread.IncrementClock();
             if (IsHeld && _heldBy != runningThread)
             {
                 while (IsHeld)
                 {
-                    TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Monitor.Enter (waiting)."); // TODO give lock-obj addr
+                    TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Monitor.Enter: (waiting {_timesEntered})."); 
                     TE.ThreadWaiting();
                 }
                 TE.ThreadFinishedWaiting();
@@ -47,9 +47,8 @@ namespace RelaSharp.Threading
             runningThread.ReleasesAcquired.Join(_lockClock);
             _heldBy = runningThread;
             _timesEntered++;
-            // TODO give lock-obj addr in event-log
             TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Monitor.Enter: Lock-acquired ({_timesEntered})."); 
-            // TE.MaybeSwitch() ?
+            TE.MaybeSwitch(); // TODO: good idea?
         }
 
         private void ReleaseLock(string memberName, string sourceFilePath, int sourceLineNumber)
@@ -61,7 +60,7 @@ namespace RelaSharp.Threading
                 _heldBy = null;
             }
             TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Monitor.Exit: Lock-released ({_timesEntered})."); 
-            // TE.MaybeSwitch() ?
+            TE.MaybeSwitch();
         }
 
         public void Enter(ref bool lockTaken)
@@ -76,6 +75,7 @@ namespace RelaSharp.Threading
         {
             TE.MaybeSwitch();
             var runningThread = TE.RunningThread;
+            runningThread.IncrementClock();            
             if(_heldBy != runningThread)
             {
                 var lockHeldBy = _heldBy == null ? "Nobody" : $"{_heldBy.Id}";
@@ -89,6 +89,7 @@ namespace RelaSharp.Threading
         {
             TE.MaybeSwitch();
             var runningThread = TE.RunningThread;
+            runningThread.IncrementClock(); // ??    
             if(_heldBy != runningThread)
             {
                 // FAIL TEST.
@@ -120,6 +121,7 @@ namespace RelaSharp.Threading
         {
             TE.MaybeSwitch();
             var runningThread = TE.RunningThread;
+            runningThread.IncrementClock(); // ??    
             if(_heldBy != runningThread)
             {
                 // FAIL TEST.

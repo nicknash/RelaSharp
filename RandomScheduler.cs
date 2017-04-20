@@ -2,50 +2,93 @@ using System;
 
 namespace RelaSharp
 {
+    class ArraySet
+    {
+        private int[] _elems;
+        public int NumElems { get; private set; }
+        public ArraySet(int capacity)
+        {
+            _elems = new int[capacity];
+        }
+
+        public bool Add(int x)
+        {
+            int idx = Array.IndexOf(_elems, x, 0, NumElems);
+            if(idx != -1)
+            {
+                return false;
+            }
+            _elems[NumElems] = x;
+            NumElems++;
+            return true;
+        }
+
+        public bool Remove(int x)
+        {
+            int idx = Array.IndexOf(_elems, x, 0, NumElems);
+            if(idx == -1)
+            {
+                return false;
+            }
+            NumElems--;
+            _elems[idx] = _elems[NumElems];  
+            return true;
+        }
+
+        public int this[int idx] => _elems[idx];
+       
+        public void Clear()
+        {
+            NumElems = 0;
+        }
+    }
+
     class RandomScheduler
     {
         private Random _random = new Random();
-        private int[] _unfinishedThreadIds;
-        private int[] _waitingThreadIds;
-        private int _numWaitingThreads;
-        private int _numUnfinishedThreads; // TODO: wrap these two into a proper data structure when shape clearer.
+        private ArraySet _unfinishedThreadIds;
+        private ArraySet _waitingThreadIds;
+        private ArraySet _threadIdsSeenWhileAllWaiting;
 
-        public bool AllThreadsFinished => _numUnfinishedThreads == 0;
+        public bool AllThreadsFinished => _unfinishedThreadIds.NumElems == 0;
 
         public int RunningThreadId { get; private set; }
 
         public RandomScheduler(int numThreads)
         {
-            _unfinishedThreadIds = new int[numThreads];
-            _waitingThreadIds = new int[numThreads];
-            _numUnfinishedThreads = numThreads;
+            _unfinishedThreadIds = new ArraySet(numThreads);
+            _waitingThreadIds = new ArraySet(numThreads);
+            _threadIdsSeenWhileAllWaiting = new ArraySet(numThreads);
             for(int i = 0; i < numThreads; ++i)
             {
-                _waitingThreadIds[i] = -1;
-                _unfinishedThreadIds[i] = i;
+                _unfinishedThreadIds.Add(i);
             }
             MaybeSwitch();
         }
 
         public void MaybeSwitch()
         {
-            if(_numUnfinishedThreads == 0)
+            if(AllThreadsFinished)
             {
                 throw new Exception("All threads finished. Who called?");
             }
-            var idx = _random.Next(_numUnfinishedThreads);
-            RunningThreadId =_unfinishedThreadIds[idx]; 
+            var idx = _random.Next(_unfinishedThreadIds.NumElems);
+            RunningThreadId = _unfinishedThreadIds[idx]; 
             return;
         }
 
         public bool ThreadWaiting()
         {
-            if(Array.IndexOf(_waitingThreadIds, RunningThreadId) == -1)
+            _waitingThreadIds.Add(RunningThreadId);
+            if(_waitingThreadIds.NumElems == _unfinishedThreadIds.NumElems)
             {
-                _waitingThreadIds[_numWaitingThreads] = RunningThreadId;
-                _numWaitingThreads++;
+                _threadIdsSeenWhileAllWaiting.Add(RunningThreadId);
             }
-            bool deadlock = _numWaitingThreads == _numUnfinishedThreads;
+            else
+            {
+                _threadIdsSeenWhileAllWaiting.Clear();
+            }
+            bool deadlock = _threadIdsSeenWhileAllWaiting.NumElems == _unfinishedThreadIds.NumElems;
             int originalId = RunningThreadId;
             while(RunningThreadId == originalId) 
             {
@@ -54,21 +97,8 @@ namespace RelaSharp
             return deadlock;
         } 
 
-        public void ThreadFinishedWaiting()
-        {
-            int idx = Array.IndexOf(_waitingThreadIds, RunningThreadId);
-            _numWaitingThreads--;
-            _waitingThreadIds[idx] = _waitingThreadIds[_numWaitingThreads];  
-        }
-
-        public void ThreadFinished()
-        {
-            if(_numUnfinishedThreads > 0) // Why check this and not fail loudly?
-            {
-                int i = Array.IndexOf(_unfinishedThreadIds, RunningThreadId);
-                _unfinishedThreadIds[i] = _unfinishedThreadIds[_numUnfinishedThreads - 1];
-                _numUnfinishedThreads--;
-            }
-        }
+        public void ThreadFinishedWaiting() => _waitingThreadIds.Remove(RunningThreadId);  
+    
+        public void ThreadFinished() => _unfinishedThreadIds.Remove(RunningThreadId);
     }
 }
