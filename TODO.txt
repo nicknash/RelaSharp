@@ -6,7 +6,7 @@
 * Review Seq cst fence
 * Place OnBegin/OnFinished on threads (with seq cst fences?) rather than current weirdness?
 * Finish RInterlocked
-* More Example lock-free algorithms: CRQ/LCRQ, Fetch-Add Queue, bounded SPMC/MPMC.  
+* More Example lock-free algorithms: Michael-Scott two-lock queue, CRQ/LCRQ, Fetch-Add Queue, bounded SPMC/MPMC.  
 * Add Invariant() feature
 * Left/Right RelaExample
 * Exhaustive scheduler (clean up TestEnvironment before this)
