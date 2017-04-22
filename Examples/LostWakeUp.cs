@@ -8,20 +8,38 @@ namespace RelaSharp.Examples
     {
         public IReadOnlyList<Action> ThreadEntries { get; private set; }
 
-        public string Name => "Store Load Re-ordering example";
+        public string Name => "Lost Wake Up example";
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;
         private static TestEnvironment TE = TestEnvironment.TE;
 
-        private object lockObject;
+        private object _lockObject;
 
-        private IEnumerator<SimpleConfig> _configs;
-        private SimpleConfig ActiveConfig => _configs.Current;
+        private IEnumerator<Config> _configs;
+        private Config ActiveConfig => _configs.Current;
+
+        private class Config
+        {
+            public readonly string Description;
+            public readonly int NumPulses;
+            public readonly int NumWaitingThreads;
+            public readonly bool ExpectedToFail;
+
+            public Config(string description, int numPulses, int numWaitingThreads, bool expectedToFail)
+            {
+                Description = description;
+                NumPulses = numPulses;
+                NumWaitingThreads = numWaitingThreads;
+                ExpectedToFail = expectedToFail;
+            }
+        }
 
         public LostWakeUp()
         {
-            ThreadEntries = new List<Action> {Thread1,Thread2};
-            var configList = new List<SimpleConfig>{new SimpleConfig("Lost Wake Up", MemoryOrder.Relaxed, true)};
+            var configList = new List<Config>{new Config("Lost Wake Up: 1 Pulse, 1 Waiting Thread", 1, 1, true)
+                                             ,new Config("Lost Wake Up: 4 Pulses, 1 Waiting Thread", 4, 1, true)
+                                             ,new Config("Lost Wake Up: 4 Pulses, 4 Waiting Thread", 4, 4, true)
+                                             };
             _configs = configList.GetEnumerator();
         }
 
@@ -32,13 +50,59 @@ namespace RelaSharp.Examples
 
         public void Thread1()
         {
-            RMonitor.Pulse(lockObject);
+            RMonitor.Enter(_lockObject);
+            RMonitor.Pulse(_lockObject);
+            RMonitor.Exit(_lockObject);
+
+            RMonitor.Enter(_lockObject);
+            RMonitor.Pulse(_lockObject);
+            RMonitor.Exit(_lockObject);
+
+            RMonitor.Enter(_lockObject);
+            RMonitor.Pulse(_lockObject);
+            RMonitor.Exit(_lockObject);
+
+            RMonitor.Enter(_lockObject);
+            RMonitor.Pulse(_lockObject);
+            RMonitor.Exit(_lockObject);
         }
 
         public void Thread2()
         {
-            RMonitor.Wait(lockObject);
+            RMonitor.Enter(_lockObject);            
+            RMonitor.Wait(_lockObject);
+            RMonitor.Exit(_lockObject);    
         }
+
+ 
+        private Action MakePulsingThread(int numPulses)
+        {
+            return () => PulsingThread(numPulses);
+        }
+
+        private Action MakeWaitingThread()
+        {
+            return () => WaitingThread();
+        }
+
+        private void PulsingThread(int numPulses)
+        {
+            for (int i = 0; i < numPulses; ++i)
+            {
+                RMonitor.Enter(_lockObject);
+                RMonitor.Pulse(_lockObject);
+                RMonitor.Exit(_lockObject);
+            }
+        }
+
+        public void WaitingThread()
+        {
+            RMonitor.Enter(_lockObject);            
+            RMonitor.Wait(_lockObject);
+            RMonitor.Exit(_lockObject);    
+        }
+
+
         public void OnBegin()
         {
         }
@@ -46,16 +110,30 @@ namespace RelaSharp.Examples
         {
         }
 
-        private void PrepareForNewConfig()
+         private void SetupActiveConfig()
         {
-            lockObject = new Object();
+            var threadEntries = new List<Action>() { MakePulsingThread(ActiveConfig.NumPulses)};
+            for(int i = 0; i < ActiveConfig.NumWaitingThreads; ++i)
+            {
+                threadEntries.Add(MakeWaitingThread());
+            }
+            ThreadEntries = threadEntries;                
         }
 
+        private void PrepareForNewConfig()
+        {
+            _lockObject = new object();
+        }
+        
         public bool SetNextConfiguration()
         {
             PrepareForNewConfig();
             bool moreConfigurations = _configs.MoveNext();
+            if(ActiveConfig != null)
+            {
+                SetupActiveConfig();
+            }
             return moreConfigurations;
         }
-    }
+   }
 }

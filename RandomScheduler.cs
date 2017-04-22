@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 namespace RelaSharp
 {
@@ -41,6 +42,8 @@ namespace RelaSharp
         {
             NumElems = 0;
         }
+
+        public override string ToString() => $"{NumElems}:{String.Join(",", _elems.Take(NumElems))}";
     }
 
     class RandomScheduler
@@ -51,6 +54,7 @@ namespace RelaSharp
         private ArraySet _threadIdsSeenWhileAllWaiting;
 
         public bool AllThreadsFinished => _unfinishedThreadIds.NumElems == 0;
+
 
         public int RunningThreadId { get; private set; }
 
@@ -79,8 +83,9 @@ namespace RelaSharp
 
         public bool ThreadWaiting()
         {
+            int numUnfinished = _unfinishedThreadIds.NumElems;
             _waitingThreadIds.Add(RunningThreadId);
-            if(_waitingThreadIds.NumElems == _unfinishedThreadIds.NumElems)
+            if(_waitingThreadIds.NumElems == numUnfinished)
             {
                 _threadIdsSeenWhileAllWaiting.Add(RunningThreadId);
             }
@@ -88,9 +93,9 @@ namespace RelaSharp
             {
                 _threadIdsSeenWhileAllWaiting.Clear();
             }
-            bool deadlock = _threadIdsSeenWhileAllWaiting.NumElems == _unfinishedThreadIds.NumElems;
+            bool deadlock = _unfinishedThreadIds.NumElems == 1 ||  _threadIdsSeenWhileAllWaiting.NumElems == _unfinishedThreadIds.NumElems;
             int originalId = RunningThreadId;
-            while(RunningThreadId == originalId) 
+            while(!deadlock && RunningThreadId == originalId) 
             {
                 MaybeSwitch();
             }

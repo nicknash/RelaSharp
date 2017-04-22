@@ -42,15 +42,16 @@ namespace RelaSharp.Threading
             throw new NotImplementedException();
         }
 
-        public static void Pulse(Object lockObject)
+        public static void Pulse(Object lockObject, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
-            throw new NotImplementedException();
-
+            var instance = GetMonitorInstance(lockObject);
+            instance.Pulse(memberName, sourceFilePath, sourceLineNumber);
         }
 
-        public static void PulseAll(Object lockObject)
+        public static void PulseAll(Object lockObject, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
-            throw new NotImplementedException();
+            var instance = GetMonitorInstance(lockObject);
+            instance.PulseAll(memberName, sourceFilePath, sourceLineNumber);
         }
 
         public static bool TryEnter(Object lockObject)
@@ -81,10 +82,10 @@ namespace RelaSharp.Threading
             throw new NotImplementedException();
         }
 
-        public static void Wait(Object lockObject)
+        public static void Wait(Object lockObject, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             var instance = GetMonitorInstance(lockObject);
-            instance.Wait();
+            instance.Wait(memberName, sourceFilePath, sourceLineNumber);
         }
 
         public static void Wait(Object lockObject, int millisecondsTimeout)
