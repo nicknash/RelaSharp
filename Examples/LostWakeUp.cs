@@ -47,33 +47,6 @@ namespace RelaSharp.Examples
         {
             PrepareForNewConfig();
         }
-
-        public void Thread1()
-        {
-            RMonitor.Enter(_lockObject);
-            RMonitor.Pulse(_lockObject);
-            RMonitor.Exit(_lockObject);
-
-            RMonitor.Enter(_lockObject);
-            RMonitor.Pulse(_lockObject);
-            RMonitor.Exit(_lockObject);
-
-            RMonitor.Enter(_lockObject);
-            RMonitor.Pulse(_lockObject);
-            RMonitor.Exit(_lockObject);
-
-            RMonitor.Enter(_lockObject);
-            RMonitor.Pulse(_lockObject);
-            RMonitor.Exit(_lockObject);
-        }
-
-        public void Thread2()
-        {
-            RMonitor.Enter(_lockObject);            
-            RMonitor.Wait(_lockObject);
-            RMonitor.Exit(_lockObject);    
-        }
-
  
         private Action MakePulsingThread(int numPulses)
         {
