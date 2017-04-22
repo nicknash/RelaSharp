@@ -97,7 +97,7 @@ namespace RelaSharp
             return deadlock;
         } 
 
-        public void ThreadFinishedWaiting() => _waitingThreadIds.Remove(RunningThreadId);  
+        public void ThreadFinishedWaiting() => _waitingThreadIds.Remove(RunningThreadId);  // TODO: Should clear _threadIdsSeenWhileAllWaiting() ?
     
         public void ThreadFinished() => _unfinishedThreadIds.Remove(RunningThreadId);
     }

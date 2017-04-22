@@ -24,7 +24,8 @@ namespace RelaSharp.EntryPoint
                                                              c("LiveLock", new LiveLock()),
                                                              c("Treiber", new TreiberStack()),
                                                              c("MichaelScott", new MichaelScottQueue()),
-                                                             c("Deadlock", new Deadlock())};
+                                                             c("Deadlock", new Deadlock()),
+                                                             c("LostWakeUp", new LostWakeUp())};
             for(int i = 0; i < examples.Length; ++i)
             {
                 var tag = examples[i].Item1;
