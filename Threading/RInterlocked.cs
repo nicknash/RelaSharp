@@ -43,5 +43,11 @@ namespace RelaSharp.Threading
             // Exchange or SeqCst read according to memory model? Or ambiguous?
             throw new System.Exception("NICKTODO");
         }
+
+        public static void Exchange(ref Atomic64 data, long newData, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            data.Exchange(newData, MemoryOrder.SequentiallyConsistent); 
+        }
+
     }
 }

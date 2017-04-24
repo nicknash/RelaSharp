@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using RelaSharp.Examples;
+using RelaSharp.Examples.CLR;
 
 namespace RelaSharp.EntryPoint
 {
@@ -25,7 +26,8 @@ namespace RelaSharp.EntryPoint
                                                              c("Treiber", new TreiberStack()),
                                                              c("MichaelScott", new MichaelScottQueue()),
                                                              c("Deadlock", new Deadlock()),
-                                                             c("LostWakeUp", new LostWakeUp())};
+                                                             c("LostWakeUp", new LostWakeUp()),
+                                                             c("LeftRight", new LeftRight()) };
             for(int i = 0; i < examples.Length; ++i)
             {
                 var tag = examples[i].Item1;

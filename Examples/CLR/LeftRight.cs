@@ -5,7 +5,7 @@ using RelaSharp.Threading;
 
 namespace RelaSharp.Examples.CLR
 {
-    public class LeftRight : IRelaExample 
+    public class LeftRight : IRelaExample
     {
         public IReadOnlyList<Action> ThreadEntries { get; private set; }
 
@@ -17,54 +17,52 @@ namespace RelaSharp.Examples.CLR
         private IEnumerator<SimpleConfig> _configs;
         private SimpleConfig ActiveConfig => _configs.Current;
 
-    class HashedReadIndicator 
-    {
-        private Atomic32[] _occupancyCounts;
-        private int _paddingPower;
+        class HashedReadIndicator
+        {
+            private Atomic32[] _occupancyCounts; // CLRAtomic32?
+            private int _paddingPower;
 
-        public HashedReadIndicator(int numEntries, int paddingPower)
-        {
-            _occupancyCounts = new Atomic32[numEntries << paddingPower];
-            _paddingPower = paddingPower;
-        }
-
-        private int GetIndex()
-        {
-            var threadId = Thread.CurrentThread.ManagedThreadId; 
-            var result = threadId.GetHashCode() << _paddingPower;
-            return result;
-        }
-        
-        public void Arrive()
-        {
-            int index = GetIndex();
-            RInterlocked.Increment(ref _occupancyCounts[index]);
-        }
-
-        public void Depart()
-        {
-            int index = GetIndex();
-            RInterlocked.Decrement(ref _occupancyCounts[index]);
-        }
-
-        public bool IsOccupied
-        {
-            get
+            public HashedReadIndicator(int numEntries, int paddingPower)
             {
-                // TODO: Memory fencing!
-                for (int i = 0; i < _occupancyCounts.Length; ++i)
+                _occupancyCounts = new Atomic32[numEntries << paddingPower];
+                _paddingPower = paddingPower;
+            }
+
+            private int GetIndex()
+            {
+                var threadId = Thread.CurrentThread.ManagedThreadId;
+                var result = threadId.GetHashCode() << _paddingPower;
+                return result;
+            }
+
+            public void Arrive()
+            {
+                int index = GetIndex();
+                RInterlocked.Increment(ref _occupancyCounts[index]);
+            }
+
+            public void Depart()
+            {
+                int index = GetIndex();
+                RInterlocked.Decrement(ref _occupancyCounts[index]);
+            }
+
+            public bool IsOccupied
+            {
+                get
                 {
-                    if (_occupancyCounts[i << _paddingPower] > 0)
+                    // TODO: Memory fencing!
+                    for (int i = 0; i < _occupancyCounts.Length; ++i)
                     {
-                        return true;
+                        if (_occupancyCounts[i << _paddingPower].Load(MemoryOrder.Relaxed) > 0) // TODO, CLR interface
+                        {
+                            return true;
+                        }
                     }
+                    return false;
                 }
-                return false;
             }
         }
-    }
-
-
         class LeftRightLock
         {
             private readonly Object _writersMutex = new Object();
@@ -75,18 +73,19 @@ namespace RelaSharp.Examples.CLR
             public LeftRightLock()
             {
                 _readIndicator = new HashedReadIndicator[2];
-                _readIndicator[0] = new HashedReadIndicator(2, 1);
-                _readIndicator[1] = new HashedReadIndicator(2, 1);
+                _readIndicator[0] = new HashedReadIndicator(5, 1);
+                _readIndicator[1] = new HashedReadIndicator(5, 1);
             }
 
             public U Read<T, U>(T[] instances, Func<T, U> read)
             {
-                var versionIndex = _versionIndex.Load(MemoryOrder.SequentiallyConsistent);
+                var versionIndex = RInterlocked.Read(ref _versionIndex); 
                 var readIndicator = _readIndicator[versionIndex];
                 readIndicator.Arrive();
                 try
                 {
-                    var result = read(instances[_readIndex.Load(MemoryOrder.SequentiallyConsistent)]);
+                    var idx = RInterlocked.Read(ref _readIndex);
+                    var result = read(instances[idx]);
                     return result;
                 }
                 finally
@@ -104,14 +103,15 @@ namespace RelaSharp.Examples.CLR
                     var nextReadIndex = Toggle(readIndex);
                     write(instances[nextReadIndex]);
                     // Move subsequent readers to 'next' instance 
-                    WriteSeqCst(ref _readIndex, nextReadIndex);
+
+                    RInterlocked.Exchange(ref _readIndex, nextReadIndex);
                     _readIndex.Store(nextReadIndex, MemoryOrder.SequentiallyConsistent);
                     // Wait for all readers marked in the 'next' read indicator,
                     // these readers could be reading the 'readIndex' instance 
                     // we want to write next 
                     var versionIndex = _versionIndex.Load(MemoryOrder.SequentiallyConsistent);
                     var nextVersionIndex = Toggle(versionIndex);
-                    
+
                     WaitWhileOccupied(_readIndicator[nextVersionIndex]);
                     // Move subsequent readers to the 'next' read indicator 
                     _versionIndex.Store(nextVersionIndex, MemoryOrder.SequentiallyConsistent);
@@ -129,15 +129,9 @@ namespace RelaSharp.Examples.CLR
                 }
             }
 
-            private void WriteSeqCst(ref Atomic64 a, long newValue)
-            {
-                // TODO: API wart here currently.
-                RInterlocked.Exchange(ref a, newValue);
-            }
-
             private static void WaitWhileOccupied(HashedReadIndicator readIndicator)
             {
-                while(readIndicator.IsOccupied) ;
+                while (readIndicator.IsOccupied) ;
             }
             private static long Toggle(long i)
             {
@@ -145,10 +139,13 @@ namespace RelaSharp.Examples.CLR
             }
         }
 
+        private LeftRightLock _lrLock;
+        private Dictionary<int, string>[] _instances;
+
         public LeftRight()
         {
-            ThreadEntries = new List<Action> {Thread1,Thread2};
-            var configList = new List<SimpleConfig>{new SimpleConfig("All operations relaxed", MemoryOrder.Relaxed, true), 
+            ThreadEntries = new List<Action> { ReadThread, WriteThread };
+            var configList = new List<SimpleConfig>{new SimpleConfig("All operations relaxed", MemoryOrder.Relaxed, true),
                                                     new SimpleConfig("All operations acquire-release", MemoryOrder.AcquireRelease, true),
                                                     new SimpleConfig("All operations sequentially consistent", MemoryOrder.SequentiallyConsistent, false)};
             _configs = configList.GetEnumerator();
@@ -159,12 +156,14 @@ namespace RelaSharp.Examples.CLR
             PrepareForNewConfig();
         }
 
-        public void Thread1()
+        public void ReadThread()
         {
+            var message = _lrLock.Read(_instances, d => d[0]);
         }
 
-        public void Thread2()
+        public void WriteThread()
         {
+            _lrLock.Write(_instances, d => d[0] = "Wrote This");
         }
         public void OnBegin()
         {
@@ -172,16 +171,30 @@ namespace RelaSharp.Examples.CLR
         public void OnFinished()
         {
         }
+        private void SetupActiveConfig()
+        {
+        }
 
         private void PrepareForNewConfig()
         {
+            _lrLock = new LeftRightLock();
+            _instances = new Dictionary<int, string>[2];
+            for(int i = 0; i < 2; ++i)
+            {
+                _instances[i] = new Dictionary<int, string>();
+            }
         }
 
         public bool SetNextConfiguration()
         {
             PrepareForNewConfig();
             bool moreConfigurations = _configs.MoveNext();
+            if (ActiveConfig != null)
+            {
+                SetupActiveConfig();
+            }
             return moreConfigurations;
         }
+
     }
 }
