@@ -83,30 +83,30 @@ namespace RelaSharp.Examples
         {
         }
 
-         private void SetupActiveConfig()
+        private void SetupActiveConfig()
         {
-            var threadEntries = new List<Action>() { MakePulsingThread(ActiveConfig.NumPulses)};
-            for(int i = 0; i < ActiveConfig.NumWaitingThreads; ++i)
+            var threadEntries = new List<Action>() { MakePulsingThread(ActiveConfig.NumPulses) };
+            for (int i = 0; i < ActiveConfig.NumWaitingThreads; ++i)
             {
                 threadEntries.Add(MakeWaitingThread());
             }
-            ThreadEntries = threadEntries;                
+            ThreadEntries = threadEntries;
         }
 
         private void PrepareForNewConfig()
         {
             _lockObject = new object();
         }
-        
+
         public bool SetNextConfiguration()
         {
             PrepareForNewConfig();
             bool moreConfigurations = _configs.MoveNext();
-            if(ActiveConfig != null)
+            if (ActiveConfig != null)
             {
                 SetupActiveConfig();
             }
             return moreConfigurations;
         }
-   }
+    }
 }
