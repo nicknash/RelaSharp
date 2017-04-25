@@ -21,17 +21,25 @@ namespace RelaSharp.Examples.CLR
         {
             private Atomic32[] _occupancyCounts; // CLRAtomic32?
             private int _paddingPower;
+            private int _numEntries;
 
-            public HashedReadIndicator(int numEntries, int paddingPower)
+            public HashedReadIndicator(int sizePower, int paddingPower)
             {
-                _occupancyCounts = new Atomic32[numEntries << paddingPower];
+                _numEntries = 1 << sizePower;
+                
+                int size = _numEntries << paddingPower;
+                _occupancyCounts = new Atomic32[size];
+                for(int i = 0; i < _numEntries; ++i)
+                {
+                    _occupancyCounts[i << paddingPower] = new Atomic32();
+                }
                 _paddingPower = paddingPower;
             }
 
             private int GetIndex()
             {
                 var threadId = Thread.CurrentThread.ManagedThreadId;
-                var result = threadId.GetHashCode() << _paddingPower;
+                var result = (threadId.GetHashCode() & (_numEntries - 1)) << _paddingPower;
                 return result;
             }
 
@@ -52,7 +60,7 @@ namespace RelaSharp.Examples.CLR
                 get
                 {
                     // TODO: Memory fencing!
-                    for (int i = 0; i < _occupancyCounts.Length; ++i)
+                    for (int i = 0; i < _numEntries; ++i)
                     {
                         if (_occupancyCounts[i << _paddingPower].Load(MemoryOrder.Relaxed) > 0) // TODO, CLR interface
                         {
@@ -73,8 +81,8 @@ namespace RelaSharp.Examples.CLR
             public LeftRightLock()
             {
                 _readIndicator = new HashedReadIndicator[2];
-                _readIndicator[0] = new HashedReadIndicator(5, 1);
-                _readIndicator[1] = new HashedReadIndicator(5, 1);
+                _readIndicator[0] = new HashedReadIndicator(3, 1);
+                _readIndicator[1] = new HashedReadIndicator(3, 1);
             }
 
             public U Read<T, U>(T[] instances, Func<T, U> read)
@@ -109,7 +117,7 @@ namespace RelaSharp.Examples.CLR
                     // Wait for all readers marked in the 'next' read indicator,
                     // these readers could be reading the 'readIndex' instance 
                     // we want to write next 
-                    var versionIndex = _versionIndex.Load(MemoryOrder.SequentiallyConsistent);
+                    var versionIndex = RInterlocked.Read(ref _versionIndex);//_versionIndex.Load(MemoryOrder.SequentiallyConsistent);
                     var nextVersionIndex = Toggle(versionIndex);
 
                     WaitWhileOccupied(_readIndicator[nextVersionIndex]);
@@ -158,7 +166,9 @@ namespace RelaSharp.Examples.CLR
 
         public void ReadThread()
         {
-            var message = _lrLock.Read(_instances, d => d[0]);
+            string message = null;
+            bool read = _lrLock.Read(_instances, d => d.TryGetValue(0, out message));
+            Console.WriteLine($"{read} -> {message}");
         }
 
         public void WriteThread()
