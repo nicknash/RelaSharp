@@ -16,18 +16,18 @@ namespace RelaSharp.Threading
             data.Exchange(newData, MemoryOrder.SequentiallyConsistent); 
         }
 
-        public static int Increment(ref Atomic32 data, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        public static int Increment(ref CLRAtomic32 data, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             if(data == null)
             {
-                data = new Atomic32();
+                data = new CLRAtomic32();
             }
-            return data.Increment(MemoryOrder.SequentiallyConsistent); 
+            return data.Increment(); 
         }
 
-        public static int Decrement(ref Atomic32 data, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        public static int Decrement(ref CLRAtomic32 data, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
-            return data.Decrement(MemoryOrder.SequentiallyConsistent); 
+            return data.Decrement(); 
         }
         public static long Increment(ref Atomic64 data, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {

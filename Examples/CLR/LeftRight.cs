@@ -19,7 +19,7 @@ namespace RelaSharp.Examples.CLR
 
         class HashedReadIndicator
         {
-            private Atomic32[] _occupancyCounts; // CLRAtomic32?
+            private CLRAtomic32[] _occupancyCounts; 
             private int _paddingPower;
             private int _numEntries;
 
@@ -28,10 +28,10 @@ namespace RelaSharp.Examples.CLR
                 _numEntries = 1 << sizePower;
                 
                 int size = _numEntries << paddingPower;
-                _occupancyCounts = new Atomic32[size];
+                _occupancyCounts = new CLRAtomic32[size];
                 for(int i = 0; i < _numEntries; ++i)
                 {
-                    _occupancyCounts[i << paddingPower] = new Atomic32();
+                    _occupancyCounts[i << paddingPower] = new CLRAtomic32();
                 }
                 _paddingPower = paddingPower;
             }
@@ -62,7 +62,7 @@ namespace RelaSharp.Examples.CLR
                     // TODO: Memory fencing!
                     for (int i = 0; i < _numEntries; ++i)
                     {
-                        if (_occupancyCounts[i << _paddingPower].Load(MemoryOrder.Relaxed) > 0) // TODO, CLR interface
+                        if (_occupancyCounts[i << _paddingPower].Read() > 0)
                         {
                             return true;
                         }
@@ -71,6 +71,33 @@ namespace RelaSharp.Examples.CLR
                 }
             }
         }
+
+        class InstanceSnoop
+        {
+            private static TestEnvironment TE = TestEnvironment.TE;
+
+            private HashSet<int> _reading = new HashSet<int>();
+            public void BeginRead(int which)
+            {
+                //_reading
+            }
+
+            public void EndRead(int which)
+            {
+
+            }
+
+            public void BeginWrite(int which)
+            {
+
+            }
+
+            public void EndWrite(int which)
+            {
+
+            }
+        }
+
         class LeftRightLock
         {
             private readonly Object _writersMutex = new Object();
@@ -180,6 +207,8 @@ namespace RelaSharp.Examples.CLR
         }
         public void OnFinished()
         {
+            TE.FailTest("FORCED");
+
         }
         private void SetupActiveConfig()
         {

@@ -68,6 +68,81 @@ namespace RelaSharp
             return _memoryOrdered.CurrentValue.ToString();
         }
     }
+ 
+    class CLRAtomic<T>
+    {
+        private Atomic<T> _atomic;
+
+        public CLRAtomic()
+        {
+            _atomic = new Atomic<T>();
+        }
+
+        public T Read([CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            return _atomic.Load(MemoryOrder.Relaxed, memberName, sourceFilePath, sourceLineNumber);
+        }
+
+        public T VolatileRead([CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            return _atomic.Load(MemoryOrder.Acquire, memberName, sourceFilePath, sourceLineNumber);
+        }
+
+        public void Write(T x, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            // All writes are release in the CLR
+            _atomic.Store(x, MemoryOrder.Release, memberName, sourceFilePath, sourceLineNumber);
+        }
+
+        public void VolatileWrite(T x, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            _atomic.Store(x, MemoryOrder.Release, memberName, sourceFilePath, sourceLineNumber);
+        } 
+    }    
+
+    class CLRAtomic32
+    {
+        private Atomic32 _atomic;
+        public CLRAtomic32()
+        {
+            _atomic = new Atomic32();
+        }
+
+        public int Read([CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            return _atomic.Load(MemoryOrder.Relaxed, memberName, sourceFilePath, sourceLineNumber);
+        }
+
+        public int VolatileRead([CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            return _atomic.Load(MemoryOrder.Acquire, memberName, sourceFilePath, sourceLineNumber);
+        }
+
+        public void Write(int x, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            // All writes are release in the CLR
+            _atomic.Store(x, MemoryOrder.Release, memberName, sourceFilePath, sourceLineNumber);
+        }
+
+        public void VolatileWrite(int x, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            _atomic.Store(x, MemoryOrder.Release, memberName, sourceFilePath, sourceLineNumber);
+        } 
+        public int Add(int x, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            return _atomic.Add(x, MemoryOrder.SequentiallyConsistent, memberName, sourceFilePath, sourceLineNumber);
+        }
+
+        public int Increment([CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            return _atomic.Increment(MemoryOrder.SequentiallyConsistent, memberName, sourceFilePath, sourceLineNumber);
+        }
+
+        public int Decrement([CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            return _atomic.Decrement(MemoryOrder.SequentiallyConsistent, memberName, sourceFilePath, sourceLineNumber);
+        }
+    }
 
     class Atomic32 : Atomic<int>
     {
