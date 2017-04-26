@@ -20,7 +20,7 @@ namespace RelaSharp.Examples
         public TotalOrder()
         {
             ThreadEntries = new List<Action> {Thread0, Thread1, Thread2, Thread3};
-            var configList = new List<SimpleConfig>{new SimpleConfig("All operations acquire-release", MemoryOrder.Relaxed, true), 
+            var configList = new List<SimpleConfig>{new SimpleConfig("All operations acquire-release", MemoryOrder.AcquireRelease, true), 
                                                     new SimpleConfig("All operations sequentially consistent", MemoryOrder.SequentiallyConsistent, false)};
             _configs = configList.GetEnumerator();
         }
