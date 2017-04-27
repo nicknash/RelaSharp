@@ -29,10 +29,6 @@ namespace RelaSharp.Examples.CLR
                 
                 int size = _numEntries << paddingPower;
                 _occupancyCounts = new CLRAtomic32[size];
-                for(int i = 0; i < _numEntries; ++i)
-                {
-                    _occupancyCounts[i << paddingPower] = new CLRAtomic32();
-                }
                 _paddingPower = paddingPower;
             }
 
@@ -62,7 +58,7 @@ namespace RelaSharp.Examples.CLR
                     // TODO: Memory fencing!
                     for (int i = 0; i < _numEntries; ++i)
                     {
-                        if (_occupancyCounts[i << _paddingPower].Read() > 0)
+                        if (RUnordered.Read(ref _occupancyCounts[i << _paddingPower]) > 0)
                         {
                             return true;
                         }
@@ -88,16 +84,18 @@ namespace RelaSharp.Examples.CLR
             public void EndRead(long which)
             {
                 _reading.Remove(which);
+                TE.Assert(!_writing.Contains(which), $"Write in progress during read at {which}");
             }
 
             public void BeginWrite(long which)
             {
-                TE.Assert(!_reading.Contains(which), $"Read in progress during write at {which}");
+                TE.Assert(!_writing.Contains(which), $"Read in progress during write at {which}");
                 _writing.Add(which);
             }
 
             public void EndWrite(long which)
             {
+                TE.Assert(!_reading.Contains(which), $"Write in progress during read at {which}");
                 _writing.Remove(which);
             }
         }
@@ -139,7 +137,7 @@ namespace RelaSharp.Examples.CLR
 
             public void Write<T>(T[] instances, Action<T> write)
             {
-                RMonitor.Enter(_writersMutex);
+                //RMonitor.Enter(_writersMutex);
                 try
                 {
                     var readIndex = RVolatile.Read(ref _readIndex);//RInterlocked.Read(ref _readIndex);
@@ -173,7 +171,7 @@ namespace RelaSharp.Examples.CLR
                 }
                 finally
                 {
-                    RMonitor.Exit(_writersMutex);
+                    //RMonitor.Exit(_writersMutex);
                 }
             }
 
