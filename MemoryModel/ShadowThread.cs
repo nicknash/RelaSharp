@@ -20,7 +20,7 @@ namespace RelaSharp
 
         public void Fence(MemoryOrder mo, VectorClock sequentiallyConsistentFence)
         {
-            switch(mo)
+            switch(mo) // TODO: Should this be done in Fence.Insert ? 
             {
                 case MemoryOrder.Acquire:
                     AcquireFence();
