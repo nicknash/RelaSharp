@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 
 namespace RelaSharp
 {
-    class Atomic<T> 
+    class Atomic<T>
     {
         private static TestEnvironment TE = TestEnvironment.TE;
         protected InternalAtomic<T> _memoryOrdered;

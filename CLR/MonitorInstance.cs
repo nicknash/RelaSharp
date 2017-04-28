@@ -154,7 +154,7 @@ namespace RelaSharp.CLR
         {
             var heldByDesc = _heldBy == null ? "Nobody" : $"{_heldBy.Id}";
             TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Monitor.{operationAttempted} (failure!).");
-            TE.FailTest($"Attempt to Monitor.Pulse on thread {runningThreadId}, but lock is held by {heldByDesc}.");
+            TE.FailTest($"Attempt to Monitor.{operationAttempted} on thread {runningThreadId}, but lock is held by {heldByDesc}.");
         }
     }
 }
