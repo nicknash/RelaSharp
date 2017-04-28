@@ -15,9 +15,6 @@ namespace RelaSharp.Threading
             var atomic = CLRAtomicFactory.GetAtomic(ref data);
             atomic.Exchange(newData, MemoryOrder.SequentiallyConsistent); 
         }
-
-        // TODO CompareExchange/Exchange(CLRAtomic32)
-
         public static int Increment(ref CLRAtomic32 data, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             var atomic = CLRAtomicFactory.GetAtomic32(ref data);
@@ -29,6 +26,19 @@ namespace RelaSharp.Threading
             var atomic = CLRAtomicFactory.GetAtomic32(ref data);
             return atomic.Decrement(MemoryOrder.SequentiallyConsistent); 
         }
+
+        public static void Exchange(ref CLRAtomic32 data, int newData, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            var atomic = CLRAtomicFactory.GetAtomic32(ref data);
+            atomic.Exchange(newData, MemoryOrder.SequentiallyConsistent); 
+        }
+ 
+        public static bool CompareExchange(ref CLRAtomic32 data, int newData, int comparand, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            var atomic = CLRAtomicFactory.GetAtomic32(ref data);
+            return atomic.CompareExchange(newData, comparand, MemoryOrder.SequentiallyConsistent); 
+        }
+ 
         public static long Increment(ref CLRAtomic64 data, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             var atomic = CLRAtomicFactory.GetAtomic64(ref data);
@@ -50,7 +60,12 @@ namespace RelaSharp.Threading
             var atomic = CLRAtomicFactory.GetAtomic64(ref data);
             atomic.Exchange(newData, MemoryOrder.SequentiallyConsistent); 
         }
-
+        public static bool CompareExchange(ref CLRAtomic64 data, long newData, long comparand, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            var atomic = CLRAtomicFactory.GetAtomic64(ref data);
+            return atomic.CompareExchange(newData, comparand, MemoryOrder.SequentiallyConsistent); 
+        }
+        
         public static void MemoryBarrier([CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             Fence.Insert(MemoryOrder.SequentiallyConsistent, memberName, sourceFilePath, sourceLineNumber);
