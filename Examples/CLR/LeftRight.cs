@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using RelaSharp.Threading;
+using RelaSharp.CLR;
 
 namespace RelaSharp.Examples.CLR
 {

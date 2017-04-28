@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace RelaSharp
+namespace RelaSharp.CLR
 {
     static class CLRAtomicFactory
     {

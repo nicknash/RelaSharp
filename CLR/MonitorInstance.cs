@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace RelaSharp.Threading
+namespace RelaSharp.CLR
 {
     class MonitorInstance
     {

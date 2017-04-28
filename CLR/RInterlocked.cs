@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace RelaSharp.Threading
+namespace RelaSharp.CLR
 {      
     class RInterlocked // TODO: Check Joe Duffy -- do these imply a SeqCstFence ?
     {

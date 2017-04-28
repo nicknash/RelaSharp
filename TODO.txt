@@ -1,6 +1,4 @@
 * Left/Right RelaExample: Interesting invariants / verifications?
-* CLR style Examples: Maybe CLRAtomic/32/64 private constructors, so must use RVolatile / RInterlocked, but how to facilitate .Relaxed then?
-  Perhaps implicit conversions of CLRAtomic<T> <---> T imply Relaxed semantics? 
 * Finish RMonitor 
 * Finish RInterlocked
 * Implement a CLR+x86-TSO mode?
