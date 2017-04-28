@@ -3,6 +3,7 @@
   Perhaps implicit conversions of CLRAtomic<T> <---> T imply Relaxed semantics? 
 * Finish RMonitor 
 * Finish RInterlocked
+* Implement a CLR+x86-TSO mode?
 * Review how RMW ops + Relaxed (especially, but other MOs too) are specified in C++11 vs. how my impl behaves.
 * Progress / interruptibility.
 * scheduler Yield/Back off
