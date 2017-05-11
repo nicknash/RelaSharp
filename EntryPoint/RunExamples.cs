@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using RelaSharp.Examples;
 using RelaSharp.Examples.CLR;
+using RelaSharp.Scheduling;
 
 namespace RelaSharp.EntryPoint
 {
@@ -58,10 +59,13 @@ namespace RelaSharp.EntryPoint
                 int numIterations = 0;
                 ulong totalOperations = 0;
                 bool testFailed = false;
+                //var algorithm = new NaiveRandomSchedulingAlgorithm();
+                var algorithm = new ExhaustiveSchedulingAlgorithm();
                 while(numIterations < options.Iterations && !testFailed)
                 {
+                    algorithm.NewIteration();
                     example.PrepareForIteration();
-                    TE.RunTest(example);
+                    TE.RunTest(example, algorithm);
                     testFailed = TE.TestFailed;
                     totalOperations += TE.ExecutionLength;
                     ++numIterations;

@@ -17,18 +17,18 @@ namespace RelaSharp
         public ulong ExecutionLength { get; private set; }
         public VectorClock SequentiallyConsistentFence { get; private set; }
         
-        private RandomScheduler _scheduler;
+        private Scheduler _scheduler;
         private TestThreads _testThreads;
         private ShadowThread[] _shadowThreads;
         private EventLog _eventLog;
         private bool _testStarted;
 
-        public void RunTest(IRelaTest test)
+        public void RunTest(IRelaTest test, ISchedulingAlgorithm schedulingAlgorithm)
         {
             NumThreads = test.ThreadEntries.Count;
             TestFailed = false;
             _shadowThreads = new ShadowThread[NumThreads];
-            _scheduler = new RandomScheduler(NumThreads);
+            _scheduler = new Scheduler(NumThreads, schedulingAlgorithm);
             _eventLog = new EventLog(NumThreads);
             _testStarted = false;
             SequentiallyConsistentFence = new VectorClock(NumThreads);

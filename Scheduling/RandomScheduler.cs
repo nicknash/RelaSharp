@@ -46,20 +46,19 @@ namespace RelaSharp.Scheduling
         public override string ToString() => $"{NumElems}:{String.Join(",", _elems.Take(NumElems))}";
     }
 
-    class RandomScheduler : IScheduler
+    class Scheduler
     {
-        private Random _random = new Random();
         private ArraySet _unfinishedThreadIds;
         private ArraySet _waitingThreadIds;
         private ArraySet _threadIdsSeenWhileAllWaiting;
-
+        private ISchedulingAlgorithm _schedulingAlgorithm;
         public bool AllThreadsFinished => _unfinishedThreadIds.NumElems == 0;
-
-
         public int RunningThreadId { get; private set; }
+        public bool Finished => AllThreadsFinished && _schedulingAlgorithm.Finished;
 
-        public RandomScheduler(int numThreads)
+        public Scheduler(int numThreads, ISchedulingAlgorithm schedulingAlgorithm)
         {
+            _schedulingAlgorithm = schedulingAlgorithm;
             _unfinishedThreadIds = new ArraySet(numThreads);
             _waitingThreadIds = new ArraySet(numThreads);
             _threadIdsSeenWhileAllWaiting = new ArraySet(numThreads);
@@ -76,7 +75,8 @@ namespace RelaSharp.Scheduling
             {
                 throw new Exception("All threads finished. Who called?");
             }
-            var idx = _random.Next(_unfinishedThreadIds.NumElems);
+            var idx = _schedulingAlgorithm.GetNextThreadIndex(_unfinishedThreadIds.NumElems);
+            Console.WriteLine("RUNNING " + idx);
             RunningThreadId = _unfinishedThreadIds[idx]; 
             return;
         }
