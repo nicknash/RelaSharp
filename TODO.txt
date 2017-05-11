@@ -1,6 +1,10 @@
+* Exhaustive scheduler (clean up TestEnvironment before this)
+* PCT Scheduler / randomized context bounding.
 * Left/Right RelaExample: Interesting invariants / verifications?
+* Add MaybeSwitchAssert ?
 * Finish RMonitor 
 * Finish RInterlocked
+* ExtendedReflection : GC-pinning / transparent API 
 * Implement a CLR+x86-TSO mode?
 * Review how RMW ops + Relaxed (especially, but other MOs too) are specified in C++11 vs. how my impl behaves.
 * Progress / interruptibility.
@@ -9,8 +13,7 @@
 * Place OnBegin/OnFinished on threads (with seq cst fences?) rather than current weirdness?
 * More Example lock-free algorithms: Michael-Scott two-lock queue, bounded SPMC/MPMC, CRQ/LCRQ, Fetch-Add Queue.  
 * Add Invariant() feature
-* Exhaustive scheduler (clean up TestEnvironment before this)
 * Restrict MemoryOrdered to atomic types (i.e. int/long/ref type + exception on construction?) or do at R-API level?
-* Perf. optimizations. 
+* Perf. optimizations. E.g. Busy waiting version of TestThreads
 * Multi-threaded test runner?
 * Interesting statistics?
