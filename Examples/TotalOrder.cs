@@ -6,7 +6,7 @@ namespace RelaSharp.Examples
     class TotalOrder : IRelaExample
     {
         private static TestEnvironment TE = TestEnvironment.TE;
-        public string Name => "Total order test";
+        public string Name => "Total order test (multiple-copy atomicity / write synchronization test)";
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;
         private IEnumerator<SimpleConfig> _configs;
