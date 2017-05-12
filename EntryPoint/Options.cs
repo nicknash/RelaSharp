@@ -13,14 +13,16 @@ namespace RelaSharp.EntryPoint
         public readonly bool SelfTest;
         public readonly string TestTag;
         public readonly int Iterations;
+        public readonly bool ListExamples;
 
-        public Options(bool help, bool quietMode, bool selfTest, string testTag, int iterations)
+        public Options(bool help, bool quietMode, bool selfTest, string testTag, int iterations, bool listExamples)
         {
             Help = help;
             QuietMode = quietMode;
             SelfTest = selfTest;
             TestTag = testTag;
             Iterations = iterations;
+            ListExamples = listExamples;
         }
 
         public static Options GetOptions(string[] args)
@@ -32,7 +34,8 @@ namespace RelaSharp.EntryPoint
             bool selfTest = argMap.ContainsKey("--self-test");
             string testTag = GetOptionValue("--tag", argMap, s => s, null, Console.Error);
             int iterations = GetOptionValue("--iterations", argMap, Int32.Parse, DefaultIterations, Console.Error);
-            return new Options(help, quietMode, selfTest, testTag, iterations);
+            bool listExamples = argMap.ContainsKey("--list-examples");
+            return new Options(help, quietMode, selfTest, testTag, iterations, listExamples);
         }
 
         private static T GetOptionValue<T>(string option, Dictionary<string, string> argMap, Func<string, T> getValue, T defaultValue, TextWriter output)
@@ -59,6 +62,7 @@ namespace RelaSharp.EntryPoint
                                                                   {"--iterations=X", $"For random scheduler only: Run for X iterations (defaults to {DefaultIterations})"},
                                                                   {"--self-test", "Run self test mode (suppress all output and only report results that differ from expected results)"},
                                                                   {"--tag=X", "Run examples whose name contain the tag (case insensitive, run all examples if unspecified)"},
+                                                                  {"--list-examples", "List the tags of the available examples with their full names (and then exit)."},
                                                                   {"--help", "Print this message and exit"}
                                                                 };
             var result = String.Join(Environment.NewLine, allOptions.Select(kvp => $"{kvp.Key}\r\t\t{kvp.Value}"));

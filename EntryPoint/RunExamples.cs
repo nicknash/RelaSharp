@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Diagnostics;
 using RelaSharp.Examples;
 using RelaSharp.Examples.CLR;
@@ -29,6 +30,12 @@ namespace RelaSharp.EntryPoint
                                                              c("Deadlock", new Deadlock()),
                                                              c("LostWakeUp", new LostWakeUp()),
                                                              c("LeftRight", new LeftRight()) };
+            if(options.ListExamples)
+            {
+                Console.WriteLine("Available examples: ");
+                Console.WriteLine(String.Join("\n", examples.Select(e => $"{e.Item1}\r\t\t\t{e.Item2.Name}")));
+                return;
+            }
             for(int i = 0; i < examples.Length; ++i)
             {
                 var tag = examples[i].Item1;
