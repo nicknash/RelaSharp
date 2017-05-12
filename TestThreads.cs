@@ -114,7 +114,6 @@ namespace RelaSharp
             _scheduler.ThreadFinished();
             if(!_scheduler.AllThreadsFinished)
             {
-                _scheduler.MaybeSwitch();
                 WakeThread();
             }
         }

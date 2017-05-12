@@ -103,6 +103,13 @@ namespace RelaSharp.Scheduling
 
         public void ThreadFinishedWaiting() => _waitingThreadIds.Remove(RunningThreadId);  // TODO: Should clear _threadIdsSeenWhileAllWaiting() ?
     
-        public void ThreadFinished() => _unfinishedThreadIds.Remove(RunningThreadId);
+        public void ThreadFinished() 
+        {
+            _unfinishedThreadIds.Remove(RunningThreadId);
+            if(!AllThreadsFinished)
+            {
+                MaybeSwitch();
+            }
+        }
     }
 }
