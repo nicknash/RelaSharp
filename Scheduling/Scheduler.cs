@@ -106,6 +106,7 @@ namespace RelaSharp.Scheduling
         public void ThreadFinished() 
         {
             _unfinishedThreadIds.Remove(RunningThreadId);
+            //Console.WriteLine($"thread finished: {RunningThreadId}, num unfinished = {_unfinishedThreadIds.NumElems}");
             if(!AllThreadsFinished)
             {
                 MaybeSwitch();

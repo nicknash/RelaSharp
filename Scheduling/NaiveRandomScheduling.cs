@@ -16,9 +16,10 @@ namespace RelaSharp.Scheduling
 
         public int GetNextThreadIndex(int numUnfinishedThreads) => _random.Next(numUnfinishedThreads);
 
-        public void NewIteration()
+        public bool NewIteration()
         {
             ++_iterationCount;
+            return _iterationCount <= _numIterations;
         }
 
         public bool Finished => _iterationCount >= _numIterations;

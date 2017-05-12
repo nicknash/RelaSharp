@@ -60,10 +60,9 @@ namespace RelaSharp.EntryPoint
                 ulong totalOperations = 0;
                 bool testFailed = false;
                 //var algorithm = new NaiveRandomSchedulingAlgorithm();
-                var algorithm = new ExhaustiveSchedulingAlgorithm();
-                while(numIterations < options.Iterations && !testFailed)
+                var algorithm = new ExhaustiveScheduling(TE.LiveLockLimit * 2);
+                while(algorithm.NewIteration() && !testFailed)
                 {
-                    algorithm.NewIteration();
                     example.PrepareForIteration();
                     TE.RunTest(example, algorithm);
                     testFailed = TE.TestFailed;

@@ -11,9 +11,9 @@ namespace RelaSharp.Scheduling
         private bool ResumeInProgress => _choiceIdx <= _lastChoiceIdx;
         public bool Finished { get; private set; }
 
-        public ExhaustiveScheduling()
+        public ExhaustiveScheduling(ulong maxChoices)
         {
-            _choices = new Choice[10000]; // TODO: bound by live lock limit. 
+            _choices = new Choice[maxChoices]; 
             _choiceIdx = 0;
             _lastChoiceIdx = -1;
         }
@@ -44,18 +44,27 @@ namespace RelaSharp.Scheduling
             }
         }
 
-        public void NewIteration()
+        public bool NewIteration()
         {
             if(Finished)
             {
                 throw new Exception("Already finished");
             }
             _choiceIdx = 0;
-            if(ResumeInProgress)
+            bool resuming = _lastChoiceIdx >= 0;
+            while (_lastChoiceIdx >= 0 && _choices[_lastChoiceIdx].FullyExplored)
             {
-                var choice = _choices[_lastChoiceIdx];
-                choice.Next();
+                _lastChoiceIdx--;
             }
+            if(_lastChoiceIdx >= 0)
+            {
+                _choices[_lastChoiceIdx].Next();
+            }
+            else if(resuming)
+            {
+                Finished = true;
+            }
+            return !Finished;
         }
 
         public int GetNextThreadIndex(int numUnfinishedThreads)
@@ -67,20 +76,11 @@ namespace RelaSharp.Scheduling
             Choice result;
             if(ResumeInProgress)
             {
-                //Console.WriteLine($"REPLAY: last choice idx = {_lastChoiceIdx}, current choice idx = {_choiceIdx}");
                 result = _choices[_choiceIdx];
                 _choiceIdx++;
-                if (result.FullyExplored)
-                {
-                    Finished = _lastChoiceIdx == 0;
-                    _choices[_lastChoiceIdx] = null;
-                    _lastChoiceIdx--;
-                    _choiceIdx--;
-                }
             }
             else
             {
-                //Console.WriteLine($"ADDING: {numUnfinishedThreads}, choice idx {_choiceIdx}, last choice idx = {_lastChoiceIdx}");
                 result = new Choice(numUnfinishedThreads);
                 _choices[_choiceIdx] = result;
                 _lastChoiceIdx++;                
