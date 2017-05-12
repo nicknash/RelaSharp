@@ -14,7 +14,7 @@ namespace RelaSharp.EntryPoint
             var options = Options.GetOptions(args);
             if(args.Length == 0 || options.Help)
             {
-                Console.WriteLine("Usage: ");
+                Console.WriteLine("Usage:");
                 Console.WriteLine(Options.GetHelp());
                 return;
             }
@@ -32,7 +32,8 @@ namespace RelaSharp.EntryPoint
                                                              c("LeftRight", new LeftRight()) };
             if(options.ListExamples)
             {
-                Console.WriteLine("Available examples: ");
+                Console.WriteLine("Available examples:");
+                Console.WriteLine("-------------------");
                 Console.WriteLine(String.Join("\n", examples.Select(e => $"{e.Item1}\r\t\t\t{e.Item2.Name}")));
                 return;
             }
@@ -51,6 +52,7 @@ namespace RelaSharp.EntryPoint
             }
         }
 
+
         private static void RunExample(string exampleTag, IRelaExample example, Options options)
         {
             var TE = TestEnvironment.TE;
@@ -66,12 +68,22 @@ namespace RelaSharp.EntryPoint
                 int numIterations = 0;
                 ulong totalOperations = 0;
                 bool testFailed = false;
-                //var algorithm = new NaiveRandomSchedulingAlgorithm();
-                var algorithm = new ExhaustiveScheduling(TE.LiveLockLimit * 2);
-                while(algorithm.NewIteration() && !testFailed)
+                ISchedulingAlgorithm schedulingAlgorithm;
+                switch(options.Scheduling)
+                {
+                    case Options.SchedulingAlgorithm.Random:
+                        schedulingAlgorithm = new NaiveRandomScheduling(options.Iterations);
+                    break;
+                    case Options.SchedulingAlgorithm.Exhaustive:
+                        schedulingAlgorithm = new ExhaustiveScheduling(TE.LiveLockLimit * 2);
+                    break;
+                    default:
+                        throw new Exception($"Unsupported scheduling algorithm '{options.Scheduling}'");
+                }
+                while(schedulingAlgorithm.NewIteration() && !testFailed)
                 {
                     example.PrepareForIteration();
-                    TE.RunTest(example, algorithm);
+                    TE.RunTest(example, schedulingAlgorithm);
                     testFailed = TE.TestFailed;
                     totalOperations += TE.ExecutionLength;
                     ++numIterations;
