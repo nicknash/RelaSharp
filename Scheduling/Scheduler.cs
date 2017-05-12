@@ -76,7 +76,6 @@ namespace RelaSharp.Scheduling
                 throw new Exception("All threads finished. Who called?");
             }
             var idx = _schedulingAlgorithm.GetNextThreadIndex(_unfinishedThreadIds.NumElems);
-            Console.WriteLine("RUNNING " + idx);
             RunningThreadId = _unfinishedThreadIds[idx]; 
             return;
         }
