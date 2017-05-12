@@ -27,12 +27,11 @@ namespace RelaSharp.EntryPoint
         {
             Func<string, int, string> takeTrim = (arg, idx) => arg.Contains('=') ? arg.Split('=')[idx].Trim() : arg.Trim();
             var argMap = args.ToDictionary(a => takeTrim(a, 0), a => takeTrim(a, 1));
-            const int defaultIterations = 10000;
             bool help = argMap.ContainsKey("--help");
             bool quietMode = argMap.ContainsKey("--quiet");
             bool selfTest = argMap.ContainsKey("--self-test");
             string testTag = GetOptionValue("--tag", argMap, s => s, null, Console.Error);
-            int iterations = GetOptionValue("--iterations", argMap, Int32.Parse, defaultIterations, Console.Error);
+            int iterations = GetOptionValue("--iterations", argMap, Int32.Parse, DefaultIterations, Console.Error);
             return new Options(help, quietMode, selfTest, testTag, iterations);
         }
 
@@ -57,7 +56,7 @@ namespace RelaSharp.EntryPoint
         public static string GetHelp()
         {
             var allOptions = new Dictionary<string, string> { {"--quiet", "Suppress output of execution logs (defaults to false)"},
-                                                                  {"--iterations=X", $"Run for X iterations (defaults to {DefaultIterations}"},
+                                                                  {"--iterations=X", $"For random scheduler only: Run for X iterations (defaults to {DefaultIterations})"},
                                                                   {"--self-test", "Run self test mode (suppress all output and only report results that differ from expected results)"},
                                                                   {"--tag=X", "Run examples whose name contain the tag (case insensitive, run all examples if unspecified)"},
                                                                   {"--help", "Print this message and exit"}
