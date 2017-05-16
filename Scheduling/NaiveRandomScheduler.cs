@@ -3,64 +3,65 @@ using System.Linq;
 
 namespace RelaSharp.Scheduling
 {
-    class ArraySet
+    class NaiveRandomScheduler : IScheduler
     {
-        private int[] _elems;
-        public int NumElems { get; private set; }
-        public ArraySet(int capacity)
+        class ArraySet
         {
-            _elems = new int[capacity];
-        }
-
-        public bool Add(int x)
-        {
-            int idx = Array.IndexOf(_elems, x, 0, NumElems);
-            if(idx != -1)
+            private int[] _elems;
+            public int NumElems { get; private set; }
+            public ArraySet(int capacity)
             {
-                return false;
+                _elems = new int[capacity];
             }
-            _elems[NumElems] = x;
-            NumElems++;
-            return true;
-        }
 
-        public bool Remove(int x)
-        {
-            int idx = Array.IndexOf(_elems, x, 0, NumElems);
-            if(idx == -1)
+            public bool Add(int x)
             {
-                return false;
+                int idx = Array.IndexOf(_elems, x, 0, NumElems);
+                if (idx != -1)
+                {
+                    return false;
+                }
+                _elems[NumElems] = x;
+                NumElems++;
+                return true;
             }
-            NumElems--;
-            _elems[idx] = _elems[NumElems];  
-            return true;
+
+            public bool Remove(int x)
+            {
+                int idx = Array.IndexOf(_elems, x, 0, NumElems);
+                if (idx == -1)
+                {
+                    return false;
+                }
+                NumElems--;
+                _elems[idx] = _elems[NumElems];
+                return true;
+            }
+
+            public int this[int idx] => _elems[idx];
+
+            public void Clear()
+            {
+                NumElems = 0;
+            }
+
+            public override string ToString() => $"{NumElems}:{String.Join(",", _elems.Take(NumElems))}";
         }
 
-        public int this[int idx] => _elems[idx];
-       
-        public void Clear()
-        {
-            NumElems = 0;
-        }
-
-        public override string ToString() => $"{NumElems}:{String.Join(",", _elems.Take(NumElems))}";
-    }
-
- 
-    class Scheduler
-    {
+        private readonly Random _random = new Random();
+        private readonly int _numIterations;
         private readonly ArraySet _unfinishedThreadIds;
         private readonly ArraySet _waitingThreadIds;
         private readonly ArraySet _threadIdsSeenWhileAllWaiting;
-        private readonly ISchedulingAlgorithm _schedulingAlgorithm;
         private int _runningThreadIndex;
         private int NumUnfinishedThreads =>_unfinishedThreadIds.NumElems;
         public bool AllThreadsFinished => _unfinishedThreadIds.NumElems == 0;
         public int RunningThreadId => _unfinishedThreadIds[_runningThreadIndex];
+        private int _iterationCount;
 
-        public Scheduler(int numThreads, ISchedulingAlgorithm schedulingAlgorithm)
+        public NaiveRandomScheduler(int numThreads, int numIterations)
         {
-            _schedulingAlgorithm = schedulingAlgorithm;
+            _numIterations = numIterations;
             _unfinishedThreadIds = new ArraySet(numThreads);
             _waitingThreadIds = new ArraySet(numThreads);
             _threadIdsSeenWhileAllWaiting = new ArraySet(numThreads);
@@ -77,9 +78,7 @@ namespace RelaSharp.Scheduling
             {
                 throw new Exception("All threads finished. Who called?");
             }
-            _runningThreadIndex = _schedulingAlgorithm.GetNextThreadIndex(NumUnfinishedThreads);
-            Console.WriteLine($"switch running thread = {RunningThreadId}");
-            
+            _runningThreadIndex = _random.Next(NumUnfinishedThreads);
             return;
         }
 
@@ -98,9 +97,11 @@ namespace RelaSharp.Scheduling
             int originalId = RunningThreadId;
             if(!deadlock) 
             {
-                _runningThreadIndex = _schedulingAlgorithm.WaitingGetNextThreadIndex(_runningThreadIndex, NumUnfinishedThreads);
+                while(_runningThreadIndex == originalId)
+                {
+                    MaybeSwitch();
+                }
             }
-            Console.WriteLine($"running thread = {RunningThreadId}");
             return deadlock;
         } 
 
@@ -108,7 +109,6 @@ namespace RelaSharp.Scheduling
     
         public void Yield()
         {
-            _schedulingAlgorithm.Yield();
         }
 
         public void ThreadFinished() 
@@ -118,6 +118,12 @@ namespace RelaSharp.Scheduling
             {
                 MaybeSwitch();
             }
+        }  
+
+       public bool NewIteration()
+        {
+            ++_iterationCount;
+            return _iterationCount <= _numIterations;
         }
     }
 }
