@@ -14,6 +14,16 @@ namespace RelaSharp.Scheduling
             _iterationCount = 0;
         }
 
+        public int GetDifferentThreadIndex(int runningThreadIndex, int numUnfinishedThreads)
+        {
+            int idx = GetNextThreadIndex(numUnfinishedThreads);
+            while(idx == runningThreadIndex)
+            {
+                idx = GetNextThreadIndex(numUnfinishedThreads);    
+            }
+            return idx;
+        }
+
         public int GetNextThreadIndex(int numUnfinishedThreads) => _random.Next(numUnfinishedThreads);
 
         public bool NewIteration()

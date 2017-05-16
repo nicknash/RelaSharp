@@ -95,6 +95,11 @@ namespace RelaSharp
             _scheduler.ThreadFinishedWaiting();
         }
 
+        public void Yield()
+        {
+            _scheduler.Yield();
+        }
+
         public void Assert(bool shouldBeTrue, string reason, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             string assertResult = shouldBeTrue ? "passed" : "failed";

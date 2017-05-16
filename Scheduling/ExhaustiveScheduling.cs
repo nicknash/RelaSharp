@@ -2,6 +2,28 @@ using System;
 
 namespace RelaSharp.Scheduling
 {
+    class PriorityRelation
+    {
+        private bool[,] _hasPriority; // _hasPriority[x, y] = true <=> x will not be scheduled when y is enabled.
+        
+        // Give y priority over x
+        public void Prioritize(int x, int y)
+        {
+
+        }
+
+        // Remove priority of x over all other threads
+        public void Normalize(int x)
+        {
+
+        }
+
+        public int[] GetSchedulableThreads(bool[] enabled)
+        {
+
+        }
+    }
+
     class ExhaustiveScheduling : ISchedulingAlgorithm
     {
         private Choice[] _choices;
@@ -9,6 +31,9 @@ namespace RelaSharp.Scheduling
         private int _lastChoiceIdx;
 
         private bool ResumeInProgress => _choiceIdx <= _lastChoiceIdx;
+     
+        private bool[,] _hasPriority; // _hasPriority[x, y] = true <=> x will not be scheduled when y is enabled.
+     
         public bool Finished { get; private set; }
 
         public ExhaustiveScheduling(ulong maxChoices)
@@ -67,12 +92,37 @@ namespace RelaSharp.Scheduling
             return !Finished;
         }
 
+        public int WaitingGetThreadIndex(int runningThreadIndex, int numUnfinishedThreads)
+        {
+            if(numUnfinishedThreads < 2)
+            {
+                throw new Exception($"Undetected deadlock");
+            }
+            var result = GetNextChoice(numUnfinishedThreads);
+            if(!ResumeInProgress && result.Chosen == runningThreadIndex)
+            {
+                result.Next();
+            }
+            return result.Chosen;
+        }
+
         public int GetNextThreadIndex(int numUnfinishedThreads)
         {
             if(numUnfinishedThreads == 1)
             {
                 return 0;
             }
+            var choice = GetNextChoice(numUnfinishedThreads); 
+            return choice.Chosen;
+        }
+
+        public int YieldGetThreadIndex()
+        {
+
+        }
+
+        private Choice GetNextChoice(int numUnfinishedThreads)
+        {
             Choice result;
             if(ResumeInProgress)
             {
@@ -86,7 +136,8 @@ namespace RelaSharp.Scheduling
                 _lastChoiceIdx++;                
                 _choiceIdx++;
             }
-            return result.Chosen;
+            return result;
+
         }
     }
 }

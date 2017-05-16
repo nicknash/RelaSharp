@@ -46,15 +46,17 @@ namespace RelaSharp.Scheduling
         public override string ToString() => $"{NumElems}:{String.Join(",", _elems.Take(NumElems))}";
     }
 
+ 
     class Scheduler
     {
-        private ArraySet _unfinishedThreadIds;
-        private ArraySet _waitingThreadIds;
-        private ArraySet _threadIdsSeenWhileAllWaiting;
-        private ISchedulingAlgorithm _schedulingAlgorithm;
+        private readonly ArraySet _unfinishedThreadIds;
+        private readonly ArraySet _waitingThreadIds;
+        private readonly ArraySet _threadIdsSeenWhileAllWaiting;
+        private readonly ISchedulingAlgorithm _schedulingAlgorithm;
+        private int _runningThreadIndex;
+        private int NumUnfinishedThreads =>_unfinishedThreadIds.NumElems;
         public bool AllThreadsFinished => _unfinishedThreadIds.NumElems == 0;
-        public int RunningThreadId { get; private set; }
-        public bool Finished => AllThreadsFinished && _schedulingAlgorithm.Finished;
+        public int RunningThreadId => _unfinishedThreadIds[_runningThreadIndex];
 
         public Scheduler(int numThreads, ISchedulingAlgorithm schedulingAlgorithm)
         {
@@ -75,16 +77,16 @@ namespace RelaSharp.Scheduling
             {
                 throw new Exception("All threads finished. Who called?");
             }
-            var idx = _schedulingAlgorithm.GetNextThreadIndex(_unfinishedThreadIds.NumElems);
-            RunningThreadId = _unfinishedThreadIds[idx]; 
+            _runningThreadIndex = _schedulingAlgorithm.GetNextThreadIndex(NumUnfinishedThreads);
+            Console.WriteLine($"switch running thread = {RunningThreadId}");
+            
             return;
         }
 
         public bool ThreadWaiting()
         {
-            int numUnfinished = _unfinishedThreadIds.NumElems;
             _waitingThreadIds.Add(RunningThreadId);
-            if(_waitingThreadIds.NumElems == numUnfinished)
+            if(_waitingThreadIds.NumElems == NumUnfinishedThreads)
             {
                 _threadIdsSeenWhileAllWaiting.Add(RunningThreadId);
             }
@@ -92,17 +94,23 @@ namespace RelaSharp.Scheduling
             {
                 _threadIdsSeenWhileAllWaiting.Clear();
             }
-            bool deadlock = _unfinishedThreadIds.NumElems == 1 ||  _threadIdsSeenWhileAllWaiting.NumElems == _unfinishedThreadIds.NumElems;
+            bool deadlock = NumUnfinishedThreads == 1 ||  _threadIdsSeenWhileAllWaiting.NumElems == NumUnfinishedThreads;
             int originalId = RunningThreadId;
-            while(!deadlock && RunningThreadId == originalId) 
+            if(!deadlock) 
             {
-                MaybeSwitch();
+                _runningThreadIndex = _schedulingAlgorithm.WaitingGetNextThreadIndex(_runningThreadIndex, NumUnfinishedThreads);
             }
+            Console.WriteLine($"running thread = {RunningThreadId}");
             return deadlock;
         } 
 
         public void ThreadFinishedWaiting() => _waitingThreadIds.Remove(RunningThreadId);  // TODO: Should clear _threadIdsSeenWhileAllWaiting() ?
     
+        public void Yield()
+        {
+            _schedulingAlgorithm.Yield();
+        }
+
         public void ThreadFinished() 
         {
             _unfinishedThreadIds.Remove(RunningThreadId);
