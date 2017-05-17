@@ -8,11 +8,14 @@ namespace RelaSharp.Scheduling
         {
             private readonly int _numThreads;
             private readonly bool[,] _hasPriority; // _hasPriority[x, y] = true <=> x will not be scheduled when y is enabled.
+            private readonly ThreadSet _ready;
+            private int[] _priorityOver;
 
             public PriorityRelation(int numThreads)
             {
                 _numThreads = numThreads;
                 _hasPriority = new bool[numThreads, numThreads];
+                _ready = new ThreadSet(numThreads);
             }
 
             // Give all threads priority over x
@@ -22,20 +25,36 @@ namespace RelaSharp.Scheduling
                 {
                     _hasPriority[x, i] = true;
                 }
+                _priorityOver[x] += _numThreads;
+                ComputeReady();
             }
 
             // Remove priority of x over all threads.
-            public RemovePriorityOf(int x)
+            public void RemovePriorityOf(int x)
             {
                 for(int i = 0; i < _numThreads; ++i)
                 {
                     _hasPriority[i, x] = false;
-                }                
+                    _priorityOver[i]--; // TODO: Check positive reqd?
+                }
+                ComputeReady();
             }
 
-            public int[] GetSchedulableThreads(bool[] enabled)
+            private void ComputeReady()
             {
+                _ready.Clear();
+                for(int i = 0; i < _numThreads; ++i)
+                {
+                    if(_priorityOver[i] == 0)
+                    {
+                        _ready.Add(i);
+                    }
+                }
+            }
 
+            public ThreadSet GetSchedulableThreads(ThreadSet enabled)
+            {
+                return enabled.Intersection(_ready);
             }
         }
 
@@ -46,19 +65,48 @@ namespace RelaSharp.Scheduling
             private int _lastChoiceIdx;
             private bool ResumeInProgress => _choiceIdx <= _lastChoiceIdx;
           
-            public int GetNextThreadId(ThreadSet availableToSchedule)
+            public bool Finished { get; private set; }
+
+            public int GetNextThreadId(PriorityRelation priority, ThreadSet enabled)
             {
+                if (numUnfinishedThreads == 1) 
+                {
+                    return 0;
+                }
+                Choice result;
+                if (ResumeInProgress)
+                {
+                    result = _choices[_choiceIdx];
+                    _choiceIdx++;
+                }
+                else
+                {
+                    result = new Choice(numUnfinishedThreads);
+                    _choices[_choiceIdx] = result;
+                    _lastChoiceIdx++;
+                    _choiceIdx++;
+                }
+                return result;
 
             }
 
             public bool Advance()
             {
-
-            }
-
-            public void Rewind()
-            {
-
+                _choiceIdx = 0;
+                bool resuming = _lastChoiceIdx >= 0;
+                while (_lastChoiceIdx >= 0 && _choices[_lastChoiceIdx].FullyExplored)
+                {
+                    _lastChoiceIdx--;
+                }
+                if (_lastChoiceIdx >= 0)
+                {
+                    _choices[_lastChoiceIdx].Next();
+                }
+                else if (resuming)
+                {
+                    Finished = true;
+                }
+                return !Finished;
             }
         }
 
@@ -68,30 +116,45 @@ namespace RelaSharp.Scheduling
 
         private bool ResumeInProgress => _choiceIdx <= _lastChoiceIdx;
      
-        private bool[,] _hasPriority; // _hasPriority[x, y] = true <=> x will not be scheduled when y is enabled.
      
         public bool Finished { get; private set; }
 
         class ThreadSet 
         {
+            private readonly bool[] _elems;
+            private int _numElems;
+            public ThreadSet(int numThreads)
+            {
+                _elems = new bool[numThreads];
+                _numElems = 0;
+            }
+
             public void Add(int idx)
             {
-
+                _numElems++;
+                _elems[idx] = true;
             }
 
             public void Remove(int idx)
             {
-
+                _numElems--;
+                _elems[idx] = false;
             }
 
             public void Clear()
             {
-
+                if(_numElems > 0)
+                {
+                    for(int i = 0; i < _numElems; ++i)
+                    {
+                        _elems[i] = false;
+                    }
+                }
             }
 
             public bool Contains(int idx)
             {
-
+                return _elems[idx];
             }
         }
 
@@ -127,50 +190,7 @@ namespace RelaSharp.Scheduling
             {
                 throw new Exception("Already finished");
             }
-            _choiceIdx = 0;
-            bool resuming = _lastChoiceIdx >= 0;
-            while (_lastChoiceIdx >= 0 && _choices[_lastChoiceIdx].FullyExplored)
-            {
-                _lastChoiceIdx--;
-            }
-            if(_lastChoiceIdx >= 0)
-            {
-                _choices[_lastChoiceIdx].Next();
-            }
-            else if(resuming)
-            {
-                Finished = true;
-            }
-            return !Finished;
-        }
-
-        public int GetNextThreadIndex(int numUnfinishedThreads)
-        {
-            if(numUnfinishedThreads == 1)
-            {
-                return 0;
-            }
-            var choice = GetNextChoice(numUnfinishedThreads); 
-            return choice.Chosen;
-        }
-
-        private Choice GetNextChoice(int numUnfinishedThreads)
-        {
-            Choice result;
-            if(ResumeInProgress)
-            {
-                result = _choices[_choiceIdx];
-                _choiceIdx++;
-            }
-            else
-            {
-                result = new Choice(numUnfinishedThreads);
-                _choices[_choiceIdx] = result;
-                _lastChoiceIdx++;                
-                _choiceIdx++;
-            }
-            return result;
-
+            return _history.Advance();
         }
         private ThreadSet _finished;
         private ThreadSet _enabled;
@@ -204,12 +224,12 @@ namespace RelaSharp.Scheduling
             {
                 throw new Exception("All threads finished. Who called?");
             }
-            RunningThreadId = _history.GetNextThreadId(_availableToSchedule);  
+            RunningThreadId = _history.GetNextThreadId(_priority, _enabled);  
             for(int i = 0; i < _numThreads; ++i)
             {
                 _scheduledSince[i].Add(RunningThreadId);
             }
-            // Remove priority of selected thread.
+            _priority.RemovePriorityOf(RunningThreadId);
             return;
         }
 
@@ -221,6 +241,7 @@ namespace RelaSharp.Scheduling
             {
                 _enabledSince[i].Remove(RunningThreadId);
             }
+            // if a
             return deadlock;
         } 
 
