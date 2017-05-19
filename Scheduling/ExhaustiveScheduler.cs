@@ -58,7 +58,7 @@ namespace RelaSharp.Scheduling
             }
         }
 
-        class SchedulingHistory
+        class SchedulingHistory // SchedulingStrategy?
         {
             private Choice[] _choices;
             private int _choiceIdx;
@@ -69,10 +69,6 @@ namespace RelaSharp.Scheduling
 
             public int GetNextThreadId(PriorityRelation priority, ThreadSet enabled)
             {
-                if (numUnfinishedThreads == 1) 
-                {
-                    return 0;
-                }
                 Choice result;
                 if (ResumeInProgress)
                 {
@@ -81,12 +77,13 @@ namespace RelaSharp.Scheduling
                 }
                 else
                 {
-                    result = new Choice(numUnfinishedThreads);
+                    var schedulable = priority.GetSchedulableThreads(enabled);
+                    result = new Choice(schedulable);
                     _choices[_choiceIdx] = result;
                     _lastChoiceIdx++;
                     _choiceIdx++;
                 }
-                return result;
+                return result.Chosen;
 
             }
 
@@ -113,39 +110,38 @@ namespace RelaSharp.Scheduling
         private Choice[] _choices;
         private int _choiceIdx;
         private int _lastChoiceIdx;
-
         private bool ResumeInProgress => _choiceIdx <= _lastChoiceIdx;
-     
-     
         public bool Finished { get; private set; }
 
         class ThreadSet 
         {
             private readonly bool[] _elems;
-            private int _numElems;
+            public int NumElems { get; private set; }
             public ThreadSet(int numThreads)
             {
                 _elems = new bool[numThreads];
-                _numElems = 0;
+                NumElems = 0;
             }
 
             public void Add(int idx)
             {
-                _numElems++;
+                NumElems++;
                 _elems[idx] = true;
             }
 
             public void Remove(int idx)
             {
-                _numElems--;
+                NumElems--;
                 _elems[idx] = false;
             }
 
+            public bool this[int idx] => _elems[idx];
+            
             public void Clear()
             {
-                if(_numElems > 0)
+                if(NumElems > 0)
                 {
-                    for(int i = 0; i < _numElems; ++i)
+                    for(int i = 0; i < NumElems; ++i)
                     {
                         _elems[i] = false;
                     }
@@ -156,22 +152,27 @@ namespace RelaSharp.Scheduling
             {
                 return _elems[idx];
             }
+
+            public ThreadSet Intersection(ThreadSet other)
+            {
+                return null; // TODO: This is a garbage promoting interface, do differently?
+            }
         }
 
         class Choice
         {
             public int Chosen { get; private set; }
-            public readonly int NumAlternatives;
-            public bool FullyExplored => Chosen >= NumAlternatives - 1;
+            public readonly ThreadSet _alternatives;
+            public bool FullyExplored => _numElemsSeen >= _alternatives.NumElems;
+            private int _numElemsSeen;
 
-            public Choice(int numAlternatives)
+            public Choice(ThreadSet alternatives)
             {
-                if(numAlternatives < 2)
+                int n = alternatives.NumElems;
+                if(n < 2)
                 {
-                    throw new ArgumentOutOfRangeException($"Choice cannot be made between {numAlternatives} or fewer alternatives");
+                    throw new ArgumentOutOfRangeException($"Choice cannot be made between {n} or fewer alternatives");
                 }
-                NumAlternatives = numAlternatives;
-                Chosen = 0;
             }
 
             public void Next()
@@ -180,7 +181,11 @@ namespace RelaSharp.Scheduling
                 {
                     throw new Exception("Scheduling choice already exhausted.");
                 }
-                Chosen++;
+                while(!_alternatives[Chosen] && Chosen < _alternatives.NumElems)
+                {
+                    Chosen++;
+                }
+                _numElemsSeen++;
             }
         }
 
@@ -206,10 +211,11 @@ namespace RelaSharp.Scheduling
         private int NumUnfinishedThreads =>_unfinishedThreadIds.NumElems;
         public bool AllThreadsFinished => _unfinishedThreadIds.NumElems == 0;
         public int RunningThreadId { get; private set; }
-        private int _numThreads;
+        private readonly int _numThreads;
 
         public ExhaustiveScheduler(int numThreads, int maxChoices)
         {
+            _numThreads = numThreads;
             _choices = new Choice[maxChoices]; 
             _choiceIdx = 0;
             _lastChoiceIdx = -1;
@@ -224,7 +230,7 @@ namespace RelaSharp.Scheduling
             {
                 throw new Exception("All threads finished. Who called?");
             }
-            RunningThreadId = _history.GetNextThreadId(_priority, _enabled);  
+            RunningThreadId = _history.GetNextThreadId(_priority, _enabled, _numThreads - _finished.NumElems);  
             for(int i = 0; i < _numThreads; ++i)
             {
                 _scheduledSince[i].Add(RunningThreadId);
