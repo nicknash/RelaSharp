@@ -120,7 +120,7 @@ namespace RelaSharp.Scheduling
             }
         }  
 
-       public bool NewIteration()
+        public bool NewIteration()
         {
             ++_iterationCount;
             return _iterationCount <= _numIterations;

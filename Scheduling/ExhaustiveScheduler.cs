@@ -67,8 +67,17 @@ namespace RelaSharp.Scheduling
           
             public bool Finished { get; private set; }
 
-            public int GetNextThreadId(PriorityRelation priority, ThreadSet enabled)
+            public int GetNextThreadId(PriorityRelation priority, ThreadSet enabled, int numUnfinishedThreads)
             {
+                if(numUnfinishedThreads == 1)
+                {
+                    int idx = 0;
+                    while(!enabled[idx])
+                    {
+                        ++idx;
+                    }
+                    return idx; // out of bounds here implies deadlock, which should never happen.
+                }
                 Choice result;
                 if (ResumeInProgress)
                 {
@@ -148,6 +157,15 @@ namespace RelaSharp.Scheduling
                 }
             }
 
+            public void ReplaceWith(ThreadSet other)
+            {
+                for(int i = 0; i < NumElems; ++i)
+                {
+                    _elems[i] = other._elems[i];
+                }
+                NumElems = other.NumElems;
+            }
+
             public bool Contains(int idx)
             {
                 return _elems[idx];
@@ -208,8 +226,8 @@ namespace RelaSharp.Scheduling
 
 
         private int _runningThreadIndex;
-        private int NumUnfinishedThreads =>_unfinishedThreadIds.NumElems;
-        public bool AllThreadsFinished => _unfinishedThreadIds.NumElems == 0;
+        private int NumUnfinishedThreads => _numThreads - _finished.NumElems;
+        public bool AllThreadsFinished => _finished.NumElems == _numThreads;
         public int RunningThreadId { get; private set; }
         private readonly int _numThreads;
 
@@ -219,8 +237,6 @@ namespace RelaSharp.Scheduling
             _choices = new Choice[maxChoices]; 
             _choiceIdx = 0;
             _lastChoiceIdx = -1;
-   
-
             MaybeSwitch();
         }
 
@@ -230,7 +246,9 @@ namespace RelaSharp.Scheduling
             {
                 throw new Exception("All threads finished. Who called?");
             }
-            RunningThreadId = _history.GetNextThreadId(_priority, _enabled, _numThreads - _finished.NumElems);  
+            // N.B. This only schedules enabled threads, a thread is re-enabled when the lock it is waiting on is released...
+            // hence, need a lock-released
+            RunningThreadId = _history.GetNextThreadId(_priority, _enabled, _numThreads - _finished.NumElems); 
             for(int i = 0; i < _numThreads; ++i)
             {
                 _scheduledSince[i].Add(RunningThreadId);
@@ -243,11 +261,12 @@ namespace RelaSharp.Scheduling
         {
             _enabled.Remove(RunningThreadId);
             _disabledSince[waitingOnThreadId].Add(RunningThreadId);
+            _disabledBy[RunningThreadId] = waitingOnThreadId;
             for(int i = 0; i < _numThreads; ++i)
             {
                 _enabledSince[i].Remove(RunningThreadId);
             }
-            // if a
+            bool deadlock = _enabled.NumElems == 0; 
             return deadlock;
         } 
 
@@ -256,13 +275,28 @@ namespace RelaSharp.Scheduling
             _enabled.Add(RunningThreadId);
         }
     
+        private readonly int[] _disabledBy;
+        private const int InvalidThreadId = -1;
+
+        public void LockReleased() // TODO: Need to actually call this!
+        {
+            for(int i = 0; i < _numThreads; ++i)
+            {
+                if(_disabledBy[i] == RunningThreadId)
+                {
+                    _disabledBy[i] = InvalidThreadId;
+                    _enabled.Add(i);
+                    _disabledSince[i].Remove(i); // Not certain this should be done, need to understand Theorem 1 properly first.
+                }
+            }
+        }
+
         public void Yield()
         {
-            _enabledSince[RunningThreadId].BuildFrom(_enabled);
+            _enabledSince[RunningThreadId].ReplaceWith(_enabled);
             _disabledSince[RunningThreadId].Clear();
             _scheduledSince[RunningThreadId].Clear();
             _priority.GivePriorityOver(RunningThreadId);
-
         }
 
         public void ThreadFinished() 

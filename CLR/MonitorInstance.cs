@@ -62,7 +62,6 @@ namespace RelaSharp.CLR
             TE.MaybeSwitch();
         }
 
-
         public void Pulse(string memberName, string sourceFilePath, int sourceLineNumber)
         {
             var runningThread = Preamble();
