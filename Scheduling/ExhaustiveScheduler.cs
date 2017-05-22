@@ -175,6 +175,16 @@ namespace RelaSharp.Scheduling
             {
                 return null; // TODO: This is a garbage promoting interface, do differently?
             }
+
+            public void LessWith(ThreadSet other)
+            {
+
+            }
+
+            public void UnionWith(ThreadSet other)
+            {
+
+            }
         }
 
         class Choice
@@ -247,7 +257,8 @@ namespace RelaSharp.Scheduling
                 throw new Exception("All threads finished. Who called?");
             }
             // N.B. This only schedules enabled threads, a thread is re-enabled when the lock it is waiting on is released...
-            // hence, need a lock-released
+            // hence, need a lock-released.
+            
             RunningThreadId = _history.GetNextThreadId(_priority, _enabled, _numThreads - _finished.NumElems); 
             for(int i = 0; i < _numThreads; ++i)
             {
@@ -293,10 +304,26 @@ namespace RelaSharp.Scheduling
 
         public void Yield()
         {
+            // Give threads priority of this one that have been continuously enabled since
+            // its last yield, or which have been disabled since it last yielded
+            // Note, this is different from Musuvathi and Qadeer, because their _disabledSince 
+            // is defined to include all threads disabled some some transition of the running thread
+            // since its last yield. In reality, threads don't disable each other like this. CHESS 
+            // implements this by having a lookahead which it searches for locks. So basically their condition is
+            // (ContinuouslyEnabledSinceLastYield UNION DisabledByRunningThreadSinceLastYield) LESS ScheduledSinceLastYield
+            // and mine is:
+            // (ContinuouslyEnabledSinceLastYield LESS ScheduledSinceLastYield) UNION DisabledSinceLastYield
+            // My 'DisabledSinceLastYield' includes the notion that the thread was disabled by the currently running thread, but note that
+            // a thread can only be disabled by scheduling it, so something like Disabled LESS Scheduled would always be empty for my scheduler.
+            var unfairlyStarved = _enabledSince[RunningThreadId];
+            unfairlyStarved.LessWith(_scheduledSince[RunningThreadId]);
+            unfairlyStarved.UnionWith(_disabledSince[RunningThreadId]);
+            // TODO: Restrict GivePriorityOver to unfairlyStarved
+            _priority.GivePriorityOver(RunningThreadId);
+
             _enabledSince[RunningThreadId].ReplaceWith(_enabled);
             _disabledSince[RunningThreadId].Clear();
             _scheduledSince[RunningThreadId].Clear();
-            _priority.GivePriorityOver(RunningThreadId);
         }
 
         public void ThreadFinished() 
