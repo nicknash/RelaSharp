@@ -22,19 +22,19 @@ namespace RelaSharp.CLR
         public static void Enter(Object lockObject, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             var instance = GetMonitorInstance(lockObject);
-            instance.Enter(memberName, sourceFilePath, sourceLineNumber);
+            instance.Enter(lockObject, memberName, sourceFilePath, sourceLineNumber);
         }
 
         public static void Enter(Object lockObject, ref bool lockTaken)
         {
             var instance = GetMonitorInstance(lockObject);
-            instance.Enter(ref lockTaken);
+            instance.Enter(lockObject, ref lockTaken);
         }
 
         public static void Exit(Object lockObject, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             var instance = GetMonitorInstance(lockObject);
-            instance.Exit(memberName, sourceFilePath, sourceLineNumber);
+            instance.Exit(lockObject, memberName, sourceFilePath, sourceLineNumber);
         }
 
         public static bool IsEntered(Object lockObject)
@@ -85,7 +85,7 @@ namespace RelaSharp.CLR
         public static void Wait(Object lockObject, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             var instance = GetMonitorInstance(lockObject);
-            instance.Wait(memberName, sourceFilePath, sourceLineNumber);
+            instance.Wait(lockObject, memberName, sourceFilePath, sourceLineNumber);
         }
 
         public static void Wait(Object lockObject, int millisecondsTimeout)

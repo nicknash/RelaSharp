@@ -24,7 +24,7 @@ namespace RelaSharp.CLR
 
         private bool IsHeld => _heldBy != null;
 
-        public void Enter(string memberName, string sourceFilePath, int sourceLineNumber)
+        public void Enter(object lockObject, string memberName, string sourceFilePath, int sourceLineNumber)
         {
             var runningThread = Preamble();
             if (IsHeld && _heldBy != runningThread)
@@ -32,7 +32,7 @@ namespace RelaSharp.CLR
                 while (IsHeld)
                 {
                     TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Monitor.Enter: (waiting {_timesEntered})."); 
-                    TE.ThreadWaiting();
+                    TE.ThreadWaiting(_heldBy.Id, lockObject);
                 }
                 TE.ThreadFinishedWaiting();
             }
@@ -41,7 +41,7 @@ namespace RelaSharp.CLR
             TE.MaybeSwitch(); 
         }
 
-        public void Enter(ref bool lockTaken)
+        public void Enter(object lockObject, ref bool lockTaken)
         {
             if(lockTaken)
             {
@@ -49,7 +49,7 @@ namespace RelaSharp.CLR
             }
         }
 
-        public void Exit(string memberName, string sourceFilePath, int sourceLineNumber)
+        public void Exit(object lockObject, string memberName, string sourceFilePath, int sourceLineNumber)
         {
             var runningThread = Preamble();
             if(_heldBy != runningThread)
@@ -57,7 +57,7 @@ namespace RelaSharp.CLR
                 FailLockNotHeld(memberName, sourceFilePath, sourceLineNumber, runningThread.Id, "Exit");
                 return;
             }
-            ReleaseLock(memberName, sourceFilePath, sourceLineNumber);
+            ReleaseLock(lockObject, memberName, sourceFilePath, sourceLineNumber);
             TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Monitor.Exit: Lock-released ({_timesEntered})."); 
             TE.MaybeSwitch();
         }
@@ -92,7 +92,7 @@ namespace RelaSharp.CLR
             }
         }
 
-        public bool Wait(string memberName, string sourceFilePath, int sourceLineNumber)
+        public bool Wait(object lockObject, string memberName, string sourceFilePath, int sourceLineNumber)
         {
             var runningThread = Preamble();
             if(_heldBy != runningThread)
@@ -103,10 +103,10 @@ namespace RelaSharp.CLR
             _waiting.Enqueue(runningThread.Id);
             
             TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Monitor.Wait (waiting).");
-            ReleaseLock(memberName, sourceFilePath, sourceLineNumber);
+            ReleaseLock(lockObject, memberName, sourceFilePath, sourceLineNumber);
             while(_ready.Count == 0 || _ready.Peek() != runningThread.Id)
             {
-                TE.ThreadWaiting();
+                TE.ThreadWaiting(_heldBy.Id, lockObject);
             }
             _ready.Dequeue();
             TE.ThreadFinishedWaiting();
@@ -114,7 +114,7 @@ namespace RelaSharp.CLR
             while (IsHeld)
             {
                 TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Monitor.Wait: (woken-waiting {_timesEntered}).");
-                TE.ThreadWaiting();
+                TE.ThreadWaiting(_heldBy.Id, lockObject);
             }
             TE.ThreadFinishedWaiting();
             AcquireLock(runningThread, memberName, sourceFilePath, sourceLineNumber);
@@ -130,7 +130,7 @@ namespace RelaSharp.CLR
             _timesEntered++;
         }
 
-        private void ReleaseLock(string memberName, string sourceFilePath, int sourceLineNumber)
+        private void ReleaseLock(object lockObject, string memberName, string sourceFilePath, int sourceLineNumber)
         {
             // TODO: inc clock?
             _lockClock.Join(_heldBy.ReleasesAcquired);
@@ -139,6 +139,7 @@ namespace RelaSharp.CLR
             {
                 _heldBy = null;
             }
+            TE.LockReleased(lockObject);
         }
 
         private ShadowThread Preamble()
