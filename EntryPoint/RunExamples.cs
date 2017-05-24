@@ -68,22 +68,22 @@ namespace RelaSharp.EntryPoint
                 int numIterations = 0;
                 ulong totalOperations = 0;
                 bool testFailed = false;
-                ISchedulingAlgorithm schedulingAlgorithm;
+                IScheduler scheduler;
                 switch(options.Scheduling)
                 {
                     case Options.SchedulingAlgorithm.Random:
-                        schedulingAlgorithm = new NaiveRandomScheduling(options.Iterations);
+                        scheduler = new NaiveRandomScheduler(TE.NumThreads, options.Iterations);
                     break;
                     case Options.SchedulingAlgorithm.Exhaustive:
-                        schedulingAlgorithm = new ExhaustiveScheduling(TE.LiveLockLimit * 2);
+                        scheduler = new ExhaustiveScheduler(TE.NumThreads, TE.LiveLockLimit * 2);
                     break;
                     default:
                         throw new Exception($"Unsupported scheduling algorithm '{options.Scheduling}'");
                 }
-                while(schedulingAlgorithm.NewIteration() && !testFailed)
+                while(scheduler.NewIteration() && !testFailed)
                 {
                     example.PrepareForIteration();
-                    TE.RunTest(example, schedulingAlgorithm);
+                    TE.RunTest(example, scheduler);
                     testFailed = TE.TestFailed;
                     totalOperations += TE.ExecutionLength;
                     ++numIterations;
