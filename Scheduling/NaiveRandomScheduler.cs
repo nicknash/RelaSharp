@@ -50,26 +50,33 @@ namespace RelaSharp.Scheduling
 
         private readonly Random _random = new Random();
         private readonly int _numIterations;
-        private readonly ArraySet _unfinishedThreadIds;
-        private readonly ArraySet _waitingThreadIds;
-        private readonly ArraySet _threadIdsSeenWhileAllWaiting;
+        private ArraySet _unfinishedThreadIds;
+        private ArraySet _waitingThreadIds;
+        private ArraySet _threadIdsSeenWhileAllWaiting;
         private int _runningThreadIndex;
-        private int NumUnfinishedThreads =>_unfinishedThreadIds.NumElems;
+        private int _numThreads;
+        private int NumUnfinishedThreads => _unfinishedThreadIds.NumElems;
         public bool AllThreadsFinished => _unfinishedThreadIds.NumElems == 0;
         public int RunningThreadId => _unfinishedThreadIds[_runningThreadIndex];
         private int _iterationCount;
 
         public NaiveRandomScheduler(int numThreads, int numIterations)
         {
+            _numThreads = numThreads;
             _numIterations = numIterations;
-            _unfinishedThreadIds = new ArraySet(numThreads);
-            _waitingThreadIds = new ArraySet(numThreads);
-            _threadIdsSeenWhileAllWaiting = new ArraySet(numThreads);
-            for(int i = 0; i < numThreads; ++i)
+            PrepareForScheduling();
+            MaybeSwitch();
+        }
+
+        private void PrepareForScheduling()
+        {
+            _unfinishedThreadIds = new ArraySet(_numThreads);
+            _waitingThreadIds = new ArraySet(_numThreads);
+            _threadIdsSeenWhileAllWaiting = new ArraySet(_numThreads);
+            for(int i = 0; i < _numThreads; ++i)
             {
                 _unfinishedThreadIds.Add(i);
             }
-            MaybeSwitch();
         }
 
         public void MaybeSwitch()
@@ -97,7 +104,7 @@ namespace RelaSharp.Scheduling
             int originalId = RunningThreadId;
             if(!deadlock) 
             {
-                while(_runningThreadIndex == originalId)
+                while(RunningThreadId == originalId)
                 {
                     MaybeSwitch();
                 }
@@ -127,6 +134,7 @@ namespace RelaSharp.Scheduling
         public bool NewIteration()
         {
             ++_iterationCount;
+            PrepareForScheduling();
             return _iterationCount <= _numIterations;
         }
     }

@@ -52,7 +52,6 @@ namespace RelaSharp.EntryPoint
             }
         }
 
-
         private static void RunExample(string exampleTag, IRelaExample example, Options options)
         {
             var TE = TestEnvironment.TE;
@@ -69,13 +68,15 @@ namespace RelaSharp.EntryPoint
                 ulong totalOperations = 0;
                 bool testFailed = false;
                 IScheduler scheduler;
+                example.PrepareForIteration();
+                int numThreads = example.ThreadEntries.Count;
                 switch(options.Scheduling)
                 {
                     case Options.SchedulingAlgorithm.Random:
-                        scheduler = new NaiveRandomScheduler(TE.NumThreads, options.Iterations);
+                        scheduler = new NaiveRandomScheduler(numThreads, options.Iterations);
                     break;
                     case Options.SchedulingAlgorithm.Exhaustive:
-                        scheduler = new ExhaustiveScheduler(TE.NumThreads, TE.LiveLockLimit * 2);
+                        scheduler = new ExhaustiveScheduler(numThreads, TE.LiveLockLimit * 2);
                     break;
                     default:
                         throw new Exception($"Unsupported scheduling algorithm '{options.Scheduling}'");
