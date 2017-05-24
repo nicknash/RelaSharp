@@ -17,18 +17,17 @@ namespace RelaSharp
         public ulong ExecutionLength { get; private set; }
         public VectorClock SequentiallyConsistentFence { get; private set; }
         
-        private Scheduler _scheduler;
+        private IScheduler _scheduler;
         private TestThreads _testThreads;
         private ShadowThread[] _shadowThreads;
         private EventLog _eventLog;
         private bool _testStarted;
 
-        public void RunTest(IRelaTest test, ISchedulingAlgorithm schedulingAlgorithm)
+        public void RunTest(IRelaTest test, IScheduler scheduler)
         {
             NumThreads = test.ThreadEntries.Count;
             TestFailed = false;
             _shadowThreads = new ShadowThread[NumThreads];
-            _scheduler = new Scheduler(NumThreads, schedulingAlgorithm);
             _eventLog = new EventLog(NumThreads);
             _testStarted = false;
             SequentiallyConsistentFence = new VectorClock(NumThreads);
@@ -76,14 +75,14 @@ namespace RelaSharp
             _testThreads.WakeNewThreadAndBlockPrevious(previousThreadId);        
         }
 
-        public void ThreadWaiting()
+        public void ThreadWaiting(int waitingOnThreadId, object lockObject)
         {
             if(!_testStarted)
             {
                 return;
             }
             int previousThreadId = SchedulingPreamble();
-            if(_scheduler.ThreadWaiting())
+            if(_scheduler.ThreadWaiting(waitingOnThreadId, lockObject))
             {
                 FailTest($"Deadlock detected: all threads waiting.");
             }
@@ -98,6 +97,11 @@ namespace RelaSharp
         public void Yield()
         {
             _scheduler.Yield();
+        }
+
+        public void LockReleased(object lockObject)
+        {
+            _scheduler.LockReleased(lockObject);
         }
 
         public void Assert(bool shouldBeTrue, string reason, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)

@@ -18,9 +18,9 @@ namespace RelaSharp
         private ThreadState[] _threadStates;
         private Object[] _threadLocks;
         private object _runningThreadLock = new object();
-        private Scheduler _scheduler;
+        private IScheduler _scheduler;
 
-        public TestThreads(IRelaTest test, Scheduler scheduler)
+        public TestThreads(IRelaTest test, IScheduler scheduler)
         {
             var numThreads = test.ThreadEntries.Count;
             _threads = new Thread[numThreads];

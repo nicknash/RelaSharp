@@ -230,6 +230,7 @@ namespace RelaSharp.Scheduling
         private ThreadSet[] _disabledSince;
         private ThreadSet[] _scheduledSince;
         private ThreadSet[] _enabledSince;
+        private readonly object[] _waitingOnLock;
         private ThreadSet _availableToSchedule;
         private PriorityRelation _priority;
         private SchedulingHistory _history;
@@ -241,7 +242,7 @@ namespace RelaSharp.Scheduling
         public int RunningThreadId { get; private set; }
         private readonly int _numThreads;
 
-        public ExhaustiveScheduler(int numThreads, int maxChoices)
+        public ExhaustiveScheduler(int numThreads, ulong maxChoices)
         {
             _numThreads = numThreads;
             _choices = new Choice[maxChoices]; 
@@ -256,9 +257,6 @@ namespace RelaSharp.Scheduling
             {
                 throw new Exception("All threads finished. Who called?");
             }
-            // N.B. This only schedules enabled threads, a thread is re-enabled when the lock it is waiting on is released...
-            // hence, need a lock-released.
-            
             RunningThreadId = _history.GetNextThreadId(_priority, _enabled, _numThreads - _finished.NumElems); 
             for(int i = 0; i < _numThreads; ++i)
             {
@@ -268,11 +266,11 @@ namespace RelaSharp.Scheduling
             return;
         }
 
-        public bool ThreadWaiting(int waitingOnThreadId)
+        public bool ThreadWaiting(int waitingOnThreadId, object lockObject)
         {
             _enabled.Remove(RunningThreadId);
             _disabledSince[waitingOnThreadId].Add(RunningThreadId);
-            _disabledBy[RunningThreadId] = waitingOnThreadId;
+            _waitingOnLock[RunningThreadId] = lockObject;
             for(int i = 0; i < _numThreads; ++i)
             {
                 _enabledSince[i].Remove(RunningThreadId);
@@ -285,19 +283,16 @@ namespace RelaSharp.Scheduling
         {
             _enabled.Add(RunningThreadId);
         }
-    
-        private readonly int[] _disabledBy;
-        private const int InvalidThreadId = -1;
 
-        public void LockReleased() // TODO: Need to actually call this!
+        public void LockReleased(object lockObject) 
         {
             for(int i = 0; i < _numThreads; ++i)
             {
-                if(_disabledBy[i] == RunningThreadId)
+                if(_waitingOnLock[i] == lockObject)
                 {
-                    _disabledBy[i] = InvalidThreadId;
+                    _waitingOnLock[i] = null;
                     _enabled.Add(i);
-                    _disabledSince[i].Remove(i); // Not certain this should be done, need to understand Theorem 1 properly first.
+                    _disabledSince[i].Remove(i); 
                 }
             }
         }

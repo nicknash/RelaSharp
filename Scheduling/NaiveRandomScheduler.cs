@@ -82,7 +82,7 @@ namespace RelaSharp.Scheduling
             return;
         }
 
-        public bool ThreadWaiting()
+        public bool ThreadWaiting(int waitingOnThreadId, object lockObject)
         {
             _waitingThreadIds.Add(RunningThreadId);
             if(_waitingThreadIds.NumElems == NumUnfinishedThreads)
@@ -108,6 +108,10 @@ namespace RelaSharp.Scheduling
         public void ThreadFinishedWaiting() => _waitingThreadIds.Remove(RunningThreadId);  // TODO: Should clear _threadIdsSeenWhileAllWaiting() ?
     
         public void Yield()
+        {
+        }
+
+        public void LockReleased(object lockObject)
         {
         }
 
