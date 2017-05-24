@@ -26,6 +26,7 @@ namespace RelaSharp
         public void RunTest(IRelaTest test, IScheduler scheduler)
         {
             NumThreads = test.ThreadEntries.Count;
+            _scheduler = scheduler;
             TestFailed = false;
             _shadowThreads = new ShadowThread[NumThreads];
             _eventLog = new EventLog(NumThreads);
