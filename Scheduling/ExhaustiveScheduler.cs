@@ -17,12 +17,11 @@ namespace RelaSharp.Scheduling
         public bool AllThreadsFinished => _finished.NumElems == _numThreads;
         public int RunningThreadId { get; private set; }
         private readonly int _numThreads;
-        private readonly ulong _maxChoices;
 
         public ExhaustiveScheduler(int numThreads, ulong maxChoices)
         {
             _numThreads = numThreads;
-            _maxChoices = maxChoices;
+            _strategy = new SchedulingStrategy(maxChoices);
         }
 
         private void PrepareForScheduling()
@@ -37,20 +36,20 @@ namespace RelaSharp.Scheduling
                 _disabledSince[i] = new ThreadSet(_numThreads);
                 _enabledSince[i] = new ThreadSet(_numThreads);
                 _scheduledSince[i] = new ThreadSet(_numThreads);
+                _enabled.Add(i);
             }
             _waitingOnLock = new object[_numThreads];
             _priority = new PriorityRelation(_numThreads);
-            _strategy = new SchedulingStrategy(_maxChoices);
             MaybeSwitch();
         }
 
         public bool NewIteration()
         {
+            PrepareForScheduling();
             if(_strategy.Finished)
             {
                 throw new Exception("Already finished");
             }
-            PrepareForScheduling();
             return _strategy.Advance();
         }
 
@@ -118,8 +117,7 @@ namespace RelaSharp.Scheduling
             var unfairlyStarved = _enabledSince[RunningThreadId];
             unfairlyStarved.LessWith(_scheduledSince[RunningThreadId]);
             unfairlyStarved.UnionWith(_disabledSince[RunningThreadId]);
-            // TODO: Restrict GivePriorityOver to unfairlyStarved
-            _priority.GivePriorityOver(RunningThreadId);
+            _priority.GivePriorityOver(RunningThreadId, unfairlyStarved);
 
             _enabledSince[RunningThreadId].ReplaceWith(_enabled);
             _disabledSince[RunningThreadId].Clear();
@@ -129,6 +127,7 @@ namespace RelaSharp.Scheduling
         public void ThreadFinished() 
         {
             _finished.Add(RunningThreadId);
+            _enabled.Remove(RunningThreadId);
             if(!AllThreadsFinished)
             {
                 MaybeSwitch();

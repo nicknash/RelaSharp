@@ -25,7 +25,7 @@ namespace RelaSharp.Scheduling.Exhaustive
             {
                 throw new Exception("Scheduling choice already exhausted.");
             }
-            while (!_alternatives[Chosen] && Chosen < _alternatives.NumElems)
+            while (_numElemsSeen < _alternatives.NumElems && !_alternatives[Chosen])
             {
                 Chosen++;
             }

@@ -12,26 +12,32 @@ namespace RelaSharp.Scheduling.Exhaustive
             _numThreads = numThreads;
             _hasPriority = new bool[numThreads, numThreads];
             _ready = new ThreadSet(numThreads);
-        }
-
-        // Give all threads priority over x
-        public void GivePriorityOver(int x)
-        {
-            for (int i = 0; i < _numThreads; ++i)
-            {
-                _hasPriority[x, i] = true;
-            }
-            _priorityOver[x] += _numThreads;
+            _priorityOver = new int[numThreads];
             ComputeReady();
         }
 
-        // Remove priority of x over all threads.
+        public void GivePriorityOver(int x, ThreadSet threads)
+        {
+            for (int i = 0; i < _numThreads; ++i)
+            {
+                if(threads.Contains(i))
+                {
+                    _hasPriority[x, i] = true;
+                }
+            }
+            _priorityOver[x] += threads.NumElems;
+            ComputeReady();
+        }
+
         public void RemovePriorityOf(int x)
         {
             for (int i = 0; i < _numThreads; ++i)
             {
                 _hasPriority[i, x] = false;
-                _priorityOver[i]--; // TODO: Check positive reqd?
+                if(_priorityOver[i] > 0)
+                {
+                    _priorityOver[i]--;
+                }
             }
             ComputeReady();
         }
@@ -50,7 +56,10 @@ namespace RelaSharp.Scheduling.Exhaustive
 
         public ThreadSet GetSchedulableThreads(ThreadSet enabled)
         {
-            return enabled.Intersection(_ready);
+            var result = new ThreadSet(enabled.NumElems);
+            result.ReplaceWith(enabled);
+            result.IntersectWith(_ready);
+            return result;
         }
     }
 }

@@ -12,23 +12,29 @@ namespace RelaSharp.Scheduling.Exhaustive
 
         public void Add(int idx)
         {
-            NumElems++;
-            _elems[idx] = true;
+            if(!_elems[idx])
+            {
+                _elems[idx] = true;
+                ++NumElems;
+            }
         }
 
         public void Remove(int idx)
         {
-            NumElems--;
-            _elems[idx] = false;
+            if(_elems[idx])
+            {
+                _elems[idx] = false;
+                --NumElems;
+            }
         }
 
-        public bool this[int idx] => _elems[idx];
+        public bool this[int idx] => _elems[idx]; 
 
         public void Clear()
         {
             if (NumElems > 0)
             {
-                for (int i = 0; i < NumElems; ++i)
+                for (int i = 0; i < _elems.Length; ++i)
                 {
                     _elems[i] = false;
                 }
@@ -37,7 +43,7 @@ namespace RelaSharp.Scheduling.Exhaustive
 
         public void ReplaceWith(ThreadSet other)
         {
-            for (int i = 0; i < NumElems; ++i)
+            for (int i = 0; i < _elems.Length; ++i)
             {
                 _elems[i] = other._elems[i];
             }
@@ -49,20 +55,44 @@ namespace RelaSharp.Scheduling.Exhaustive
             return _elems[idx];
         }
 
-        public ThreadSet Intersection(ThreadSet other)
+        public void IntersectWith(ThreadSet other)
         {
-            return null; // TODO: This is a garbage promoting interface, do differently?
+            NumElems = 0;
+            for(int i = 0; i < _elems.Length; ++i)
+            {
+                _elems[i] &= other._elems[i];
+                if(_elems[i])
+                {
+                    ++NumElems;
+                }
+            }
+            return; 
         }
 
         public void LessWith(ThreadSet other)
         {
-
+            NumElems = 0;
+            for(int i = 0; i < _elems.Length; ++i)
+            {
+                _elems[i] &= !other._elems[i];
+                if(_elems[i])
+                {
+                    ++NumElems;
+                }
+            }
         }
 
         public void UnionWith(ThreadSet other)
         {
-
+            NumElems = 0;
+            for(int i = 0; i < _elems.Length; ++i)
+            {
+                _elems[i] |= other._elems[i];
+                if(_elems[i])
+                {
+                    ++NumElems;
+                }
+            }
         }
     }
-
 }

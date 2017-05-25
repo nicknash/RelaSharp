@@ -63,5 +63,4 @@ namespace RelaSharp.Scheduling.Exhaustive
             return !Finished;
         }
     }
-
 }
