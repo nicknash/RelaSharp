@@ -56,7 +56,7 @@ namespace RelaSharp.Scheduling.Exhaustive
 
         public ThreadSet GetSchedulableThreads(ThreadSet enabled)
         {
-            var result = new ThreadSet(enabled.NumElems);
+            var result = new ThreadSet(_numThreads);
             result.ReplaceWith(enabled);
             result.IntersectWith(_ready);
             return result;
