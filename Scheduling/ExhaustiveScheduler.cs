@@ -40,7 +40,6 @@ namespace RelaSharp.Scheduling
             }
             _waitingOnLock = new object[_numThreads];
             _priority = new PriorityRelation(_numThreads);
-            MaybeSwitch();
         }
 
         public bool NewIteration()
@@ -50,7 +49,9 @@ namespace RelaSharp.Scheduling
             {
                 throw new Exception("Already finished");
             }
-            return _strategy.Advance();
+            bool result = _strategy.Advance();
+            MaybeSwitch();
+            return result;
         }
 
         public void MaybeSwitch()

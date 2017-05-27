@@ -4,8 +4,10 @@ namespace RelaSharp.Scheduling.Exhaustive
     {
         private readonly bool[] _elems;
         public int NumElems { get; private set; }
+        public int NumThreads { get; private set;}
         public ThreadSet(int numThreads)
         {
+            NumThreads = numThreads;
             _elems = new bool[numThreads];
             NumElems = 0;
         }

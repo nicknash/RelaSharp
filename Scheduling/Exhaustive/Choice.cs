@@ -17,6 +17,11 @@ namespace RelaSharp.Scheduling.Exhaustive
             {
                 throw new ArgumentOutOfRangeException($"Choice cannot be made between {n} or fewer alternatives");
             }
+            while(!_alternatives[Chosen]) 
+            {
+                ++Chosen;
+            } 
+            _numElemsSeen = 1;
         }
 
         public void Next()
@@ -25,10 +30,10 @@ namespace RelaSharp.Scheduling.Exhaustive
             {
                 throw new Exception("Scheduling choice already exhausted.");
             }
-            while (_numElemsSeen < _alternatives.NumElems && !_alternatives[Chosen])
+            do
             {
                 Chosen++;
-            }
+            } while (!_alternatives[Chosen]);
             _numElemsSeen++;
         }
     }
