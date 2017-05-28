@@ -79,6 +79,11 @@ namespace RelaSharp.Scheduling
             }
         }
 
+        public int ChooseLookback(int maxLookback)
+        {
+            return _random.Next(maxLookback + 1);
+        }
+
         public void MaybeSwitch()
         {
             if(AllThreadsFinished)

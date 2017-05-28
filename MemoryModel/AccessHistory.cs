@@ -2,19 +2,26 @@ using System;
 
 namespace RelaSharp
 {  
+    interface ILookback
+    {
+        int ChooseLookback(int maxLookback);
+    }
+
     class AccessHistory<T>
     {
         private readonly AccessDataPool<T> _history;
         private readonly int _numThreads;
-        private readonly Random _random;
+        //private readonly Random _random;
+        private readonly ILookback _lookback;
 
         public T CurrentValue => _history[_history.CurrentIndex].Payload;
 
-        public AccessHistory(int length, int numThreads)
+        public AccessHistory(int length, int numThreads, ILookback lookback)
         {
             _history = new AccessDataPool<T>(length, numThreads);
             _numThreads = numThreads;
-            _random = new Random();
+            _lookback = lookback;
+            //_random = new Random();
         }
         
         public void RecordRMWStore(T data, MemoryOrder mo, ShadowThread runningThread)
@@ -54,7 +61,6 @@ namespace RelaSharp
             }
         }
 
-
         public T RecordRMWLoad(MemoryOrder mo, ShadowThread runningThread)
         {
             var loadData = _history[_history.CurrentIndex];
@@ -85,10 +91,10 @@ namespace RelaSharp
 
         private AccessData<T> GetPossibleLoad(VectorClock releasesAcquired, int threadId, MemoryOrder mo)
         {
-            int lookBack = _random.Next(_history.SizeOccupied + 1); 
-            int j = _history.CurrentIndex;
-            for(int i = 0; i < lookBack; ++i)
+            int maxLookback = 0;
+            for(maxLookback = 0; maxLookback < _history.SizeOccupied; ++maxLookback)
             {
+                int j = _history.CurrentIndex - maxLookback;
                 if(!_history[j].IsInitialized)
                 {
                     throw new Exception("This should never happen: access to uninitialized variable.");
@@ -114,9 +120,9 @@ namespace RelaSharp
                     // of this variable.
                     break;
                 }
-                --j;
             }
-            return _history[j];
+            int lookback = _lookback.ChooseLookback(maxLookback);
+            return _history[_history.CurrentIndex - lookback];
         }
     }
 }

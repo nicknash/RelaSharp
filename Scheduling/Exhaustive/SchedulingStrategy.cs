@@ -44,6 +44,15 @@ namespace RelaSharp.Scheduling.Exhaustive
             return result.Chosen;
         }
 
+        public int GetLookback(int maxLookback, int numUnfinishedThreads)
+        {
+            if(numUnfinishedThreads == 1)
+            {
+                return maxLookback; // should really explore here.
+            }
+            return _choices[_choiceIdx - 1].GetLookback(maxLookback);
+        }
+
         public bool Advance()
         {
             _choiceIdx = 0;

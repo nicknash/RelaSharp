@@ -6,9 +6,9 @@ namespace RelaSharp
 
         public T CurrentValue => _history.CurrentValue;
 
-        public InternalAtomic(int historyLength, int numThreads)
+        public InternalAtomic(int historyLength, int numThreads, ILookback lookback)
         {
-            _history = new AccessHistory<T>(historyLength, numThreads);
+            _history = new AccessHistory<T>(historyLength, numThreads, lookback);
         }
 
         public void Store(T data, MemoryOrder mo, ShadowThread runningThread)

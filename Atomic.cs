@@ -11,7 +11,7 @@ namespace RelaSharp
         {
             if(_memoryOrdered == null)
             {
-                _memoryOrdered = new InternalAtomic<T>(TE.HistoryLength, TE.NumThreads);
+                _memoryOrdered = new InternalAtomic<T>(TE.HistoryLength, TE.NumThreads, TE.Lookback);
                 _memoryOrdered.Store(default(T), MemoryOrder.Relaxed, TE.RunningThread);
             }
         }

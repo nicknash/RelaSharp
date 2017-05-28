@@ -42,6 +42,11 @@ namespace RelaSharp.Scheduling
             _priority = new PriorityRelation(_numThreads);
         }
 
+        public int ChooseLookback(int maxLookback)
+        {
+            return _strategy.GetLookback(maxLookback, _numThreads - _finished.NumElems);
+        }
+
         public bool NewIteration()
         {
             PrepareForScheduling();

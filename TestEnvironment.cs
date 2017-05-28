@@ -16,7 +16,8 @@ namespace RelaSharp
         public string TestFailureReason { get; private set;}
         public ulong ExecutionLength { get; private set; }
         public VectorClock SequentiallyConsistentFence { get; private set; }
-        
+        public ILookback Lookback => _scheduler;
+
         private IScheduler _scheduler;
         private TestThreads _testThreads;
         private ShadowThread[] _shadowThreads;

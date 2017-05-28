@@ -1,6 +1,6 @@
 namespace RelaSharp.Scheduling
 {
-    interface IScheduler
+    interface IScheduler : ILookback
     {
         void MaybeSwitch();
         bool ThreadWaiting(int waitingOnThreadId, object lockObject);
