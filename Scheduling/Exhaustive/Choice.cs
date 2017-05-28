@@ -45,8 +45,6 @@ namespace RelaSharp.Scheduling.Exhaustive
             if(_currentLookback < _maxLookback)
             {
                 _currentLookback++;
-                Console.WriteLine($"max lookback = {_maxLookback}, _current={_currentLookback}, num alternatives = {_alternatives.NumElems}");
-                
                 return;
             }
             _currentLookback = 0;
@@ -58,5 +56,4 @@ namespace RelaSharp.Scheduling.Exhaustive
             _numElemsSeen++;
         }
     }
-
 }

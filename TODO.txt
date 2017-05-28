@@ -1,4 +1,3 @@
-* Exhaustive scheduler: GetPossibleLoad: Make look-back exhaustive / random depending on scheduling algorithm.
 * Exhaustive scheduler: Finish fair/demonic scheduling (need to deal with thread wake-ups)
 * Exhaustive scheduler: eliminate wasteful switches / perform DPOR
 * PCT Scheduler / randomized context bounding.
