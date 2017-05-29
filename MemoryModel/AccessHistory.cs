@@ -1,12 +1,7 @@
 using System;
 
-namespace RelaSharp
+namespace RelaSharp.MemoryModel
 {  
-    interface ILookback
-    {
-        int ChooseLookback(int maxLookback);
-    }
-
     class AccessHistory<T>
     {
         private readonly AccessDataPool<T> _history;
@@ -21,7 +16,6 @@ namespace RelaSharp
             _history = new AccessDataPool<T>(length, numThreads);
             _numThreads = numThreads;
             _lookback = lookback;
-            //_random = new Random();
         }
         
         public void RecordRMWStore(T data, MemoryOrder mo, ShadowThread runningThread)

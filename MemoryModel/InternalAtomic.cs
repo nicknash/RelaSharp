@@ -1,4 +1,4 @@
-namespace RelaSharp
+namespace RelaSharp.MemoryModel
 {    
     class InternalAtomic<T> 
     {

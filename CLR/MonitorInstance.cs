@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using RelaSharp.MemoryModel;
 
 namespace RelaSharp.CLR
 {
@@ -24,6 +25,8 @@ namespace RelaSharp.CLR
 
         private bool IsHeld => _heldBy != null;
 
+        private int HoldingThreadId => IsHeld ? _heldBy.Id : -1;
+
         public void Enter(object lockObject, string memberName, string sourceFilePath, int sourceLineNumber)
         {
             var runningThread = Preamble();
@@ -32,7 +35,7 @@ namespace RelaSharp.CLR
                 while (IsHeld)
                 {
                     TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Monitor.Enter: (waiting {_timesEntered})."); 
-                    TE.ThreadWaiting(_heldBy.Id, lockObject);
+                    TE.ThreadWaiting(HoldingThreadId, lockObject);
                 }
                 TE.ThreadFinishedWaiting();
             }
@@ -106,7 +109,7 @@ namespace RelaSharp.CLR
             ReleaseLock(lockObject, memberName, sourceFilePath, sourceLineNumber);
             while(_ready.Count == 0 || _ready.Peek() != runningThread.Id)
             {
-                TE.ThreadWaiting(_heldBy.Id, lockObject);
+                TE.ThreadWaiting(HoldingThreadId, lockObject);
             }
             _ready.Dequeue();
             TE.ThreadFinishedWaiting();
@@ -114,7 +117,7 @@ namespace RelaSharp.CLR
             while (IsHeld)
             {
                 TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Monitor.Wait: (woken-waiting {_timesEntered}).");
-                TE.ThreadWaiting(_heldBy.Id, lockObject);
+                TE.ThreadWaiting(HoldingThreadId, lockObject);
             }
             TE.ThreadFinishedWaiting();
             AcquireLock(runningThread, memberName, sourceFilePath, sourceLineNumber);

@@ -1,6 +1,7 @@
 using System.IO;
 using System.Runtime.CompilerServices;
 using RelaSharp.Scheduling;
+using RelaSharp.MemoryModel;
 
 namespace RelaSharp
 { 

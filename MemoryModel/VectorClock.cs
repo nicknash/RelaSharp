@@ -1,7 +1,7 @@
 using System;
 using System.Text;
 
-namespace RelaSharp
+namespace RelaSharp.MemoryModel
 {
     class VectorClock // I guess this should really be named VersionVector 
     {

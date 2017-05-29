@@ -1,6 +1,6 @@
 using System;
 
-namespace RelaSharp
+namespace RelaSharp.MemoryModel
 {
     class ShadowThread
     {

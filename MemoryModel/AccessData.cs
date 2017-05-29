@@ -1,4 +1,4 @@
- namespace RelaSharp
+ namespace RelaSharp.MemoryModel
  {   
     class AccessData<T> // Not sure if encapsulation provided by this type is desirable or right structure. 
     {

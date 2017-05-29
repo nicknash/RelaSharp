@@ -1,3 +1,5 @@
+using RelaSharp.MemoryModel;
+
 namespace RelaSharp.Scheduling
 {
     interface IScheduler : ILookback
