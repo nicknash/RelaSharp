@@ -78,7 +78,7 @@ namespace RelaSharp.EntryPoint
                                                               {"--self-test", "Run self test mode (suppress all output and only report results that differ from expected results)"},
                                                               {"--tag=X", "Run examples whose name contain the tag (case insensitive, run all examples if unspecified)"},
                                                               {"--scheduling=X", $"Use the specified scheduling algorithm, available options are 'random' and 'exhaustive' (defaults to {DefaultScheduling})"},
-                                                              {"--live-lock=X", $"Report executions longer than X as live locks (defaults to {DefaultLiveLockLimit}"},
+                                                              {"--live-lock=X", $"Report executions longer than X as live locks (defaults to {DefaultLiveLockLimit})"},
                                                               {"--list-examples", "List the tags of the available examples with their full names (and then exit)."},
                                                               {"--help", "Print this message and exit"}
                                                             };
