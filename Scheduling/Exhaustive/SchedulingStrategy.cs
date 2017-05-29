@@ -16,16 +16,21 @@ namespace RelaSharp.Scheduling.Exhaustive
             _lastChoiceIdx = -1;
         }
 
+        private int GetFirst(ThreadSet s)
+        {
+            int idx = 0;
+            while (!s[idx])
+            {
+                ++idx;
+            }
+            return idx; // out of bounds here implies deadlock, which should never happen.            
+        }
+
         public int GetNextThreadId(PriorityRelation priority, ThreadSet enabled, int numUnfinishedThreads)
         {
             if (numUnfinishedThreads == 1)
             {
-                int idx = 0;
-                while (!enabled[idx])
-                {
-                    ++idx;
-                }
-                return idx; // out of bounds here implies deadlock, which should never happen.
+                return GetFirst(enabled); // Out of bounds exception in here implies deadlock, which should never happen.
             }
             Choice result;
             if (ResumeInProgress)
@@ -36,6 +41,10 @@ namespace RelaSharp.Scheduling.Exhaustive
             else
             {
                 var schedulable = priority.GetSchedulableThreads(enabled);
+                if(schedulable.NumElems == 1)
+                {
+                    return GetFirst(schedulable);
+                }
                 result = new Choice(schedulable);
                 _choices[_choiceIdx] = result;
                 _lastChoiceIdx++;
@@ -48,7 +57,7 @@ namespace RelaSharp.Scheduling.Exhaustive
         {
             if(numUnfinishedThreads == 1)
             {
-                return maxLookback; // should really explore here.
+                return maxLookback; // Should really explore here.
             }
             return _choices[_choiceIdx - 1].GetLookback(maxLookback);
         }

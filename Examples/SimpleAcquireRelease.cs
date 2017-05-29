@@ -61,7 +61,6 @@ namespace RelaSharp.Examples
             while(_flag.Load(ActiveConfig.LoadMemoryOrder) == 0) 
             {
                 TE.Yield();
-                continue;
             }
             int result = _x.Load(MemoryOrder.Relaxed);
             TE.Assert(result == 2, $"Expected to load 2 into result, but loaded {result} instead!");

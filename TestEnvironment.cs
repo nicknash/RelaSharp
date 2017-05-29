@@ -8,7 +8,7 @@ namespace RelaSharp
     class TestEnvironment // Rename to TestRunner?
     {
         public int HistoryLength => 20;
-        public ulong LiveLockLimit = 5000;
+        public ulong LiveLockLimit { get; private set;}
         public static TestEnvironment TE = new TestEnvironment();
         public ShadowThread RunningThread => _shadowThreads[_scheduler.RunningThreadId];
 
@@ -25,10 +25,11 @@ namespace RelaSharp
         private EventLog _eventLog;
         private bool _testStarted;
 
-        public void RunTest(IRelaTest test, IScheduler scheduler)
+        public void RunTest(IRelaTest test, IScheduler scheduler, ulong liveLockLimit)
         {
             NumThreads = test.ThreadEntries.Count;
             _scheduler = scheduler;
+            LiveLockLimit = liveLockLimit;
             TestFailed = false;
             _shadowThreads = new ShadowThread[NumThreads];
             _eventLog = new EventLog(NumThreads);

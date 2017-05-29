@@ -28,14 +28,14 @@ namespace RelaSharp.Examples
         public void Thread1()
         {
             interested0.Store(1, MemoryOrder.SequentiallyConsistent);
-            while(interested1.Load(MemoryOrder.SequentiallyConsistent) == 1) ;
+            while(interested1.Load(MemoryOrder.SequentiallyConsistent) == 1) TE.Yield();
             interested0.Store(0, MemoryOrder.SequentiallyConsistent);
         }
 
         public void Thread2()
         {
             interested1.Store(1, MemoryOrder.SequentiallyConsistent);
-            while(interested0.Load(MemoryOrder.SequentiallyConsistent) == 1) ;
+            while(interested0.Load(MemoryOrder.SequentiallyConsistent) == 1) TE.Yield();
             interested1.Store(0, MemoryOrder.SequentiallyConsistent);        
         }
         public void OnBegin()
