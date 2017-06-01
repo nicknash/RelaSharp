@@ -18,7 +18,6 @@ namespace RelaSharp
         public ulong ExecutionLength { get; private set; }
         public VectorClock SequentiallyConsistentFence { get; private set; }
         public ILookback Lookback => _scheduler;
-
         private IScheduler _scheduler;
         private TestThreads _testThreads;
         private ShadowThread[] _shadowThreads;
@@ -27,6 +26,7 @@ namespace RelaSharp
 
         public void RunTest(IRelaTest test, IScheduler scheduler, ulong liveLockLimit)
         {
+            _nextAtomicId = 0;
             NumThreads = test.ThreadEntries.Count;
             _scheduler = scheduler;
             LiveLockLimit = liveLockLimit;
@@ -50,6 +50,9 @@ namespace RelaSharp
             test.OnFinished();
         }
 
+        private int _nextAtomicId;
+        public int GetNextAtomicId() => _nextAtomicId++;
+
         private int SchedulingPreamble()
         {          
             if(ExecutionLength > LiveLockLimit)
@@ -68,7 +71,7 @@ namespace RelaSharp
         {
             if(!_testStarted)
             {
-                return;
+                return; // This happens due to OnBegin running before the thread starts (on some default thread)
             }
             int previousThreadId = SchedulingPreamble();
             _scheduler.MaybeSwitch();
@@ -100,7 +103,13 @@ namespace RelaSharp
 
         public void Yield()
         {
+            int previousThreadId = SchedulingPreamble();
             _scheduler.Yield();
+            if(_scheduler.RunningThreadId == previousThreadId)
+            {
+                return;
+            }
+            _testThreads.WakeNewThreadAndBlockPrevious(previousThreadId);        
         }
 
         public void LockReleased(object lockObject)
@@ -114,7 +123,7 @@ namespace RelaSharp
             RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Assert ({assertResult}): {reason}");
             if(!shouldBeTrue)
             {
-                FailTest(reason);
+                FailTest(TestFailed ? $"{TestFailureReason} AND {reason}" : reason);
             }
         }
 
@@ -125,8 +134,8 @@ namespace RelaSharp
 
         public void FailTest(string reason)
         {
-            TestFailed = true;
             TestFailureReason = reason;
+            TestFailed = true;
         }
   
         public void DumpExecutionLog(TextWriter output)
