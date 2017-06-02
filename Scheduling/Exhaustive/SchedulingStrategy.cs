@@ -1,3 +1,5 @@
+using System;
+
 namespace RelaSharp.Scheduling.Exhaustive
 {
     class SchedulingStrategy
@@ -6,32 +8,23 @@ namespace RelaSharp.Scheduling.Exhaustive
         private int _choiceIdx;
         private int _lastChoiceIdx;
         private bool ResumeInProgress => _choiceIdx <= _lastChoiceIdx;
-
+        private int[] _lookbacks;
+        private Random _random;
+        private int _lookBackIdx;
         public bool Finished { get; private set; }
 
         public SchedulingStrategy(ulong maxChoices)
         {
             _choices = new Choice[maxChoices]; 
+            _lookbacks = new int[maxChoices];
+            _random = new Random();
+            _lookBackIdx = 0;
             _choiceIdx = 0;
             _lastChoiceIdx = -1;
         }
 
-        private int GetFirst(ThreadSet s)
+        public int GetNextThreadId(PriorityRelation priority, ThreadSet enabled)
         {
-            int idx = 0;
-            while (!s[idx])
-            {
-                ++idx;
-            }
-            return idx; // out of bounds here implies deadlock, which should never happen.            
-        }
-
-        public int GetNextThreadId(PriorityRelation priority, ThreadSet enabled, int numUnfinishedThreads)
-        {
-            if (numUnfinishedThreads == 1)
-            {
-                return GetFirst(enabled); // Out of bounds exception in here implies deadlock, which should never happen.
-            }
             Choice result;
             if (ResumeInProgress)
             {
@@ -40,11 +33,7 @@ namespace RelaSharp.Scheduling.Exhaustive
             }
             else
             {
-                var schedulable = priority.GetSchedulableThreads(enabled);
-                if(schedulable.NumElems == 1)
-                {
-                    return GetFirst(schedulable);
-                }
+                var schedulable = priority.GetSchedulableThreads(enabled);        
                 result = new Choice(schedulable);
                 _choices[_choiceIdx] = result;
                 _lastChoiceIdx++;
@@ -53,18 +42,26 @@ namespace RelaSharp.Scheduling.Exhaustive
             return result.Chosen;
         }
 
-        public int GetLookback(int maxLookback, int numUnfinishedThreads)
+        public int GetLookback(int maxLookback)
         {
-            if(numUnfinishedThreads == 1)
+            // We ensure look-back is deterministic for resume purposes, but not exhaustive.
+            if(maxLookback == 0)
             {
-                return maxLookback; // Should really explore here.
+                return 0;
             }
-            return _choices[_choiceIdx - 1].GetLookback(maxLookback);
+            if(ResumeInProgress)
+            {
+                return _lookbacks[_lookBackIdx++];
+            }
+            var lookback = _random.Next(maxLookback + 1);
+            _lookbacks[_lookBackIdx++] = lookback;
+            return lookback;
         }
 
         public bool Advance()
         {
             _choiceIdx = 0;
+            _lookBackIdx = 0;
             bool resuming = _lastChoiceIdx >= 0;
             while (_lastChoiceIdx >= 0 && _choices[_lastChoiceIdx].FullyExplored)
             {

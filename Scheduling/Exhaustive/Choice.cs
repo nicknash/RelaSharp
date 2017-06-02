@@ -8,32 +8,17 @@ namespace RelaSharp.Scheduling.Exhaustive
         public readonly ThreadSet _alternatives;
         public bool FullyExplored => _numElemsSeen >= _alternatives.NumElems;
         private int _numElemsSeen;
-        private int _maxLookback;
-        private int _currentLookback;
 
         public Choice(ThreadSet alternatives)
         {
             _alternatives = alternatives;
             int n = alternatives.NumElems;
-            if (n < 2)
+            if (n == 0)
             {
-                throw new ArgumentOutOfRangeException($"Choice cannot be made between {n} or fewer alternatives");
+                throw new ArgumentOutOfRangeException($"No alternatives to choose between.");
             }
-            while(!_alternatives[Chosen]) 
-            {
-                ++Chosen;
-            } 
+            Chosen = _alternatives.Successor(0);
             _numElemsSeen = 1;
-        }
-
-        public int GetLookback(int maxLookback)
-        {
-            if(_maxLookback != 0 && maxLookback != _maxLookback)
-            {
-                throw new Exception($"Non-determinism detected: max look-back attempted to change from {_maxLookback} to {maxLookback}");
-            }        
-            _maxLookback = maxLookback;
-            return _currentLookback;
         }
 
         public void Next()
@@ -42,17 +27,7 @@ namespace RelaSharp.Scheduling.Exhaustive
             {
                 throw new Exception("Scheduling choice already exhausted.");
             }
-            if(_currentLookback < _maxLookback)
-            {
-                _currentLookback++;
-                return;
-            }
-            _currentLookback = 0;
-            _maxLookback = 0; // N.B., We chose a different thread, so may get a new maxLookback in GetLookback(..)
-            do
-            {
-                Chosen++;
-            } while (!_alternatives[Chosen]);
+            Chosen = _alternatives.Successor(Chosen + 1);
             _numElemsSeen++;
         }
     }
