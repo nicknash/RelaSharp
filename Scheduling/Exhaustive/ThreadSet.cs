@@ -32,6 +32,16 @@ namespace RelaSharp.Scheduling.Exhaustive
             }
         }
 
+        public int Successor(int idx)
+        {
+            int i = idx;
+            while(i < _elems.Length && !_elems[i])
+            {
+                ++i;
+            }
+            return i; // Return _elems.Length if no successor
+        }
+
         public bool this[int idx] => _elems[idx]; 
 
         public void Clear()
