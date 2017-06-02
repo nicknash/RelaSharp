@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace RelaSharp.Scheduling.Exhaustive
 {
     class ThreadSet
@@ -52,11 +54,6 @@ namespace RelaSharp.Scheduling.Exhaustive
             NumElems = other.NumElems;
         }
 
-        public bool Contains(int idx)
-        {
-            return _elems[idx];
-        }
-
         public void IntersectWith(ThreadSet other)
         {
             NumElems = 0;
@@ -95,6 +92,18 @@ namespace RelaSharp.Scheduling.Exhaustive
                     ++NumElems;
                 }
             }
+        }
+
+       public override string ToString()
+        {
+            var sb = new StringBuilder(_elems.Length);
+            sb.Append(_elems[0] ? "1" : "0");
+            for(int i = 1; i < _elems.Length; ++i)
+            {
+                var e = _elems[i] ? 1 : 0;
+                sb.Append($"^{e}");
+            }
+            return sb.ToString();
         }
     }
 }
