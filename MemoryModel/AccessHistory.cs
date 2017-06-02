@@ -6,7 +6,6 @@ namespace RelaSharp.MemoryModel
     {
         private readonly AccessDataPool<T> _history;
         private readonly int _numThreads;
-        //private readonly Random _random;
         private readonly ILookback _lookback;
 
         public T CurrentValue => _history[_history.CurrentIndex].Payload;
