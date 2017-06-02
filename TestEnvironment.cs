@@ -26,7 +26,6 @@ namespace RelaSharp
 
         public void RunTest(IRelaTest test, IScheduler scheduler, ulong liveLockLimit)
         {
-            _nextAtomicId = 0;
             NumThreads = test.ThreadEntries.Count;
             _scheduler = scheduler;
             LiveLockLimit = liveLockLimit;
@@ -49,9 +48,6 @@ namespace RelaSharp
             _testThreads.Join();
             test.OnFinished();
         }
-
-        private int _nextAtomicId;
-        public int GetNextAtomicId() => _nextAtomicId++;
 
         private int SchedulingPreamble()
         {          
