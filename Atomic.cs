@@ -37,7 +37,7 @@ namespace RelaSharp
         {
             var runningThread = Preamble();
             var result = _memoryOrdered.Load(mo, runningThread);
-            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Load ({mo}): <-- {Str(result)}");
+            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Load ({mo}) <-- {Str(result)}");
             return result;
         }
 
