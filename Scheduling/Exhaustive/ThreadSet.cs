@@ -38,6 +38,7 @@ namespace RelaSharp.Scheduling.Exhaustive
         {
             if (NumElems > 0)
             {
+                NumElems = 0;
                 for (int i = 0; i < _elems.Length; ++i)
                 {
                     _elems[i] = false;
