@@ -15,6 +15,7 @@ namespace RelaSharp.EntryPoint
         private const int DefaultIterations = 10000;
         private const SchedulingAlgorithm DefaultScheduling = SchedulingAlgorithm.Random;
         private const ulong DefaultLiveLockLimit = 5000;
+        private const int DefaultYieldLookbackPenalty = 4;
         public bool Help;
         public readonly bool QuietMode;
         public readonly bool SelfTest;
@@ -23,8 +24,9 @@ namespace RelaSharp.EntryPoint
         public readonly bool ListExamples;
         public readonly SchedulingAlgorithm Scheduling;
         public readonly ulong LiveLockLimit;
+        public readonly int YieldLookbackPenalty;
 
-        public Options(bool help, bool quietMode, bool selfTest, string testTag, int iterations, bool listExamples, SchedulingAlgorithm scheduling, ulong liveLockLimit)
+        public Options(bool help, bool quietMode, bool selfTest, string testTag, int iterations, bool listExamples, SchedulingAlgorithm scheduling, ulong liveLockLimit, int yieldLookbackPenalty)
         {
             Help = help;
             QuietMode = quietMode;
@@ -34,6 +36,7 @@ namespace RelaSharp.EntryPoint
             ListExamples = listExamples;
             Scheduling = scheduling;
             LiveLockLimit = liveLockLimit;
+            YieldLookbackPenalty = yieldLookbackPenalty;
         }
 
         public static Options GetOptions(string[] args)
@@ -43,6 +46,8 @@ namespace RelaSharp.EntryPoint
             bool quietMode = argMap.ContainsKey("--quiet");
             int iterations = GetOptionValue("--iterations", argMap, Int32.Parse, DefaultIterations, Console.Error);
             ulong liveLockLimit = GetOptionValue("--live-lock", argMap, UInt64.Parse, DefaultLiveLockLimit, Console.Error);
+            int yieldLookbackPenalty = GetOptionValue("--yield-penalty", argMap, Int32.Parse, DefaultYieldLookbackPenalty, Console.Error);
+
 
             bool selfTest = argMap.ContainsKey("--self-test");
             string testTag = GetOptionValue("--tag", argMap, s => s, null, Console.Error);
@@ -50,7 +55,7 @@ namespace RelaSharp.EntryPoint
             bool listExamples = argMap.ContainsKey("--list-examples");
             bool help = argMap.ContainsKey("--help");
             SchedulingAlgorithm scheduling = GetOptionValue("--scheduling", argMap, s => (SchedulingAlgorithm) Enum.Parse(typeof(SchedulingAlgorithm), s, true), DefaultScheduling, Console.Error);
-            return new Options(help, quietMode, selfTest, testTag, iterations, listExamples, scheduling, liveLockLimit);
+            return new Options(help, quietMode, selfTest, testTag, iterations, listExamples, scheduling, liveLockLimit, yieldLookbackPenalty);
         }
 
         private static T GetOptionValue<T>(string option, Dictionary<string, string> argMap, Func<string, T> getValue, T defaultValue, TextWriter output)
@@ -80,9 +85,10 @@ namespace RelaSharp.EntryPoint
                                                               {"--scheduling=X", $"Use the specified scheduling algorithm, available options are 'random' and 'exhaustive' (defaults to {DefaultScheduling})"},
                                                               {"--live-lock=X", $"Report executions longer than X as live locks (defaults to {DefaultLiveLockLimit})"},
                                                               {"--list-examples", "List the tags of the available examples with their full names (and then exit)."},
+                                                              {"--yield-penalty=X", $"Exhaustive scheduler: Control the chance of a false-divergent execution, larger implies closer to sequential consistency close to scheduler yields (defaults to {DefaultYieldLookbackPenalty})"},
                                                               {"--help", "Print this message and exit"}
                                                             };
-            var result = String.Join(Environment.NewLine, allOptions.Select(kvp => $"{kvp.Key}\r\t\t{kvp.Value}"));
+            var result = String.Join(Environment.NewLine, allOptions.Select(kvp => $"{kvp.Key}\r\t\t\t{kvp.Value}"));
             return result;
         }
     }

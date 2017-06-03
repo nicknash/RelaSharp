@@ -5,6 +5,10 @@ namespace RelaSharp.Scheduling
 { 
     class ExhaustiveScheduler : IScheduler
     {
+        private readonly SchedulingStrategy _strategy;
+        private readonly int _numThreads;
+        private readonly int _yieldLookbackPenalty;
+
         private ThreadSet _finished;
         private ThreadSet _enabled;
         private ThreadSet[] _disabledSince;
@@ -12,17 +16,17 @@ namespace RelaSharp.Scheduling
         private ThreadSet[] _enabledSince;
         private object[] _waitingOnLock;
         private PriorityRelation _priority;
-        private SchedulingStrategy _strategy;
-
+        private int _currentYieldPenalty;
         public bool AllThreadsFinished => _finished.NumElems == _numThreads;
         public int RunningThreadId { get; private set; }
-        private readonly int _numThreads;
 
-        public ExhaustiveScheduler(int numThreads, ulong maxChoices)
+        public ExhaustiveScheduler(int numThreads, ulong maxChoices, int yieldLookbackPenalty)
         {
             _numThreads = numThreads;
             _strategy = new SchedulingStrategy(maxChoices);
+            _yieldLookbackPenalty = yieldLookbackPenalty;
         }
+
 
         private void PrepareForScheduling()
         {
@@ -40,11 +44,12 @@ namespace RelaSharp.Scheduling
             }
             _waitingOnLock = new object[_numThreads];
             _priority = new PriorityRelation(_numThreads);
+            _currentYieldPenalty = 0;
         }
 
         public int ChooseLookback(int maxLookback)
         {
-            return _strategy.GetLookback(maxLookback, _numThreads - _finished.NumElems);
+            return _currentYieldPenalty > 0 ? _strategy.GetZeroLookback() :  _strategy.GetLookback(maxLookback);
         }
 
         public bool NewIteration()
@@ -65,13 +70,26 @@ namespace RelaSharp.Scheduling
             {
                 throw new Exception("All threads finished. Who called?");
             }
-            RunningThreadId = _strategy.GetNextThreadId(_priority, _enabled, _numThreads - _finished.NumElems); 
+            if(_currentYieldPenalty > 0) 
+            {            
+                _currentYieldPenalty--;
+            }
+            ChooseRunningThread();
+            SchedulingEpilogue();
+            return;
+        }
+
+        private void ChooseRunningThread()
+        {
+            RunningThreadId = _strategy.GetNextThreadId(_priority, _enabled);             
+        }
+        private void SchedulingEpilogue()
+        {
             for(int i = 0; i < _numThreads; ++i)
             {
                 _scheduledSince[i].Add(RunningThreadId);
             }
             _priority.RemovePriorityOf(RunningThreadId);
-            return;
         }
 
         public bool ThreadWaiting(int waitingOnThreadId, object lockObject)
@@ -88,6 +106,7 @@ namespace RelaSharp.Scheduling
             bool deadlock = _enabled.NumElems == 0; 
             return deadlock;
         } 
+
 
         public void ThreadFinishedWaiting()
         {
@@ -120,20 +139,26 @@ namespace RelaSharp.Scheduling
             // (ContinuouslyEnabledSinceLastYield LESS ScheduledSinceLastYield) UNION DisabledSinceLastYield
             // My 'DisabledSinceLastYield' includes the notion that the thread was disabled by the currently running thread, but note that
             // a thread can only be disabled by scheduling it, so something like Disabled LESS Scheduled would always be empty for my scheduler.
+            // System.Console.WriteLine($"YIELD - {RunningThreadId}");
             var unfairlyStarved = _enabledSince[RunningThreadId];
             unfairlyStarved.LessWith(_scheduledSince[RunningThreadId]);
             unfairlyStarved.UnionWith(_disabledSince[RunningThreadId]);
             _priority.GivePriorityOver(RunningThreadId, unfairlyStarved);
 
+            ChooseRunningThread();
+
             _enabledSince[RunningThreadId].ReplaceWith(_enabled);
             _disabledSince[RunningThreadId].Clear();
             _scheduledSince[RunningThreadId].Clear();
+            SchedulingEpilogue();
+            _currentYieldPenalty += _yieldLookbackPenalty;
         }
 
         public void ThreadFinished() 
         {
             _finished.Add(RunningThreadId);
             _enabled.Remove(RunningThreadId);
+            _priority.RemovePriorityOf(RunningThreadId);
             if(!AllThreadsFinished)
             {
                 MaybeSwitch();

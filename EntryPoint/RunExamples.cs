@@ -76,7 +76,7 @@ namespace RelaSharp.EntryPoint
                         scheduler = new NaiveRandomScheduler(numThreads, options.Iterations);
                     break;
                     case Options.SchedulingAlgorithm.Exhaustive:
-                        scheduler = new ExhaustiveScheduler(numThreads, options.LiveLockLimit * 2);
+                        scheduler = new ExhaustiveScheduler(numThreads, options.LiveLockLimit * 2, options.YieldLookbackPenalty);
                     break;
                     default:
                         throw new Exception($"Unsupported scheduling algorithm '{options.Scheduling}'");

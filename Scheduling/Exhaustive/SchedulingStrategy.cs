@@ -45,10 +45,6 @@ namespace RelaSharp.Scheduling.Exhaustive
         public int GetLookback(int maxLookback)
         {
             // We ensure look-back is deterministic for resume purposes, but not exhaustive.
-            if(maxLookback == 0)
-            {
-                return 0;
-            }
             if(ResumeInProgress)
             {
                 return _lookbacks[_lookBackIdx++];
@@ -56,6 +52,16 @@ namespace RelaSharp.Scheduling.Exhaustive
             var lookback = _random.Next(maxLookback + 1);
             _lookbacks[_lookBackIdx++] = lookback;
             return lookback;
+        }
+
+        public int GetZeroLookback()
+        {
+            if(ResumeInProgress)
+            {
+                return _lookbacks[_lookBackIdx++];
+            }
+            _lookbacks[_lookBackIdx++] = 0;
+            return 0;            
         }
 
         public bool Advance()
