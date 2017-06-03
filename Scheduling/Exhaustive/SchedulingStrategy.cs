@@ -42,6 +42,12 @@ namespace RelaSharp.Scheduling.Exhaustive
             return result.Chosen;
         }
 
+        public void Rollback()
+        {
+            _lastChoiceIdx--;
+            _choiceIdx--;
+        }
+
         public int GetLookback(int maxLookback)
         {
             // We ensure look-back is deterministic for resume purposes, but not exhaustive.

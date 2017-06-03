@@ -19,6 +19,7 @@ namespace RelaSharp.Scheduling
         private int _currentYieldPenalty;
         public bool AllThreadsFinished => _finished.NumElems == _numThreads;
         public int RunningThreadId { get; private set; }
+        private bool _deadlock;
 
         public ExhaustiveScheduler(int numThreads, ulong maxChoices, int yieldLookbackPenalty)
         {
@@ -45,6 +46,7 @@ namespace RelaSharp.Scheduling
             _waitingOnLock = new object[_numThreads];
             _priority = new PriorityRelation(_numThreads);
             _currentYieldPenalty = 0;
+            _deadlock = false;
         }
 
         public int ChooseLookback(int maxLookback)
@@ -96,6 +98,8 @@ namespace RelaSharp.Scheduling
         {
             // if waitingOnThreadId == -1, then we're waiting on a pulse...not held by any thread....
             // hence thread has disabled itself...shouldn't contribute to fairness algorithm
+            
+//            _strategy.Rollback();
             _enabled.Remove(RunningThreadId);
             _disabledSince[waitingOnThreadId].Add(RunningThreadId);
             _waitingOnLock[RunningThreadId] = lockObject;
@@ -103,14 +107,19 @@ namespace RelaSharp.Scheduling
             {
                 _enabledSince[i].Remove(RunningThreadId);
             }
-            bool deadlock = _enabled.NumElems == 0; 
-            return deadlock;
+            _deadlock = _enabled.NumElems == 0; 
+            if(!_deadlock)
+            {
+                MaybeSwitch();
+            }
+            return _deadlock;
         } 
 
 
         public void ThreadFinishedWaiting()
         {
             _enabled.Add(RunningThreadId);
+            _waitingOnLock[RunningThreadId] = null;
         }
 
         public void LockReleased(object lockObject) 
@@ -139,7 +148,6 @@ namespace RelaSharp.Scheduling
             // (ContinuouslyEnabledSinceLastYield LESS ScheduledSinceLastYield) UNION DisabledSinceLastYield
             // My 'DisabledSinceLastYield' includes the notion that the thread was disabled by the currently running thread, but note that
             // a thread can only be disabled by scheduling it, so something like Disabled LESS Scheduled would always be empty for my scheduler.
-            // System.Console.WriteLine($"YIELD - {RunningThreadId}");
             var unfairlyStarved = _enabledSince[RunningThreadId];
             unfairlyStarved.LessWith(_scheduledSince[RunningThreadId]);
             unfairlyStarved.UnionWith(_disabledSince[RunningThreadId]);
@@ -161,7 +169,22 @@ namespace RelaSharp.Scheduling
             _priority.RemovePriorityOf(RunningThreadId);
             if(!AllThreadsFinished)
             {
-                MaybeSwitch();
+                if(_deadlock)
+                {
+                    var unfinished = new ThreadSet(_numThreads);
+                    for(int i  = 0; i < _numThreads; ++i)
+                    {
+                        if(!_finished[i])
+                        {
+                            RunningThreadId = i;
+                        }
+                    }
+
+                }
+                else
+                {
+                    MaybeSwitch();
+                }
             }
         }
     }
