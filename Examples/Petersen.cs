@@ -38,7 +38,7 @@ namespace RelaSharp.Examples
             ThreadEntries = new List<Action>{Thread0,Thread1};
             var configList = new List<Config>{new Config("All operations acquire-release", MemoryOrder.Relaxed, false, true), 
                                               new Config("All operations sequentially consistent", MemoryOrder.SequentiallyConsistent, false, false),
-                                              new Config("All operations relaxed with acquire-release exchange on victim.", MemoryOrder.Relaxed, true, false)};
+                                              new Config("Relaxed flag entry, Release flag exit, Acquire flag spin, acquire-release exchange on victim.", MemoryOrder.Relaxed, true, false)};
             _configs = configList.GetEnumerator();
         }
 
@@ -53,10 +53,10 @@ namespace RelaSharp.Examples
             {
                 victim.Store(0, MemoryOrder);                            
             }
-            while(flag1.Load(MemoryOrder) == 1 && victim.Load(MemoryOrder) == 0) ;        
+            while(flag1.Load(ActiveConfig.UseExchange ? MemoryOrder.Acquire : MemoryOrder) == 1 & victim.Load(MemoryOrder) == 0) TE.Yield();        
             ++_threadsPassed;
             TE.Assert(_threadsPassed == 1, $"Mutual exclusion not achieved, {_threadsPassed} threads currently in critical section!");            
-            flag0.Store(0, MemoryOrder);
+            flag0.Store(0, ActiveConfig.UseExchange ? MemoryOrder.Release : MemoryOrder);
             --_threadsPassed;
         }
 
@@ -71,10 +71,10 @@ namespace RelaSharp.Examples
             {
                 victim.Store(1, MemoryOrder);                            
             }
-            while(flag0.Load(MemoryOrder) == 1 && victim.Load(MemoryOrder) == 1) ;        
+            while(flag0.Load(ActiveConfig.UseExchange ? MemoryOrder.Acquire : MemoryOrder) == 1 && victim.Load(MemoryOrder) == 1) TE.Yield();        
             ++_threadsPassed;
             TE.Assert(_threadsPassed == 1, $"Mutual exclusion not achieved, {_threadsPassed} threads currently in critical section!");
-            flag1.Store(0, MemoryOrder);
+            flag1.Store(0, ActiveConfig.UseExchange ? MemoryOrder.Release : MemoryOrder);
             --_threadsPassed;
         }
         public void OnBegin()
