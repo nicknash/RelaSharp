@@ -95,13 +95,18 @@ namespace RelaSharp.Scheduling
         }
 
         public bool ThreadWaiting(int waitingOnThreadId, object lockObject)
-        {
-            // if waitingOnThreadId == -1, then we're waiting on a pulse...not held by any thread....
-            // hence thread has disabled itself...shouldn't contribute to fairness algorithm
-            
-//            _strategy.Rollback();
+        {            
+            _strategy.Rollback();
             _enabled.Remove(RunningThreadId);
-            _disabledSince[waitingOnThreadId].Add(RunningThreadId);
+            // If waitingOnThreadId == -1, then the running thread has blocked itself waiting on a condition.
+            // So there isn't a clear notion of which thread it is waiting on, or has been disabled since the
+            // last yield of. It might make sense to add the running thread to all the _disableSince sets
+            // rather than none, but I'm not going to explore this scheduling more deeply, at least for now.
+            bool threadWaitingOnCondition = waitingOnThreadId == -1;
+            if(!threadWaitingOnCondition)
+            {
+                _disabledSince[waitingOnThreadId].Add(RunningThreadId);
+            }
             _waitingOnLock[RunningThreadId] = lockObject;
             for(int i = 0; i < _numThreads; ++i)
             {
@@ -115,7 +120,6 @@ namespace RelaSharp.Scheduling
             return _deadlock;
         } 
 
-
         public void ThreadFinishedWaiting()
         {
             _enabled.Add(RunningThreadId);
@@ -126,6 +130,10 @@ namespace RelaSharp.Scheduling
         {
             for(int i = 0; i < _numThreads; ++i)
             {
+                // Re-enabling all threads waiting on the lock allows spurious wake-ups for threads
+                // that have waited on a condition variable (i.e. RMonitor.Wait in CLR land).
+                // I think this is fine, as it at worst it makes running inside the model checker a potentially harsher environment
+                // than outside.
                 if(_waitingOnLock[i] == lockObject)
                 {
                     _waitingOnLock[i] = null;
@@ -137,11 +145,14 @@ namespace RelaSharp.Scheduling
 
         public void Yield()
         {
-            // Give threads priority of this one that have been continuously enabled since
+            // This is the core of the algorithm, inspired by Musuvathi and Qadeer's "Fair Stateless Model Checking" from PLDI'08, which is the basis 
+            // of the CHESS scheduler.
+            //
+            // The rationale is as follows: Give threads priority of the currently running thread that have been continuously enabled since
             // its last yield, or which have been disabled since it last yielded
             // Note, this is different from Musuvathi and Qadeer, because their _disabledSince 
-            // is defined to include all threads disabled some some transition of the running thread
-            // since its last yield. In reality, threads don't disable each other like this. CHESS 
+            // is defined to include all threads disabled during some transition of the running thread
+            // since its last yield. In reality, threads don't disable each other like this. From looking at the CHESS source it appears it 
             // implements this by having a lookahead which it searches for locks. So basically their condition is
             // (ContinuouslyEnabledSinceLastYield UNION DisabledByRunningThreadSinceLastYield) LESS ScheduledSinceLastYield
             // and mine is:
@@ -171,6 +182,10 @@ namespace RelaSharp.Scheduling
             {
                 if(_deadlock)
                 {
+                    // If there is a deadlock, manually schedule the threads
+                    // in turn, so they have the opportunity to throw an exception and exit.
+                    // Calling MaybeSwitch() here isn't possible, because there are no 
+                    // enabled threads to schedule.
                     var unfinished = new ThreadSet(_numThreads);
                     for(int i  = 0; i < _numThreads; ++i)
                     {
@@ -179,7 +194,6 @@ namespace RelaSharp.Scheduling
                             RunningThreadId = i;
                         }
                     }
-
                 }
                 else
                 {
