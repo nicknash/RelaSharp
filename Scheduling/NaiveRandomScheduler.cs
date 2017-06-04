@@ -50,11 +50,11 @@ namespace RelaSharp.Scheduling
 
         private readonly Random _random = new Random();
         private readonly int _numIterations;
+        private readonly int _numThreads;
         private ArraySet _unfinishedThreadIds;
         private ArraySet _waitingThreadIds;
         private ArraySet _threadIdsSeenWhileAllWaiting;
         private int _runningThreadIndex;
-        private int _numThreads;
         private int NumUnfinishedThreads => _unfinishedThreadIds.NumElems;
         public bool AllThreadsFinished => _unfinishedThreadIds.NumElems == 0;
         public int RunningThreadId => _unfinishedThreadIds[_runningThreadIndex];

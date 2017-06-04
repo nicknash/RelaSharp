@@ -4,7 +4,6 @@ namespace RelaSharp.Scheduling.Exhaustive
     {
         private readonly int _numThreads;
         private readonly bool[,] _hasPriority; // _hasPriority[x, y] = true <=> x will not be scheduled when y is enabled.
-        private readonly ThreadSet _ready;
 
         public PriorityRelation(int numThreads)
         {
