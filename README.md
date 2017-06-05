@@ -59,10 +59,10 @@ The output shows the loads and stores of the threads, with their line numbers an
 
 This repo contains quite a few more examples, some illustrative ones are: 
 
-* A (Petersen lock)[Examples/Petersen.cs] 
-* (Treiber's stack)[Examples/TreiberStack.cs] 
-* A (Michael-Scott queue)[Examples/MichalScottQueue.cs] 
-* A bounded wait-free (SPSC queue)[Examples/BoundedSPSCQueue.cs]. 
+* A [Petersen lock](Examples/Petersen.cs) 
+* [Treiber's stack](Examples/TreiberStack.cs)
+* A [Michael-Scott queue](Examples/MichalScottQueue.cs) 
+* A bounded wait-free [SPSC queue](Examples/BoundedSPSCQueue.cs). 
 
 ## Features
 
