@@ -61,7 +61,7 @@ This repo contains quite a few more examples, some illustrative ones are:
 
 * A [Petersen lock](Examples/Petersen.cs) 
 * [Treiber's stack](Examples/TreiberStack.cs)
-* A [Michael-Scott queue](Examples/MichalScottQueue.cs) 
+* A [Michael-Scott queue](Examples/MichaelScottQueue.cs) 
 * A bounded wait-free [SPSC queue](Examples/BoundedSPSCQueue.cs). 
 
 ## Features
