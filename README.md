@@ -2,9 +2,11 @@
 
 ## Overview
 
-RelaSharp is a tool I developed for verifying lock and wait-free algorithms in C#. It is inspired by Relacy and CHESS.
+RelaSharp is a tool I developed for verifying lock and wait-free algorithms in C#. It is inspired by Relacy (hence the name RelaSharp) and CHESS.
 I mostly wrote it in order to get a better feel for memory models in general, but it is also genuinely useful for vastly increasing
 confidence in lock-free code, or even exhaustively verifying that the code is correct.
+
+RelaSharp is aimed at intricate tests of small lock-free algorithms, it's not aimed at large applications (and currently requires some source level instrumentation, anyway).
 
 ## Example
 
@@ -64,17 +66,31 @@ This repo contains quite a few more examples, some illustrative ones are:
 * A [Michael-Scott queue](Examples/MichaelScottQueue.cs) 
 * A bounded wait-free [SPSC queue](Examples/BoundedSPSCQueue.cs). 
 
+## Demonstration Tool
+
+TODO
+
+
 ## Features
 
-TODO, flesh out / make this sensible!
-* C++11 memory model, except consume semantics.
-* Dead-lock detection
-* Live-lock detection
-* Random thread scheduling
-* Exhaustive "fair demonic" scheduling.
-* Execution tracing
+Roughly the things that RelaSharp does is:
+
+* Generate executions consistent with the C++11 memory model, except consume semantics.
+* Dead-lock detection (including lost thread wake-ups), when exclusive locks are in use.
+* Live-lock detection: When a very long execution is generated, it is heuristically classified as a live-lock.
+* Random thread scheduling: At every instrumented instruction, possibly generate a pre-emption.
+* Exhaustive "fair demonic" scheduling: Depth-first search of all thread interleavings, avoiding false divergence into live-lock.
+* Execution tracing: Detailed output showing file/line number and the results of every volatile load/store, interlocked instruction, etc.
 
 ## Basic Algorithm
+
+RelaSharp works by wrapping all memory model related instructions in its own types, for example, RInterlocked.CompareExchange 
+wraps Interlocked.CompareExchange. This allows it to do three main things:
+
+* Generate pre-emption points for the scheduler
+* Generate results for the instruction that are consistent with the execution so far, but more likely to include
+  a memory re-ordering than running the code natively would allow. 
+* Record file/line number and results of the execution for review if the test fails.
 
 ## Memory Model Simulation
 
