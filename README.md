@@ -2,8 +2,7 @@
 
 ## Overview
 
-RelaSharp is a tool I developed for verifying lock and wait-free algorithms in C#. It is inspired by Relacy (hence the name RelaSharp) and CHESS.
-I mostly wrote it in order to get a better feel for memory models in general, but it is also genuinely useful for vastly increasing
+RelaSharp is a tool I developed for verifying lock and wait-free algorithms in C#. It is heavily inspired by Relacy (hence the name RelaSharp) and CHESS. I mostly wrote it in order to get a better feel for memory models in general, but it is also genuinely useful for vastly increasing
 confidence in lock-free code, or even exhaustively verifying that the code is correct.
 
 RelaSharp is aimed at intricate tests of small lock-free algorithms, it's not aimed at large applications (and currently requires some source level instrumentation, anyway).
@@ -75,7 +74,7 @@ TODO
 
 Roughly the things that RelaSharp does is:
 
-* Generate executions consistent with the C++11 memory model, except consume semantics.
+* Generate executions consistent with the C++11 memory model except consume semantics, or the C# memory model.
 * Dead-lock detection (including lost thread wake-ups), when exclusive locks are in use.
 * Live-lock detection: When a very long execution is generated, it is heuristically classified as a live-lock.
 * Random thread scheduling: At every instrumented instruction, possibly generate a pre-emption.
@@ -88,11 +87,30 @@ RelaSharp works by wrapping all memory model related instructions in its own typ
 wraps Interlocked.CompareExchange. This allows it to do three main things:
 
 * Generate pre-emption points for the scheduler
-* Generate results for the instruction that are consistent with the execution so far, but more likely to include
+* Generate results for the instruction (store, load, CAS, etc) that are consistent with the execution so far, but more likely to include
   a memory re-ordering than running the code natively would allow. 
-* Record file/line number and results of the execution for review if the test fails.
+* Record file/line numbers and results of the execution for review if the test fails.
 
-## Memory Model Simulation
+## Memory Model Simulation via Vector Clocks
+
+This section gives a very rough description of how RelaSharp simulates the C++11 memory model (which the C# memory model can be defined as a special case of). The description below is quite imprecise, and really gives a rough impression of how things work. The entirety of the description below really just corresponds to some very simple code in a single file: [AccessHistory.cs](MemoryModel/AccessHistory.cs) 
+
+To simulate the memory-model, RelaSharp assigns threads incrementing time-stamps at pre-emption points. At each store, the time-stamp of the storing thread is recorded. An ordered, bounded history of all stores to each instrumented variable is also maintained. When a thread performs a load of an instrumented variable V, it considers the stores in this history. Let's call this history H(V). For a load of V, each element H(V) is referred to as a  _candidate load result_ for V, and we say that it was created by a _candidate store_. For a given load of V by some thread, some elements of H(V) will be inconsistent with the memory model semantics, and cannot be returned. Thus we need an algorithm that given a load of V returns an element of H(V) that is consistent with the memory model semantics.
+
+In selecting a candidate load result, candidate stores are considered in the reverse order that they were performed. In C++11 parlance, this is possible because there is a single total "modification order" associated with any atomic variable. With this newer-to-older ordering of stores to V in mind, there are four main cases to consider in order to select a candidate load result to answer a load by a given thread. These can be very roughly stated as follows:
+
+1. The load has sequentially consistent semantics, and the candidate store that created V was sequentially consistent. In this case, the load can only be answered with V, as any other result would violate sequential consistency.
+2. Otherwise, if the loading thread has seen any other store by the storing thread that created V that is as-new or newer-than the store by that thread that created V, then the load must be answered with V.
+3. Otherwise, if the loading thread has seen any other store by any thread that is as new or newer-than than that thread's time-stamp the last time it loaded V then the load must be answered with V. This is a bit of a mouthful. What this condition says is that, if the loading thread has seen a store, S, of another thread that is later than the last load of V by that other thread, then returning an older candidate load result than V would be
+incorrect because it would be as though the loading thread had not seen S yet after all. 
+4. If none of the above hold, an older load from the history can be returned.
+
+These four cases leave the meaning of "seeing a store" undefined. A more precise way of saying thread A has "seen a store" by thread B, is 
+to say that thread A has performed a load with acquire semantics of some atomic variable that B performed a store with release semantics to. The load-acquire is said to "synchronize-with" the store-release. The point of a synchronize-with relationship is that everything that has happened before the store-release by B, is guaranteed to have happened before everything after the load-acquire by A.
+
+RelaSharp uses a simple vector clock algorithm to track these synchronized-with relationships. For a test involving N threads, it creates a vector clock, N entry vector clock for each thread. Each thread also has an internal clock incremented at each atomic operation. For a given thread T1, VC[T2] is the latest value of thread T2's clock that T1 has synchronized with. 
+
+The main way that the memory-model semantics are respected is then by appropriately "joining" vector clocks. To join to vector clocks VC1 and VC2 just means to create a new vector clock that is the pair-wise max of the elements. So for example, at a load-acquire, a thread's vector clock is joined with the vector clock of the storing thread at the time it performed the store-release. This joining implies that transitive relationships of happens-before / synchronized-with are tracked correctly.
 
 ## Generic Interface
 
