@@ -43,14 +43,15 @@ namespace RelaSharp.MemoryModel
             var sourceClock = isAtLeastRelease ? runningThread.ReleasesAcquired : runningThread.FenceReleasesAcquired;
             
             var previous = _history[_history.CurrentIndex - 1];
+            var targetClock = storeTarget.ReleasesToAcquire;
             if(isReleaseSequence)
             {
-                storeTarget.ReleasesToAcquire.Assign(previous.ReleasesToAcquire);
-                storeTarget.ReleasesToAcquire.Join(sourceClock);
+                targetClock.Assign(previous.ReleasesToAcquire);
+                targetClock.Join(sourceClock);
             }
             else
             {
-                storeTarget.ReleasesToAcquire.Assign(sourceClock);
+                targetClock.Assign(sourceClock);
             }
         }
 
@@ -71,7 +72,7 @@ namespace RelaSharp.MemoryModel
             loadData.RecordLoad(runningThread.Id, runningThread.Clock);
             bool isAtLeastAcquire = mo == MemoryOrder.Acquire || mo == MemoryOrder.AcquireRelease || mo == MemoryOrder.SequentiallyConsistent;
             
-            // Here 'destinationClock' is the clock that must sychronize with the last release to this data. 
+            // Here 'destinationClock' is the clock that must synchronize with the last release to this data. 
             // If this load is an acquire (or stronger), then this thread's clock must synchronize with the last release
             // (i.e. it should acquire the release to this data so runningThread.ReleasesAcquired must update).
             // Otherwise, if this load is relaxed, then other threads must only synchronize with the last release to this data 
