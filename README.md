@@ -193,7 +193,43 @@ The simple, most practical and default way of using RelaSharp is with the random
 
 RelaSharp also supports exhaustively exploring all thread interleavings of a given test, using the so-called exhaustive scheduler. This is often intractable for all but very small test cases. The exhaustive scheduler performs a depth-first search of the thread interleavings. Doing this requires recording the scheduling choice made at each pre-emption point into a "choice history", and iteratively tweaking the choice history to explore all interleavings.
 
-The exhaustive scheduler is much more complicated than the random scheduler due to the need for it to enforce _fairness_. 
+The exhaustive scheduler is much more complicated than the random scheduler due to the need for it to enforce _fairness_. This is best explained with a small example
+
+```csharp
+void ReleaseThread()
+{
+    _x.Store(23, MemoryOrder.Relaxed);
+    _x.Store(2, MemoryOrder.Relaxed);
+    _flag.Store(0, MemoryOrder.Relaxed);
+    _flag.Store(1, MemoryOrder.Release);
+}
+
+void AcquireThread()
+{
+    while(_flag.Load(MemoryOrder.Acquire) == 0) // Spin
+    {
+        continue;
+    }
+    int result = _x.Load(MemoryOrder.Relaxed);
+    TE.Assert(result == 2, $"Expected to load 2 into result, but loaded {result} instead!");
+}
+```
+The problem this code presents to an exhaustive scheduler is the spin loop. A naive depth-first search of thread interleavings won't work here: the spin loop will create an infinitely long execution when it is encountered over and over again. The scheduler is said to "diverge". To prevent this,
+we need to provide a hint to the scheduler to give it an opportunity to break the cycle. In RelaSharp, this is done with a yield:
+
+```csharp
+void AcquireThread()
+{
+    while(_flag.Load(MemoryOrder.Acquire) == 0) // Spin
+    {
+        TE.Yield(); // Tell the exhaustive scheduler it's OK to choose another thread.
+    }
+    int result = _x.Load(MemoryOrder.Relaxed);
+    TE.Assert(result == 2, $"Expected to load 2 into result, but loaded {result} instead!");
+}
+``` 
+The exhaustive scheduler that RelaSharp implements is closely based on the so-called "fair, demonic" scheduler used in CHESS.
+Of course it is still possible for the exhaustive scheduler to diverge when a genuine [live-lock](Examples/LiveLock.cs) exists.
 
 ## Limitations
 
