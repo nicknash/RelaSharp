@@ -136,10 +136,39 @@ enum MemoryOrder
     SequentiallyConsistent
 }
 ```
-
-
+These have the usual meanings as in the C++11 memory model. Notably, consume semantics are absent. These would be a big challenge to implement, as RelaSharp has no awareness of data / control dependencies. Luckily, no such concept exists in C#, and so its memory model can still easily be simulated.
 
 ## C# Specific Interface
+
+The C#-like interface to RelaSharp should have a familiar flavour to C# programmers, here is a snippet:
+
+```csharp
+RInterlocked.Exchange(ref _readIndex, nextReadIndex);
+RVolatile.Write(ref _readIndex, nextReadIndex);
+RUnordered.Write(ref _readIndex, nextReadIndex);
+```
+The functions in RInterlocked and RVolatile serve as drop-in replacements for Interlocked and Volatile. The only unusual looking function here is 
+RUnordered.Write. This is specifying that no ordering above the default C# memory model is being placed on the write. This required so that RelaSharp can track accesses to _readIndex. Arguably, the use of RUnordered makes the code a little more explicit anyway, as it is clear that a memory ordering was not forgotten, but was explicitly annotated as not required.
+
+The usual locking / condition variable behaviour via C#'s Monitor is also available in RelaSharp, here is an excerpt from a (deadlock detection example)[Examples/Deadlock.cs]:
+
+```csharp
+RMonitor.Enter(myLock);
+RMonitor.Enter(nextLock);
+RMonitor.Exit(nextLock);
+RMonitor.Exit(myLock);
+```
+
+Translation from C# to instrumented RelaSharp code is entirely mechanical, this table summarizes the constructs available:
+
+| C# class      | RelaSharp class|Example member         |
+|:------------- |:---------------|:----------------------|
+| Volatile      | RVolatile      |RVolatile.Read         |
+| Interlocked   | RInterlocked   |RInterlocked.Increment |
+| Monitor       | RMonitor       |RMonitor.Pulse         |
+| N/A           | RUnordered     |RUnordered.Write       |
+
+This obviously omits a number of the blocking constructs available in C# (such as reader-writer locks), but since RelaSharp is focused on the exploring lock-free code, I haven't added these.
 
 ## Scheduling
 
