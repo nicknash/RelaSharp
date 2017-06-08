@@ -97,19 +97,47 @@ To simulate the memory-model, RelaSharp assigns threads incrementing time-stamps
 In selecting a candidate load result, candidate stores are considered in the reverse order that they were performed. In C++11 parlance, this is possible because there is a single total "modification order" associated with any atomic variable. With this newer-to-older ordering of stores to V in mind, there are four main cases to consider in order to select a candidate load result to answer a load by a given thread. These can be very roughly stated as follows (R refers to the current candidate load result for V under consideration):
 
 1. The load has sequentially consistent semantics, and the candidate store that created R was sequentially consistent. In this case, the load can only be answered with R, as any other result would violate sequential consistency.
-2. Otherwise, if the loading thread has seen any other store by the storing thread that created R that is as-new or newer-than the store by that thread that created R, then the load must be answered with R.
-3. Otherwise, if the loading thread has seen any other store by any thread that is as new or newer-than than that thread's time-stamp the last time it loaded R then the load must be answered with R. This is a bit of a mouthful. What this condition says is that, if the loading thread has seen a store, S, of another thread that is later than the last load of R by that other thread, then returning an older candidate load result than V would be
+2. Otherwise, if the loading thread has seen any other store by the storing thread that created R that is as-new or newer-than the store (by that thread) that created R, then the load must be answered with R.
+3. Otherwise, if the loading thread has seen any other store by any thread that is as new or newer-than than that thread's time-stamp the last time it loaded R then the load must be answered with R. This is a bit of a mouthful. What this condition says is that, if the loading thread has seen a store, S, of another thread that is later than the last load of R by that other thread, then returning an older candidate load result than R would be
 incorrect because it would be as though the loading thread had not seen S yet after all. 
 4. If none of the above hold, an older load from the history can be returned.
 
 These four cases leave the meaning of "seeing a store" undefined. A more precise way of saying thread A has "seen a store" by thread B, is 
-to say that thread A has performed a load with acquire semantics of some atomic variable that B performed a store with release semantics to. The load-acquire is said to "synchronize-with" the store-release. The point of a synchronize-with relationship is that everything that has happened before the store-release by B, is guaranteed to have happened before everything after the load-acquire by A.
+to say that thread A has performed a load with acquire semantics of some atomic variable that B performed a store with release semantics to. Abusing terminology a little, the load-acquire is said to "synchronize-with" the store-release. The point of a synchronize-with relationship is that everything that has happened before the store-release by B, is guaranteed to have happened before everything after the load-acquire by A.
 
 RelaSharp uses a simple vector clock algorithm to track these synchronized-with relationships. For a test involving N threads, it creates a vector clock, N entry vector clock for each thread. Each thread also has an internal clock incremented at each atomic operation. For a given thread T1, VC[T2] is the latest value of thread T2's clock that T1 has synchronized with. 
 
 The main way that the memory-model semantics are respected is then by appropriately "joining" vector clocks. To join two vector clocks VC1 and VC2 just means to create a new vector clock that is the pair-wise max of the elements. So for example, at a load-acquire, a thread's vector clock is joined with the vector clock of the storing thread at the time it performed the store-release. This joining implies that transitive relationships of happens-before / synchronized-with are tracked correctly.
 
+There is a little more to getting the details of the above right, but hopefully the sketch above gives a reasonable idea to anyone who wants to take a look at the code.
+
 ## Generic Interface
+
+RelaSharp provides a C++11-like atomic<> interface. For C# programmers, this is perhaps a lower-level interface than they want. As a result the
+atomic<> like interface is wrapped in a C#-like interface (of Interlocked, Volatile, etc) described in the next section. This interface to RelaSharp is a little strange in that it allows simulating more relaxed memory behaviours than C# actually allows, e.g., in C# all stores have release semantics, this atomic<> interface allows simulating what it would be like if that didn't hold. Really the reason this low-level interface exists is that it is a natural, well-documented (thanks to C++11) set of operations to define the C# memory model in terms of.
+
+A representative subset of it looks something like this:
+
+```csharp
+var myAtomic = new Atomic<int>();
+myAtomic.Store(123, MemoryOrder.Relaxed);
+myAtomic.Load(MemoryOrder.SequentiallyConsistent);
+bool success = myAtomic.CompareExchange(456, 134, MemoryOrder.AcquireRelease);
+```
+
+The last argument to these atomic<> functions is the memory order, the supported memory orders, found in [MemoryOrder.cs](MemoryOrder.cs):
+```csharp
+enum MemoryOrder
+{
+    Relaxed,
+    Acquire,
+    Release,
+    AcquireRelease,
+    SequentiallyConsistent
+}
+```
+
+
 
 ## C# Specific Interface
 
@@ -132,15 +160,15 @@ For example, running it without command-line arguments:
 ➜  RelaSharp git:(master) ✗ dotnet run -- 
 Project RelaSharp (.NETCoreApp,Version=v1.1) was previously compiled. Skipping compilation.
 Usage:
---quiet 		    Suppress output of execution logs (defaults to false)
---iterations=X  	For random scheduler only: Run for X iterations (defaults to 10000)
---self-test     	Run self test mode (suppress all output and only report results that differ from expected results)
---tag=X 	    	Run examples whose name contain the tag (case insensitive, run all examples if unspecified)
---scheduling=X  	Use the specified scheduling algorithm, available options are 'random' and 'exhaustive' (defaults to Random)
---live-lock=X   	Report executions longer than X as live locks (defaults to 5000)
---list-examples 	List the tags of the available examples with their full names (and then exit).
+--quiet             Suppress output of execution logs (defaults to false)
+--iterations=X      For random scheduler only: Run for X iterations (defaults to 10000)
+--self-test         Run self test mode (suppress all output and only report results that differ from expected results)
+--tag=X             Run examples whose name contain the tag (case insensitive, run all examples if unspecified)
+--scheduling=X      Use the specified scheduling algorithm, available options are 'random' and 'exhaustive' (defaults to Random)
+--live-lock=X       Report executions longer than X as live locks (defaults to 5000)
+--list-examples     List the tags of the available examples with their full names (and then exit).
 --yield-penalty=X   Exhaustive scheduler: Control the chance of a false-divergent execution, larger implies closer to sequential consistency close to scheduler yields (defaults to 4)
---help  		Print this message and exit
+--help              Print this message and exit
 ```
 
 Selecting an example and seeing results can be done as follows:
