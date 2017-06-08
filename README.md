@@ -172,6 +172,29 @@ This obviously omits a number of the blocking constructs available in C# (such a
 
 ## Scheduling
 
+A RelaSharp test supplies the entry point for each of its threads, here is the interface you need to implement to write a test:
+
+```csharp
+interface IRelaTest 
+{
+    IReadOnlyList<Action> ThreadEntries { get; }
+    void OnBegin();
+    void OnFinished();
+}
+```
+
+It then creates a thread for each of the functions in ThreadEntries. Most importantly, it then takes over the scheduling of these threads. It does this by initially making all the threads wait their own condition variable, and then waking the one chosen by the so-called scheduling strategy (which can be either random or exhaustive). Every time an instrumented instruction is executed, for example RVolatile.Read, a call is made to the scheduler. This gives it the opportunity to pre-empt the running thread by waking another thread and blocking the currently running thread.
+
+### Random Scheduling
+
+The simple, most practical and default way of using RelaSharp is with the random scheduler. The random scheduler uniformly at random chooses the next thread to run at each instrumented instruction. This generally much more aggressive than running with an OS scheduler. The random scheduler typically finds subtle memory-ordering issues in a matter of seconds. 
+
+### Exhaustive Scheduling
+
+RelaSharp also supports exhaustively exploring all thread interleavings of a given test, using the so-called exhaustive scheduler. This is often intractable for all but very small test cases. The exhaustive scheduler performs a depth-first search of the thread interleavings. Doing this requires recording the scheduling choice made at each pre-emption point into a "choice history", and iteratively tweaking the choice history to explore all interleavings.
+
+The exhaustive scheduler is much more complicated than the random scheduler due to the need for it to enforce _fairness_. 
+
 ## Limitations
 
 ## Possible Enhancements
