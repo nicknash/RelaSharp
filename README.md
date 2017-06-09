@@ -150,7 +150,7 @@ RUnordered.Write(ref _readIndex, nextReadIndex);
 The functions in RInterlocked and RVolatile serve as drop-in replacements for Interlocked and Volatile. The only unusual looking function here is 
 RUnordered.Write. This is specifying that no ordering above the default C# memory model is being placed on the write. This required so that RelaSharp can track accesses to _readIndex. Arguably, the use of RUnordered makes the code a little more explicit anyway, as it is clear that a memory ordering was not forgotten, but was explicitly annotated as not required.
 
-The usual locking / condition variable behaviour via C#'s Monitor is also available in RelaSharp, here is an excerpt from a (deadlock detection example)[Examples/Deadlock.cs]:
+The usual locking / condition variable behaviour via C#'s Monitor is also available in RelaSharp, here is an excerpt from a [deadlock detection example](Examples/Deadlock.cs):
 
 ```csharp
 RMonitor.Enter(myLock);
@@ -229,13 +229,58 @@ void AcquireThread()
 }
 ``` 
 The exhaustive scheduler that RelaSharp implements is closely based on the so-called "fair, demonic" scheduler used in CHESS.
-Of course it is still possible for the exhaustive scheduler to diverge when a genuine [live-lock](Examples/LiveLock.cs) exists.
+Of course it is still possible for the exhaustive scheduler to correctly diverge when a genuine [live-lock](Examples/LiveLock.cs) exists.
 
 ## Limitations
 
+RelaSharp's most obvious limitations are described below, these could be lifted with a little more work.
+
+### Manual instrumentation 
+
+Although converting a blocking or lock-free algorithm to a RelaSharp test case is entirely mechanical, it is still annoying
+as it essentially boils down to keeping two copies of source code. 
+
+### Execution-order restriction 
+
+Although not of great interest for C#, RelaSharp can only simulate memory re-orderings that result from loads seeing values from previous (in execution order) stores.
+
+For example, consider the following code:
+
+```csharp
+// Assume all operations are relaxed.
+void Thread1()
+{
+    a = x; 
+    y = 16;
+}
+void Thread2()
+{
+    b = y; 
+    x = 16;
+}
+```
+At termination, without any compiler optimizations, on POWER and ARM, it is possible to observe a = b = 16. As a result, this execution is legal in the C++11 memory model. RelaSharp currently can't simulate such executions since it involves loads seeing the results of future stores.
+
 ## Possible Enhancements
 
+TODO, flesh out:
+
+* Automatic instrumentation
+* Support remaining C# threading constructs
+* Context bounding
+* Parallelization
+* PCT Scheduling
+* DPOR
+* Thread replay optimizations:
+* Promises:
+
+
 ## Related Tools
+
+* Relacy
+* CDSChecker
+* CHESS
+* SPIN
 
 ## Command Line Examples
 
