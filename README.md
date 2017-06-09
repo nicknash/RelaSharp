@@ -183,7 +183,7 @@ interface IRelaTest
 }
 ```
 
-It then creates a thread for each of the functions in ThreadEntries. Most importantly, it then takes over the scheduling of these threads. It does this by initially making all the threads wait their own condition variable, and then waking the one chosen by the so-called scheduling strategy (which can be either random or exhaustive). Every time an instrumented instruction is executed, for example RVolatile.Read, a call is made to the scheduler. This gives it the opportunity to pre-empt the running thread by waking another thread and blocking the currently running thread.
+It then creates a thread for each of the functions in ThreadEntries. Most importantly, it then takes over the scheduling of these threads. It does this by initially making all the threads wait on their own condition variable, and then waking the one chosen by the so-called scheduling strategy (which can be either random or exhaustive). Every time an instrumented instruction is executed, for example RVolatile.Read, a call is made to the scheduler. This gives it the opportunity to pre-empt the running thread by waking another thread and blocking the currently running thread.
 
 ### Random Scheduling
 
@@ -259,28 +259,66 @@ void Thread2()
     x = 16;
 }
 ```
-At termination, without any compiler optimizations, on POWER and ARM, it is possible to observe a = b = 16. As a result, this execution is legal in the C++11 memory model. RelaSharp currently can't simulate such executions since it involves loads seeing the results of future stores.
+At termination, without any compiler optimizations, on POWER and ARM, it is possible to observe a == b == 16. As a result, this execution is legal in the C++11 memory model. RelaSharp currently can't simulate such executions since it involves loads seeing the results of future stores.
 
 ## Possible Enhancements
 
-TODO, flesh out:
+### Automatic instrumentation 
 
-* Automatic instrumentation
-* Support remaining C# threading constructs
-* Context bounding
-* Parallelization
-* PCT Scheduling
-* DPOR
-* Thread replay optimizations:
-* Promises:
+The manual instrumentation of code is the main annoyance in RelaSharp. This would be reasonably straightforward requirement to lift I think. There is an (undocumented) library for the CLR that I'll refer to as the [extended reflection] API, that supports calls like this 
 
+```csharp
+TODO NICK
+```
+As well as automatically replacing the Interlocked, Volatile as shown, it would also be necessary perform some GC pinning. I think the only instrumentation overhead this would leave would be the use of RUnordered. 
+
+### Support remaining C# threading constructs
+
+It'd obviously be nice to support the remaining blocking C# threading constructs, like Mutex, ReaderWriterLock, ReaderWriterLockSlim, etc.
+This would be a for the most part straightforward but not terribly exciting bit of implementation. I mainly haven't done this as I suspect I wouldn't learn all that much from it.
+
+### Context bounding
+
+CHESS introduced a neat idea called _context bound scheduling_ to balance between an exhaustive scheduling of threads and the number of thread interleavings explored. Relacy also implements this idea, that originates with CHESS. Context bound scheduling is the same as an exhaustive scheduler but requires a positive integer parameter called the _context bound_. Each time the scheduler pre-empts a thread at a point when the thread could continue without blocking it decrements the context bound. When the context bound reaches zero, no more pre-emptions are performed.
+
+The efficacy of context-bounding is based on the empirical claim that most threading bugs can be found with a fairly small context bound.
+
+Implementing context bounding in RelaSharp would be a very small job requiring only a small tweak to the exhaustive scheduler.
+
+### Parallelization
+
+The exploration that RelaSharp performs of memory re-orderings and thread schedulings is trivially parallelizable when the random scheduler is in use. This again would be a small implementation effort, requiring only that several TestEnvironments are created, and some small assumptions around static variables removed.
+
+### PCT Scheduling
+
+Probabalistic Concurrency Testing scheduling aims to operate in a similar fashion to context bounding: it uses an integer parameter called _bug depth_ to limit its search. It seems to be attractive because it's simpler to implement and higher performance than an exhaustive scheduler with context bounding: it operates more like a simple randomized scheduler which is more disciplined in its choice of randomization. Essentially, PCT scheduling assigns threads a strict priority order and then adjusts thread priorities at randomly selected execution points. This allows it to explore the search space of schedulings according to what it defines as the number of _scheduling constraints_ (or bug depth). 
+
+I think this is a medium sized job to implement, selecting the random points to insert priority-inversions would require a little thought. I've not felt a great need for it as I've found the simple random scheduler quite effective at finding even subtle bugs.
+
+### DPOR
+
+For the exhaustive scheduler, so-called Dynamic Partial Order Reduction could be performed to reduce the size of the search space substantially. I've not really explored this so I'm not sure how much work it would be to get most of the benefit from the technique.
+
+### Thread Replay Optimizations
+
+When RelaSharp executes a test case it records an event-log of all decisions it makes so that they can be presented to the user in the event of a test failure. Relacy performs a nice optimization for event-logging: it records only a minimal sequence of scheduling decisions for each test but no event log. When a failure is encountered it runs the test one more time with full event-logging enabled. I'm not sure how much of a difference this would make to performance, but it'd be easy to get a rough idea by disabling event logging altogether and looking at the difference in number of test iterations per second.
+
+## Promises / Load Speculation
+
+Lifting the execution-order restriction of RelaSharp could be done using a technique I'll call _promises_ pioneered in a tool called CDSChecker. 
+Implementing promises would add a fair bit of complexity to RelaSharp. The way promises work is that values written by stores are recorded in a set called _futureValues_. As a test is repeatedly executed a given load's history consists not only of the values written by stores that preceed it in execution order, but also those in futureValues. When load is answered with a value chosen from futureValues, some care is required. A store must then be identified that _satisfies_ the load. If one cannot be found, the "speculation" has failed and the test iteration must be aborted. Using promises, the example described above in the "Execution-order restriction" section can produce a == b == 16 as a possible execution.
+
+I think this would be reasonably complicated to implement, but perhaps not too bad for the random scheduler. I write lock-free code mostly for the very forgiving CLR on x86 - if one day I have to use something with a more relaxed memory model I might be forced to implement this!
 
 ## Related Tools
 
-* Relacy
-* CDSChecker
-* CHESS
-* SPIN
+### Relacy
+
+### CDSChecker
+
+### CHESS
+
+### SPIN/Promela, TLA+
 
 ## Command Line Examples
 
