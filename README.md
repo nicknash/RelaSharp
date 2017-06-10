@@ -291,7 +291,7 @@ The exploration that RelaSharp performs of memory re-orderings and thread schedu
 
 ### PCT Scheduling
 
-Probabalistic Concurrency Testing scheduling aims to operate in a similar fashion to context bounding: it uses an integer parameter called _bug depth_ to limit its search. It seems to be attractive because it's simpler to implement and higher performance than an exhaustive scheduler with context bounding: it operates more like a simple randomized scheduler which is more disciplined in its choice of randomization. Essentially, PCT scheduling assigns threads a strict priority order and then adjusts thread priorities at randomly selected execution points. This allows it to explore the search space of schedulings according to what it defines as the number of _scheduling constraints_ (or bug depth). 
+Probabalistic Concurrency Testing (PCT) scheduling aims to operate in a similar fashion to context bounding: it uses an integer parameter called _bug depth_ to limit its search. It seems to be attractive because it's simpler to implement and higher performance than an exhaustive scheduler with context bounding: it operates more like a simple randomized scheduler which is more disciplined in its choice of randomization. Essentially, PCT scheduling assigns threads a strict priority order and then adjusts thread priorities at randomly selected execution points. This allows it to explore the search space of schedulings according to what it defines as the number of _scheduling constraints_ (or bug depth). 
 
 I think this is a medium sized job to implement, selecting the random points to insert priority-inversions would require a little thought. I've not felt a great need for it as I've found the simple random scheduler quite effective at finding even subtle bugs.
 
@@ -303,7 +303,7 @@ For the exhaustive scheduler, so-called Dynamic Partial Order Reduction could be
 
 When RelaSharp executes a test case it records an event-log of all decisions it makes so that they can be presented to the user in the event of a test failure. Relacy performs a nice optimization for event-logging: it records only a minimal sequence of scheduling decisions for each test but no event log. When a failure is encountered it runs the test one more time with full event-logging enabled. I'm not sure how much of a difference this would make to performance, but it'd be easy to get a rough idea by disabling event logging altogether and looking at the difference in number of test iterations per second.
 
-## Promises / Load Speculation
+### Promises / Load Speculation
 
 Lifting the execution-order restriction of RelaSharp could be done using a technique I'll call _promises_ pioneered in a tool called CDSChecker. 
 Implementing promises would add a fair bit of complexity to RelaSharp. The way promises work is that values written by stores are recorded in a set called _futureValues_. As a test is repeatedly executed a given load's history consists not only of the values written by stores that preceed it in execution order, but also those in futureValues. When load is answered with a value chosen from futureValues, some care is required. A store must then be identified that _satisfies_ the load. If one cannot be found, the "speculation" has failed and the test iteration must be aborted. Using promises, the example described above in the "Execution-order restriction" section can produce a == b == 16 as a possible execution.
@@ -312,7 +312,16 @@ I think this would be reasonably complicated to implement, but perhaps not too b
 
 ## Related Tools
 
+RelaSharp is heavily based on tools that precede it, and which have more features than it. Some of these tools are C++ specific, however.
+
 ### Relacy
+
+Relacy is an _amazing_ piece of software. Relacy requires manually instrumented C++ code. The instrumentation is fairly painless as it really just requires replacing C++'s std::atomic with Relacy's version. For exhaustive scheduling, Relacy requires scheduler hints. These are like the yield of CHESS (which I also implemented in RelaSharp), but quite different in the details. Relacy has several different forms of yield, e.g. linear and exponential scheduler back-off for the yielding thread.
+
+Relacy has an extremely rich feature set, two nice examples are ABA detection in dynamic memory allocation and spurious CAS failures.
+Relacy even supports simulating the Java and CLR memory models, albeit, 
+
+Relacy's only real missing feature is that it is restricted to execution-order only memory re-orderings, and does not implement promises.
 
 ### CDSChecker
 
