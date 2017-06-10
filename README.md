@@ -214,8 +214,7 @@ void AcquireThread()
     TE.Assert(result == 2, $"Expected to load 2 into result, but loaded {result} instead!");
 }
 ```
-The problem this code presents to an exhaustive scheduler is the spin loop. A naive depth-first search of thread interleavings won't work here: the spin loop will create an infinitely long execution when it is encountered over and over again. The scheduler is said to "diverge". To prevent this,
-we need to provide a hint to the scheduler to give it an opportunity to break the cycle. In RelaSharp, this is done with a yield:
+The problem this code presents to an exhaustive scheduler is the spin loop. A naive depth-first search of thread interleavings won't work here: the spin loop will create an infinitely long execution when it is encountered over and over again. The scheduler is said to "diverge". To prevent this, we need to provide a hint to the scheduler to give it an opportunity to break the cycle. In RelaSharp, this is done with a yield:
 
 ```csharp
 void AcquireThread()
@@ -272,24 +271,22 @@ TODO NICK
 ```
 As well as automatically replacing the Interlocked, Volatile as shown, it would also be necessary perform some GC pinning. I think the only instrumentation overhead this would leave would be the use of RUnordered. 
 
-### Support remaining C# threading constructs
+### Support remaining C\# threading constructs
 
 It'd obviously be nice to support the remaining blocking C# threading constructs, like Mutex, ReaderWriterLock, ReaderWriterLockSlim, etc.
 This would be a for the most part straightforward but not terribly exciting bit of implementation. I mainly haven't done this as I suspect I wouldn't learn all that much from it.
 
 ### Context bounding
 
-CHESS introduced a neat idea called _context bound scheduling_ to balance between an exhaustive scheduling of threads and the number of thread interleavings explored. Relacy also implements this idea, that originates with CHESS. Context bound scheduling is the same as an exhaustive scheduler but requires a positive integer parameter called the _context bound_. Each time the scheduler pre-empts a thread at a point when the thread could continue without blocking it decrements the context bound. When the context bound reaches zero, no more pre-emptions are performed.
-
-The efficacy of context-bounding is based on the empirical claim that most threading bugs can be found with a fairly small context bound.
+CHESS introduced a neat idea called _context bound scheduling_ to balance between an exhaustive scheduling of threads and the number of thread interleavings explored. Relacy also implements this idea, that originates with CHESS. Context bound scheduling is the same as an exhaustive scheduler but requires a positive integer parameter called the _context bound_. Each time the scheduler pre-empts a thread at a point when the thread could continue without blocking it decrements the context bound. When the context bound reaches zero, no more pre-emptions are performed. The efficacy of context-bounding is based on the empirical claim that most threading bugs can be found with a fairly small context bound.
 
 Implementing context bounding in RelaSharp would be a very small job requiring only a small tweak to the exhaustive scheduler.
 
-### Parallelization
+### Parallelization
 
 The exploration that RelaSharp performs of memory re-orderings and thread schedulings is trivially parallelizable when the random scheduler is in use. This again would be a small implementation effort, requiring only that several TestEnvironments are created, and some small assumptions around static variables removed.
 
-### PCT Scheduling
+### PCT Scheduling
 
 Probabalistic Concurrency Testing (PCT) scheduling aims to operate in a similar fashion to context bounding: it uses an integer parameter called _bug depth_ to limit its search. It seems to be attractive because it's simpler to implement and higher performance than an exhaustive scheduler with context bounding: it operates more like a simple randomized scheduler which is more disciplined in its choice of randomization. Essentially, PCT scheduling assigns threads a strict priority order and then adjusts thread priorities at randomly selected execution points. This allows it to explore the search space of schedulings according to what it defines as the number of _scheduling constraints_ (or bug depth). 
 
