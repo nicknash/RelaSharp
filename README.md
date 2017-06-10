@@ -314,6 +314,7 @@ RelaSharp is heavily based on tools that precede it, and which have more feature
 ### Relacy
 
 Relacy is an _amazing_ piece of software. Relacy requires manually instrumented C++ code. The instrumentation is fairly painless as it really just requires replacing C++'s std::atomic with Relacy's version. For exhaustive scheduling, Relacy requires scheduler hints. These are like the yield of CHESS (which I also implemented in RelaSharp), but quite different in the details. Relacy has several different forms of yield, e.g. linear and exponential scheduler back-off for the yielding thread.
+Relacy uses user-space threading (via ucontext_t or fibers) to give very high performance in running tests.
 
 Relacy has an extremely rich feature set, two nice examples are ABA detection in dynamic memory allocation and spurious CAS failures.
 Relacy even supports simulating the Java and CLR memory models, albeit, doing this requires translating Java or C# code into C++ so that it can be run in Relacy.
@@ -322,7 +323,12 @@ Relacy's only real missing feature is that it is restricted to execution-order o
 
 ### CDSChecker
 
+CDSChecker is a more recent tool than Relacy but in my eyes is a clear descendant of it, the algorithms in CDSChecker are fairly different to Relacy.  
+The biggest advantage CDSChecker has over Relacy is that it implements _promises_, and is not restricted by the execution order in the types of re-orderings it can observe. Like Relacy, CDSChecker is aimed at C++ code, and makes use of user-space threading to take over thread scheduling.
+
 ### CHESS
+
+CHESS was a long running project of Microsoft research, that now sadly appears to be unmaintained.
 
 ### SPIN, TLA+
 
