@@ -298,7 +298,7 @@ For the exhaustive scheduler, so-called Dynamic Partial Order Reduction could be
 
 When RelaSharp executes a test case it records an event-log of all decisions it makes so that they can be presented to the user in the event of a test failure. Relacy performs a nice optimization for event-logging: it records only a minimal sequence of scheduling decisions for each test but no event log. When a failure is encountered it runs the test one more time with full event-logging enabled. I'm not sure how much of a difference this would make to performance, but it'd be easy to get a rough idea by disabling event logging altogether and looking at the difference in number of test iterations per second.
 
-### Promises and Load Speculation
+### Promises and Load Speculation
 
 Lifting the execution-order restriction of RelaSharp could be done using a technique I'll call _promises_ pioneered in a tool called CDSChecker. 
 Implementing promises would add a fair bit of complexity to RelaSharp. The way promises work is that values written by stores are recorded in a set called _futureValues_. As a test is repeatedly executed a given load's history consists not only of the values written by stores that preceed it in execution order, but also those in futureValues. When load is answered with a value chosen from futureValues, some care is required. A store must then be identified that _satisfies_ the load. If one cannot be found, the "speculation" has failed and the test iteration must be aborted. Using promises, the example described above in the "Execution-order restriction" section can produce a == b == 16 as a possible execution.
