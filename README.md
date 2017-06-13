@@ -264,12 +264,10 @@ At termination, without any compiler optimizations, on POWER and ARM, it is poss
 
 ### Automatic instrumentation 
 
-The manual instrumentation of code is the main annoyance in RelaSharp. This would be reasonably straightforward requirement to lift I think. There is an (undocumented) library for the CLR that I'll refer to as the [extended reflection] API, that supports calls like this 
+The manual instrumentation of code is the main annoyance in RelaSharp. This would be reasonably straightforward requirement to lift I think. There is an (undocumented) library for the CLR that I'll refer to as the _extended reflection_ API, that supports intercepting function calls like 
+those of Interlocked, Volatile, etc, and re-directing them to a substitute implementation. You can get an idea of how this works by looking at inside CHESS [https://github.com/nicknash/Chess/blob/master/ManagedChess/chess/Monitor/Engine.cs](here).
 
-```csharp
-TODO NICK
-```
-As well as automatically replacing the Interlocked, Volatile as shown, it would also be necessary perform some GC pinning. I think the only instrumentation overhead this would leave would be the use of RUnordered. 
+As well as automatically replacing the Interlocked, Volatile, etc, it would also be necessary perform some GC pinning. I think the only instrumentation overhead this would leave would be the use of RUnordered. 
 
 ### Support remaining C\# threading constructs
 
@@ -440,7 +438,24 @@ LostWakeUp      	Lost Wake Up example
 LeftRight       	Left-Right Synchronization Primitive Example
 ```
 
-
 ## References
 
+Getting a feel for memory models and lock-free algorithms is reasonably difficult, as there is a _lot_ of confused and incorrect information online. I think the following is a pretty good list for getting up to speed, as well as a decent overview of model-checkers for lock-free algorithms:
+
+
+### N2480: A Less Formal Explanation of the Proposed C++ Concurrency Memory Model
+
+Link: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2480.html
+
+This is a great explanation of some of the details of the C++11 memory model, without being quite so "standard heavy" in its language. It offers some helpful background and motivation.
+
+### std::memory_order
+
+Link: http://en.cppreference.com/w/cpp/atomic/memory_order
+
+This is just the C++ standard description of the memory orders it offers. This is a bit of a pain to read, but I found it worth referring back to as my understanding improved and I wanted to nail down details.
+
+### The Thin-air problem
+
+Link: http://www.cl.cam.ac.uk/~pes20/cpp/notes42.html
 
