@@ -323,14 +323,19 @@ Relacy's only real missing feature is that it is restricted to execution-order o
 
 ### CDSChecker
 
-CDSChecker is a more recent tool than Relacy but in my eyes is a clear descendant of it, the algorithms in CDSChecker are fairly different to Relacy.  
-The biggest advantage CDSChecker has over Relacy is that it implements _promises_, and is not restricted by the execution order in the types of re-orderings it can observe. Like Relacy, CDSChecker is aimed at C++ code, and makes use of user-space threading to take over thread scheduling.
+CDSChecker is a more recent tool than Relacy but in my eyes is a clear descendant of it, the algorithms in CDSChecker are fairly different to Relacy. The biggest advantage CDSChecker has over Relacy is that it implements _promises_, and is not restricted by the execution order in the types of re-orderings it can observe. Like Relacy, CDSChecker is aimed at C++ code, and makes use of user-space threading to take over thread scheduling.
 
 ### CHESS
 
-CHESS was a long running project of Microsoft research, that now sadly appears to be unmaintained.
+CHESS was a long running project of Microsoft research, that now sadly appears to be unmaintained. CHESS has had quite a few tools built on top of it. For example, PCT scheduling described above has been built on it. Originally, CHESS was aimed at finding race conditions, deadlocks and live-locks, as opposed to simulating memory re-orderings. CHESS automatically instruments code and can handle large applications: the CHESS papers describe booting an experimental OS inside CHESS. Later, CHESS had a tool called Sober built on it that could simulate what the CHESS researchers refer to as "store buffer relaxation". Or, in ordinary terms, a StoreLoad re-ordering. Sober reports a program to have a bug if it behaves differently when a StoreLoad re-ordering occurs to when it doesn't. This is obviously much more limited than Relacy, CDSChecker (or dare I say it, simple old RelaSharp), but CHESS's focus is different - as it can cope with large applications. 
 
 ### SPIN, TLA+
+
+SPIN is a stateful model-checker that uses a language called Promela to express concurrent processes. So, to verify a piece of code using SPIN requires translating it to Promela first of all. This is obviously a substantial and slightly risky overhead, as of course the Promela may differ from the C# implementation. By far the biggest limitation of SPIN is that it assumes sequential consistency. There has been work to lift this restriction, but in places where I have seen SPIN used for say, verifying a mutex implementation, sequential consistency is _implicitly_ assumed. This is quite naive in my eyes: the subtly of say a Petersen mutex is all about the memory re-orderings.
+
+I believe TLA+ is flexible enough to encode lock-free algorithms, although I share the same concern as SPIN/Promela: the translation itself seems unnecessary and risky. I've not investigated TLA+ much, yet.
+
+In general these SPIN and TLA+ appear (to my currently ignorant eyes!) to be useful for verifying or gaining extra confidence in distributed systems or protocols. This does seem like a very large and interesting use case I hope to investigate soon. 
 
 ## Command Line Examples
 
