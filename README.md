@@ -459,3 +459,18 @@ This is just the C++ standard description of the memory orders it offers. This i
 
 Link: http://www.cl.cam.ac.uk/~pes20/cpp/notes42.html
 
+This is a good explanation of why the so-called "out of thin air" values accidentally allowed by the C++11 memory model are tricky to eliminate from the specification. A little mind bending!
+
+### The Instructable C++ Memory Model
+
+Link: https://bartoszmilewski.com/2008/12/23/the-inscrutable-c-memory-model/
+
+A great blog-post where the venerable Bartosz Milewski describes the bug in his Petersen mutex implementation. The comments on the post are very valuable to follow up.
+
+### A Tutorial Introduction to the ARM and POWER Relaxed Memory Models
+
+### Fair Stateless Model Checking
+
+### Iterative Context Bounding for Systematic Testing of Multithreaded Programs
+
+### Model Checking for Programming Languages using VeriSoft
