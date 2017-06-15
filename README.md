@@ -442,6 +442,12 @@ LeftRight       	Left-Right Synchronization Primitive Example
 
 Getting a feel for memory models and lock-free algorithms is reasonably difficult, as there is a _lot_ of confused and incorrect information online. I think the following is a pretty good list for getting up to speed, as well as a decent overview of model-checkers for lock-free algorithms:
 
+### A Tutorial Introduction to the ARM and POWER Relaxed Memory Models
+
+Reference: Maranget et al., 2012, "A Tutorial Introduction to the ARM and POWER Relaxed Memory Models"
+Link: http://www.cl.cam.ac.uk/~pes20/ppc-supplemental/test7.pdf
+
+Despite its title, this paper has a great description of x86-TSO before it dives into ARM and POWER. It is also a great overview of the memory models of the latter. It's noteworthy because it gives _operational_ descriptions, i.e., rather than a more "axiomatic" approach of listing the re-ordering rules, it motivates the re-orderings with (simplified) hardware implementations that lead to the re-orderings.
 
 ### N2480: A Less Formal Explanation of the Proposed C++ Concurrency Memory Model
 
@@ -467,10 +473,38 @@ Link: https://bartoszmilewski.com/2008/12/23/the-inscrutable-c-memory-model/
 
 A great blog-post where the venerable Bartosz Milewski describes the bug in his Petersen mutex implementation. The comments on the post are very valuable to follow up.
 
-### A Tutorial Introduction to the ARM and POWER Relaxed Memory Models
+### Iterative Context Bounding for Systematic Testing of Multithreaded Programs
+
+Reference: Musuvathi and Qadeer, PLDI 2007, "Iterative Context Bounding for Systematic Testing of Multithreaded Programs"
+
+This is the paper that introduced the empirical observation that limiting the number of forced pre-emptions while exploring thread interleavings still reveals bugs while drastically reducing the search space. This is what is referred to as _context bounding_, where the _context bound_ is a positive integer that can be tuned. The paper includes empirical evidence that the search space of some programs is still well explored with a context bound of just 2 or 3. 
+
+The implementation of the ideas in this paper appear in CHESS.
 
 ### Fair Stateless Model Checking
 
-### Iterative Context Bounding for Systematic Testing of Multithreaded Programs
+Reference: Musuvathi and Qadeer, PLDI 2008, "Fair Stateless Model Checking"
+
+This paper introduced a new scheduling algorithm that allows exploring the thread interleavings of programs with cyclic state-spaces. 
+The exact properties of their proposed scheduler are desirable, basically diverging only in the case of genuine live-locks.
+I found the description of the scheduling algorithm kind of wacky, it includes the idea of one thread disabling (i.e. causing that thread to block at a mutex they share) another. This scheduling algorithm is also implemented in CHESS, and seems to require a funny sort of look-ahead to determine when threads might disable each other. I based my exhaustive scheduling algorithm on this paper (although I have not properly tested my exhaustive scheduler when mutexes are involved).
+
+### A Randomized Scheduler with Probabilistic Guarantees of Finding Bugs
+
+Reference: Burckhardt et al., ASPLOS 2010, "A randomized scheduler with probabilistic guarantees of finding bugs"
+
+This paper is really a sort of small variation on previous CHESS papers, and substitutes context bounding an exhaustive scheduler with inserting randomized priority inversion points into a scheduler that otherwise strictly schedules threads in a given priority order.
+The rough algorithm is very simple: Choose a priority order for threads, and while a thread is enabled (not blocked) schedule it ahead of all lower priority threads. At specially selected random points in the program execution, permute the priority order of threads and continue.
+
+The attraction of this technique is that it requires only a very simple and efficient randomized scheduler with a small bit of sugar on top.
+The slight complexity here is in knowing where to pick the priority permutation points. Some initial estimate of the length of the execution appears to be required.
 
 ### Model Checking for Programming Languages using VeriSoft
+
+### A Promising Semantics for Relaxed-Memory Concurrency
+
+### CDSChecker: Checking Concurrent Data Structures Written with C/C++ Atomics
+
+### A Primer on Memory Consistency and Cache Coherence
+
+### C++ Concurrency In Action
