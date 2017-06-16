@@ -325,7 +325,7 @@ CDSChecker is a more recent tool than Relacy but in my eyes is a clear descendan
 
 ### CHESS
 
-CHESS was a long running project of Microsoft research, that now sadly appears to be unmaintained. CHESS has had quite a few tools built on top of it. For example, PCT scheduling described above has been built on it. Originally, CHESS was aimed at finding race conditions, deadlocks and live-locks, as opposed to simulating memory re-orderings. CHESS automatically instruments code and can handle large applications: the CHESS papers describe booting an experimental OS inside CHESS. Later, CHESS had a tool called Sober built on it that could simulate what the CHESS researchers refer to as "store buffer relaxation". Or, in ordinary terms, a StoreLoad re-ordering. Sober reports a program to have a bug if it behaves differently when a StoreLoad re-ordering occurs to when it doesn't. This is obviously much more limited than Relacy, CDSChecker (or dare I say it, simple old RelaSharp), but CHESS's focus is different - as it can cope with large applications. 
+CHESS was a long running project of Microsoft research, that now sadly appears to be unmaintained. CHESS has had quite a few tools built on top of it. For example, PCT scheduling described above has been built on it. Originally, CHESS was aimed at finding race conditions, deadlocks and live-locks, as opposed to simulating memory re-orderings. CHESS automatically instruments code and can handle large applications: the CHESS papers describe booting an experimental OS inside CHESS. Later, CHESS had a tool called Sober built on it that could simulate what the CHESS researchers refer to as "store buffer relaxation". Or, in ordinary terms, a StoreLoad re-ordering. Sober reports a program to have a bug if it behaves differently when a StoreLoad re-ordering occurs to when it doesn't. This is obviously much more limited than Relacy, CDSChecker (or dare I say it, simple old RelaSharp), but CHESS's focus is different - as it can cope with large applications.
 
 ### SPIN, TLA+
 
@@ -501,9 +501,25 @@ The slight complexity here is in knowing where to pick the priority permutation 
 
 ### Model Checking for Programming Languages using VeriSoft
 
-### A Promising Semantics for Relaxed-Memory Concurrency
+Reference: Godefroid, POPL 1997, "Model Checking for Programming Languages using VeriSoft"
+
+This is the paper that introduced _stateless_ model checking of thread interleavings. That is, systematically exploring interleavings without remembering which have been seen before. This results in a much larger number of explorations that the state-caching approaches unless care is taken to prune. This is done with techniques reminiscent of Godefroid's earlier _sleep sets_ and _persistent sets_, and has a similar flavour to DPOR.
+
+The main drawback of the technique is that the programs being tested must be terminating. That is, the scheduler is unfair. This is the restriction lifted bu Musuvathi and Qadeer in their 2008 PLDI paper _Fair Stateless Model Checking_ described above.
 
 ### CDSChecker: Checking Concurrent Data Structures Written with C/C++ Atomics
+
+Reference: Norris and Demsky, OOPSLA 2013, "CDSChecker: Checking Concurrent Data Structures Written with C/C++ Atomics"
+(also a journal version in ACM Trans. Program. Lang. Syst. 38(3): 10:1-10:51 (2016))
+
+This paper proposes and describes and implementation of what seems to be the state-of-the-art in model-checking C++ code. The tool described, CDSChecker, is similar to Relacy in scope (it lacks things like spurious CAS failures and ABA detection), but crucially is not restricted to execution order memory re-orderings. Quite interestingly, there is a somewhat informal description of what the authors call _promises_ to support these out-of-execution-order re-orderings. This idea (or fairly close relation to it) seems to have been carefully formalised recently by Kang et al. in their POPL 2017 paper described next!
+
+### A Promising Semantics for Relaxed-Memory Concurrency
+
+Reference: Kang et al., POPL 2017, "A Promising Semantics for Relaxed Memory Concurrency"
+
+This is a lovely paper. It tackles a truly thorny problem. 
+
 
 ### A Primer on Memory Consistency and Cache Coherence
 
