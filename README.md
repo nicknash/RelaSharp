@@ -90,6 +90,8 @@ wraps Interlocked.CompareExchange. This allows it to do three main things:
 
 ## Memory Model Simulation via Vector Clocks
 
+[This section is just too confusing - I plan to rewrite it soon]
+
 This section gives a very rough description of how RelaSharp simulates the C++11 memory model (which the C# memory model can be defined as a special case of). The description below is quite imprecise, and really gives a rough impression of how things work. The entirety of the description below really just corresponds to some very simple code in a single file: [AccessHistory.cs](MemoryModel/AccessHistory.cs) 
 
 To simulate the memory-model, RelaSharp assigns threads incrementing time-stamps at pre-emption points. At each store, the time-stamp of the storing thread is recorded. An ordered, bounded history of all stores to each instrumented variable is also maintained. When a thread performs a load of an instrumented variable V, it considers the stores in this history. Let's call this history H(V). For a load of V, each element H(V) is referred to as a  _candidate load result_ for V, and we say that it was created by a _candidate store_. For a given load of V by some thread, some elements of H(V) will be inconsistent with the memory model semantics, and cannot be returned. Thus we need an algorithm that given a load of V returns an element of H(V) that is consistent with the memory model semantics.
@@ -323,7 +325,7 @@ Relacy's only real missing feature is that it is restricted to execution-order o
 
 CDSChecker is a more recent tool than Relacy but in my eyes is a clear descendant of it, the algorithms in CDSChecker are fairly different to Relacy. The biggest advantage CDSChecker has over Relacy is that it implements _promises_, and is not restricted by the execution order in the types of re-orderings it can observe. Like Relacy, CDSChecker is aimed at C++ code, and makes use of user-space threading to take over thread scheduling.
 
-### CHESS
+### CHESS
 
 CHESS was a long running project of Microsoft research, that now sadly appears to be unmaintained. CHESS has had quite a few tools built on top of it. For example, PCT scheduling described above has been built on it. Originally, CHESS was aimed at finding race conditions, deadlocks and live-locks, as opposed to simulating memory re-orderings. CHESS automatically instruments code and can handle large applications: the CHESS papers describe booting an experimental OS inside CHESS. Later, CHESS had a tool called Sober built on it that could simulate what the CHESS researchers refer to as "store buffer relaxation". Or, in ordinary terms, a StoreLoad re-ordering. Sober reports a program to have a bug if it behaves differently when a StoreLoad re-ordering occurs to when it doesn't. This is obviously much more limited than Relacy, CDSChecker (or dare I say it, simple old RelaSharp), but CHESS's focus is different - as it can cope with large applications.
 
@@ -518,9 +520,18 @@ This paper proposes and describes and implementation of what seems to be the sta
 
 Reference: Kang et al., POPL 2017, "A Promising Semantics for Relaxed Memory Concurrency"
 
-This is a lovely paper. It tackles a truly thorny problem. 
-
+This is a lovely paper. It tackles a truly thorny problem of defining a semantics for C++ that also includes its behaviour in the presence of compiler optimizations. This interaction between compiler optimizations and the memory model semantics until now seems to have been fairly loosley defined. One great thing about the paper is that it gives an operational semantics (i.e., a sort of abstract machine rather than a bunch of rules with complicated implications), and then formalises the model. It uses the idea of evaluations _promising_ a value, quite similar to CDSChecker, but more precisely.
 
 ### A Primer on Memory Consistency and Cache Coherence
 
+Reference: Sorin et al., Synthesis Lectures on Computer Architecture, Morgan & Claypool 2011, "A Primer on Memory Consistency and Cache Coherence"
+
+This is an extremely valuable book. It nails down the architectural realizations for sequential consistency (SC), TSO, explains SC-DRF (data race freedom) well, and covers more relaxed memory models. It also has a good deal of information on cache coherency, showing how cache coherency protocols can be used to implement memory models, or provide what it calls _memory consistency_.
+
+I found this book to just read through, but forgetful as I am, I also now use it as a reference.
+
 ### C++ Concurrency In Action
+
+Reference: Williams, Manning 2012, C++ Concurrency In Action
+
+This is an excellent book that covers the C++11 memory model very well, although C++ focused it's extremely useful for getting a feel for memory models generally. I've only read the memory-model focused parts.
