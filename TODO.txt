@@ -12,7 +12,7 @@
 * Progress / interruptibility.
 * Review Seq cst fence
 * Place OnBegin/OnFinished on threads (with seq cst fences?) rather than current weirdness?
-* More Example lock-free algorithms: Michael-Scott two-lock queue, bounded SPMC/MPMC, CRQ/LCRQ, Fetch-Add Queue.  
+* More Example algorithms: Michael-Scott two-lock queue, bounded SPMC/MPMC, CRQ/LCRQ, Fetch-Add Queue.  
 * Add Invariant() feature
 * Perf. optimizations. 
 * Multi-threaded test runner.
