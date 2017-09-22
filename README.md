@@ -100,12 +100,54 @@ In selecting a candidate load result, candidate stores are considered in the rev
 
 1. The load has sequentially consistent semantics, and the candidate store that created R was sequentially consistent. In this case, the load can only be answered with R, as any other result would violate sequential consistency.
 2. Otherwise, if the loading thread has seen any other store by the storing thread that created R that is as-new or newer-than the store (by that thread) that created R, then the load must be answered with R.
-3. Otherwise, if the loading thread has seen any other store by any thread that is as new or newer-than than that other thread's time-stamp the last time it loaded R then the load must be answered with R. This is a bit of a mouthful. What this condition says is that, if the loading thread has seen a store, S, of another thread that is later than the last load of R by that other thread, then returning an older candidate load result than R would be
+3. Otherwise, if the loading thread has seen any other store by any thread that is as new or newer-than than that other thread's time-stamp the last time it loaded R then the load must be answered with R. This is a bit of a mouthful. What this condition says is that, if the loading thread has seen a store, S, of another thread that follows (in that thread's execution order) the last load of R by that other thread, then returning an older candidate load result than R would be
 incorrect because it would be as though the loading thread had not seen S yet after all. 
 4. If none of the above hold, an older load from the history can be returned.
 
-These four cases leave the meaning of "seeing a store" undefined. A more precise way of saying thread A has "seen a store" by thread B, is 
-to say that thread A has performed a load with acquire semantics of some atomic variable that B performed a store with release semantics to. Abusing terminology a little, the load-acquire is said to "synchronize-with" the store-release. The point of a synchronize-with relationship is that everything that has happened before the store-release by B, is guaranteed to have happened before everything after the load-acquire by A.
+These four cases leave the meaning of "seeing a store" undefined. A more precise way of saying thread A has "seen a store" by thread B, is to say that thread A has performed a load with acquire semantics of some atomic variable that B performed a store with release semantics to. Abusing terminology a little, the load-acquire is said to "synchronize-with" the store-release. The point of a synchronize-with relationship is that everything that has happened before the store-release by B, is guaranteed to have happened before everything after the load-acquire by A.
+
+### Examples
+
+To make the cases above a little clearer, some examples help.
+
+Case '3' deals with transitive dependencies in what makes a store by one thread visible to another.
+For example:
+
+volatile int x = 0, y = 0, z = 0;
+void Thread1()
+{
+    x = 1;
+    y = 1;
+    x = 2;
+    y = 2;
+    x = 3;
+    y = 3;
+}
+void Thread2()
+{
+    if(x == 2)
+    {
+
+    }
+}
+void Thread3()
+{
+    if(y == 3)
+    {
+        z = 1;
+    }
+}
+
+T1           T2           T3
+
+x = 1;
+y = 1;
+x = 2;
+y = 2; <----  T2 acquired here
+x = 3; <----- T2 saw this, but releasesAcquired[T2] < LastSeen[T2]
+y = 3; 
+
+
 
 RelaSharp uses a simple vector clock algorithm to track these synchronized-with relationships. For a test involving N threads, it creates an N entry vector clock, for each thread. Each thread also has an internal clock incremented at each atomic operation. For a given thread T1, VC[T2] is the latest value of thread T2's clock that T1 has synchronized with. 
 
