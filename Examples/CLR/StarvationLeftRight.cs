@@ -5,7 +5,7 @@ using RelaSharp.CLR;
 
 namespace RelaSharp.Examples.CLR
 {
-    public class NaiveLeftRight : IRelaExample
+    public class StarvationLeftRight : IRelaExample
     {
         public IReadOnlyList<Action> ThreadEntries { get; private set; }
 
@@ -180,7 +180,7 @@ namespace RelaSharp.Examples.CLR
         private Dictionary<int, string>[] _instances;
 
 
-        public NaiveLeftRight()
+        public StarvationLeftRight()
         {
             ThreadEntries = new List<Action> { ReadThread, WriteThread };
             var configList = new List<SimpleConfig>{new SimpleConfig("Mixed operations", MemoryOrder.Relaxed, false)};
