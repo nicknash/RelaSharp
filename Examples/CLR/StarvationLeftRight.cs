@@ -112,6 +112,12 @@ namespace RelaSharp.Examples.CLR
             private CLRAtomic64 _index;
             private InstanceSnoop _snoop = new InstanceSnoop();
 
+            // This property is used in test configurations to control whether the first write
+            // waits for reads to finish on the next instance or not. When it is false, 
+            // mutual exclusion fails. When it is true, mutual exclusion is guaranteed but
+            // newly arriving readers can starve a waiting writer. 
+            public bool WaitOnFirstWrite  { get; set; }
+
             public LeftRightLock()
             {
                 _readIndicator = new HashedReadIndicator[2];
@@ -144,8 +150,10 @@ namespace RelaSharp.Examples.CLR
                 {
                     var index = RInterlocked.Read(ref _index);
                     var nextIndex = Toggle(index);
-                    WaitWhileOccupied(_readIndicator[nextIndex]); // Now we're subject to starvation by readers.
-
+                    if(WaitOnFirstWrite)
+                    {
+                        WaitWhileOccupied(_readIndicator[nextIndex]); // Now we're subject to starvation by (new) readers.
+                    }
                     _snoop.BeginWrite(nextIndex);
                     write(instances[nextIndex]);
                     _snoop.EndWrite(nextIndex);
@@ -183,13 +191,15 @@ namespace RelaSharp.Examples.CLR
         public StarvationLeftRight()
         {
             ThreadEntries = new List<Action> { ReadThread, WriteThread };
-            var configList = new List<SimpleConfig>{new SimpleConfig("Mixed operations", MemoryOrder.Relaxed, false)};
+            var configList = new List<SimpleConfig>{new SimpleConfig("Wait for next instance on first write", MemoryOrder.Relaxed, false)
+                                                   ,new SimpleConfig("No wait for next instance on first write", MemoryOrder.Relaxed, true)};
             _configs = configList.GetEnumerator();
         }
 
         public void PrepareForIteration()
         {
             PrepareForNewConfig();
+            _lrLock.WaitOnFirstWrite = !ActiveConfig.ExpectedToFail;                        
         }
 
         public void ReadThread()
