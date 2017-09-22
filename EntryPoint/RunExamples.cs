@@ -29,7 +29,8 @@ namespace RelaSharp.EntryPoint
                                                              c("MichaelScott", new MichaelScottQueue()),
                                                              c("Deadlock", new Deadlock()),
                                                              c("LostWakeUp", new LostWakeUp()),
-                                                             c("LeftRight", new LeftRight()) };
+                                                             c("CorrectLeftRight", new LeftRight()),
+                                                             c("NaiveLeftRight", new NaiveLeftRight()) };
             if(options.ListExamples)
             {
                 Console.WriteLine("Available examples:");
