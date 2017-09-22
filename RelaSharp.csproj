@@ -8,7 +8,7 @@
     <OutputType>Exe</OutputType>
     <PackageId>RelaSharp</PackageId>
     <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
-    <RuntimeFrameworkVersion>1.1.1</RuntimeFrameworkVersion>
+    <RuntimeFrameworkVersion>2.0.0</RuntimeFrameworkVersion>
   </PropertyGroup>
 
 </Project>
