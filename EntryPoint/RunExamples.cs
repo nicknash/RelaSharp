@@ -128,7 +128,7 @@ namespace RelaSharp.EntryPoint
                 if(!options.SelfTest)
                 {
                     var elapsed = sw.Elapsed.TotalSeconds;
-                    Console.WriteLine($"Tested {totalOperations / elapsed} operations per second ({numIterations} iterations at {(numIterations) / elapsed} iterations per second) for {elapsed} seconds.");
+                    Console.WriteLine($"Tested {totalOperations / elapsed:F3} operations per second ({numIterations} iterations at {(numIterations) / elapsed:F3} iterations per second) for {elapsed} seconds.");
                     Console.WriteLine("..........................");
                 }
             }
