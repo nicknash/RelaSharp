@@ -5,7 +5,7 @@ namespace RelaSharp
 {
     class Atomic<T>
     {
-        private static TestEnvironment TE = TestEnvironment.TE;
+        protected static TestEnvironment TE = TestEnvironment.TE;
         protected InternalAtomic<T> _memoryOrdered;
 
         private void MaybeInit()
@@ -59,7 +59,7 @@ namespace RelaSharp
             return oldData;
         }
 
-        private static string Str(T y)
+        protected static string Str(T y)
         {
             return y == null ? "null" : y.ToString();
         }
@@ -76,23 +76,28 @@ namespace RelaSharp
         public int Add(int x, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             var runningThread = Preamble();
-            var result = _memoryOrdered.CurrentValue + x;
-            _memoryOrdered.Exchange(result, mo, runningThread);
-            return result;
+            var newValue = _memoryOrdered.CurrentValue + x;
+            var oldValue = _memoryOrdered.Exchange(newValue, mo, runningThread);
+            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Add ({mo}): --> {Str(newValue)} ({Str(oldValue)})");
+            return newValue;
         }
 
         public int Increment(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             var runningThread = Preamble();
-            _memoryOrdered.Exchange(_memoryOrdered.CurrentValue + 1, mo, runningThread);
-            return -9999;
+            var newValue = _memoryOrdered.CurrentValue + 1;
+            var oldValue = _memoryOrdered.Exchange(newValue, mo, runningThread);
+            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Increment ({mo}): --> {Str(newValue)} ({Str(oldValue)})");
+            return newValue;
         }
 
         public int Decrement(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             var runningThread = Preamble();
-            _memoryOrdered.Exchange(_memoryOrdered.CurrentValue - 1, mo, runningThread);
-            return -9999;
+            var newValue = _memoryOrdered.CurrentValue - 1;
+            var oldValue = _memoryOrdered.Exchange(newValue, mo, runningThread);
+            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Decrement ({mo}): --> {Str(newValue)} ({Str(oldValue)})");
+            return newValue;
         }
     }
 
@@ -101,23 +106,28 @@ namespace RelaSharp
         public long Add(long x, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             var runningThread = Preamble();
-            var result = _memoryOrdered.CurrentValue + x;
-            _memoryOrdered.Exchange(result, mo, runningThread);
-            return result;
+            var newValue = _memoryOrdered.CurrentValue + x;
+            var oldValue = _memoryOrdered.Exchange(newValue, mo, runningThread);
+            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Add ({mo}): --> {Str(newValue)} ({Str(oldValue)})");
+            return newValue;
         }
 
         public long Increment(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             var runningThread = Preamble();
-            _memoryOrdered.Exchange(_memoryOrdered.CurrentValue + 1, mo, runningThread);
-            return -9999;
+            var newValue = _memoryOrdered.CurrentValue + 1;
+            var oldValue = _memoryOrdered.Exchange(newValue, mo, runningThread);
+            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Increment ({mo}): --> {Str(newValue)} ({Str(oldValue)})");
+            return newValue;
         }
 
         public long Decrement(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             var runningThread = Preamble();
-            _memoryOrdered.Exchange(_memoryOrdered.CurrentValue - 1, mo, runningThread);
-            return -9999;
+            var newValue = _memoryOrdered.CurrentValue - 1;
+            var oldValue = _memoryOrdered.Exchange(newValue, mo, runningThread);
+            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Decrement ({mo}): --> {Str(newValue)} ({Str(oldValue)})");
+            return newValue;
         }
     }
 }
