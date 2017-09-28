@@ -25,6 +25,7 @@ namespace RelaSharp.EntryPoint
                                                              c("Petersen", new Petersen()), 
                                                              c("TotalOrder", new TotalOrder()),
                                                              c("TransitiveLastSeen", new TransitiveLastSeen()), 
+                                                             c("SimpleTransitive", new SimpleTransitive()),
                                                              c("LiveLock", new LiveLock()),
                                                              c("Treiber", new TreiberStack()),
                                                              c("MichaelScott", new MichaelScottQueue()),
