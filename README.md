@@ -146,7 +146,7 @@ wraps Interlocked.CompareExchange. This allows it to do three main things:
   a memory re-ordering than running the code natively would allow. 
 * Record file/line numbers and results of the execution for review if the test fails.
 
-## Memory Model Simulation via Vector Clocks (TODO: Maybe move this below the interface description)
+## Memory Model Simulation via Vector Clocks 
 
 This section gives a very rough description of how RelaSharp simulates the C++11 memory model (which the C# memory model can be defined as a special case of). The description below is quite imprecise, and really gives a rough impression of how things work. The entirety of the description below really just corresponds to some very simple code in a single file: [AccessHistory.cs](MemoryModel/AccessHistory.cs) 
 
