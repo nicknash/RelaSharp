@@ -26,7 +26,7 @@ namespace RelaSharp.EntryPoint
                                                              c("TotalOrder", new TotalOrder()),
                                                              c("TransitiveLastSeen", new TransitiveLastSeen()), 
                                                              c("SimpleTransitive", new SimpleTransitive()),
-                                                             c("RelaxedModificationOrder", new RelaxedModificationOrder()),
+                                                             c("RelaxedModOrder", new RelaxedModificationOrder()),
                                                              c("LiveLock", new LiveLock()),
                                                              c("Treiber", new TreiberStack()),
                                                              c("MichaelScott", new MichaelScottQueue()),
