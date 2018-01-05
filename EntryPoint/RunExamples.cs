@@ -33,7 +33,8 @@ namespace RelaSharp.EntryPoint
                                                              c("Deadlock", new Deadlock()),
                                                              c("LostWakeUp", new LostWakeUp()),
                                                              c("CorrectLeftRight", new LeftRight()),
-                                                             c("StarvationLeftRight", new StarvationLeftRight()) };
+                                                             c("StarvationLeftRight", new StarvationLeftRight()),
+                                                             c("MultiWriterCOWList", new COWList()) };
             if(options.ListExamples)
             {
                 Console.WriteLine("Available examples:");
