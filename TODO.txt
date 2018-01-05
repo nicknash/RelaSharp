@@ -1,5 +1,10 @@
+* Place OnBegin/OnFinished on dedicated threads with pre-emption disabled (with seq cst fences). The current situation
+  where they logically run on a given test-thread is awkward and inefficient (see e.g. the hoops that the COWList Example
+  has to jump through).
+
 * Exhaustive scheduler: Finish fair/demonic scheduling (need to deal with thread wake-ups)
 * Exhaustive scheduler: eliminate wasteful switches / perform DPOR
+
 * PCT Scheduler / randomized context bounding.
 * Left/Right RelaExample: Interesting invariants / verifications?
 * Add MaybeSwitchAssert ?
@@ -11,7 +16,6 @@
 * Review how RMW ops + Relaxed (especially, but other MOs too) are specified in C++11 vs. how my impl behaves.
 * Progress / interruptibility.
 * Review Seq cst fence
-* Place OnBegin/OnFinished on threads (with seq cst fences?) rather than current weirdness?
 * More Example algorithms: Michael-Scott two-lock queue, bounded SPMC/MPMC, CRQ/LCRQ, Fetch-Add Queue.  
 * Add Invariant() feature
 * Perf. optimizations. 
