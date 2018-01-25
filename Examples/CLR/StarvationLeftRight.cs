@@ -201,7 +201,7 @@ namespace RelaSharp.Examples.CLR
         public StarvationLeftRight()
         {
             ThreadEntries = new List<Action> { ReadThread, WriteThread };
-            var configList = new List<ExampleConfig>{new ExampleConfig("Wait for next instance on first write", true, true),
+            var configList = new List<ExampleConfig>{new ExampleConfig("Wait for next instance on first write", true, true)
                                                    ,new ExampleConfig("No wait for next instance on first write", true, false)};
             _configs = configList.GetEnumerator();
         }
