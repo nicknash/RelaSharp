@@ -123,13 +123,10 @@ namespace RelaSharp.Examples.CLR
             public U Read<T, U>(T[] instances, Func<T, U> read)
             {
                 var versionIndex = RUnordered.Read(ref _versionIndex);
-                //var versionIndex = RVolatile.Read(ref _versionIndex);
-                //var versionIndex = RInterlocked.Read(ref _versionIndex); 
                 var readIndicator = _readIndicator[versionIndex];
                 readIndicator.Arrive();
                 try
-                {
-                    //var idx = RVolatile.Read(ref _readIndex);
+                {   
                     var idx = RInterlocked.Read(ref _readIndex);
                     _snoop.BeginRead(idx);
                     var result = read(instances[idx]);
@@ -147,7 +144,7 @@ namespace RelaSharp.Examples.CLR
                 RMonitor.Enter(_writersMutex);
                 try
                 {
-                    var readIndex = RUnordered.Read(ref _readIndex);//RInterlocked.Read(ref _readIndex);
+                    var readIndex = RUnordered.Read(ref _readIndex);
                     var nextReadIndex = Toggle(readIndex);
                     _snoop.BeginWrite(nextReadIndex);
                     write(instances[nextReadIndex]);
@@ -155,8 +152,6 @@ namespace RelaSharp.Examples.CLR
                     
                     // Move subsequent readers to 'next' instance 
                     RInterlocked.Exchange(ref _readIndex, nextReadIndex);
-                    //RVolatile.Write(ref _readIndex, nextReadIndex);
-                    //RUnordered.Write(ref _readIndex, nextReadIndex);
                     // Wait for all readers marked in the 'next' read indicator,
                     // these readers could be reading the 'readIndex' instance 
                     // we want to write next 
@@ -166,9 +161,8 @@ namespace RelaSharp.Examples.CLR
 
                     WaitWhileOccupied(_readIndicator[nextVersionIndex]);
                     // Move subsequent readers to the 'next' read indicator 
-                    //RVolatile.Write(ref _versionIndex, nextVersionIndex);
                     RUnordered.Write(ref _versionIndex, nextVersionIndex);
-                    // At this point all readers subsequent readers will read the 'next' instance
+                    // At this point all subsequent readers will read the 'next' instance
                     // and mark the 'nextVersionIndex' read indicator, so the only remaining potential
                     // readers are the ones on the 'versionIndex' read indicator, so wait for them to finish 
                     WaitWhileOccupied(_readIndicator[versionIndex]);
@@ -196,12 +190,10 @@ namespace RelaSharp.Examples.CLR
 
         private LeftRightLock _lrLock;
         private Dictionary<int, string>[] _instances;
-
-
         public LeftRight()
         {
             ThreadEntries = new List<Action> { ReadThread, ReadThread, WriteThread, WriteThread };
-            var configList = new List<SimpleConfig>{new SimpleConfig("All operations relaxed", MemoryOrder.Relaxed, false)};
+            var configList = new List<SimpleConfig>{new SimpleConfig("Mixed operations", MemoryOrder.Relaxed, false)};
             _configs = configList.GetEnumerator();
         }
 

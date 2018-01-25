@@ -131,8 +131,8 @@ namespace RelaSharp.Examples.CLR
             public LeftRightLock()
             {
                 _readIndicator = new HashedReadIndicator[2];
-                _readIndicator[0] = new HashedReadIndicator(0, 1);
-                _readIndicator[1] = new HashedReadIndicator(0, 1);
+                _readIndicator[0] = new HashedReadIndicator(2, 1);
+                _readIndicator[1] = new HashedReadIndicator(2, 1);
             }
 
             public U Read<T, U>(T[] instances, Func<T, U> read)
@@ -201,7 +201,7 @@ namespace RelaSharp.Examples.CLR
         public StarvationLeftRight()
         {
             ThreadEntries = new List<Action> { ReadThread, WriteThread };
-            var configList = new List<ExampleConfig>{new ExampleConfig("Wait for next instance on first write", true, true)
+            var configList = new List<ExampleConfig>{new ExampleConfig("Wait for next instance on first write", true, true),
                                                    ,new ExampleConfig("No wait for next instance on first write", true, false)};
             _configs = configList.GetEnumerator();
         }
