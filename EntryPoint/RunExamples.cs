@@ -34,7 +34,8 @@ namespace RelaSharp.EntryPoint
                                                              c("LostWakeUp", new LostWakeUp()),
                                                              c("CorrectLeftRight", new LeftRight()),
                                                              c("StarvationLeftRight", new StarvationLeftRight()),
-                                                             c("MultiWriterCOWList", new COWList()) };
+                                                             c("MultiWriterCOWList", new COWList()),
+                                                             c("SingleCounterReadIndicator", new SingleCounterReadIndicator()) };
             if(options.ListExamples)
             {
                 Console.WriteLine("Available examples:");
