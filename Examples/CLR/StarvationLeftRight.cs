@@ -28,54 +28,20 @@ namespace RelaSharp.Examples.CLR
         private IEnumerator<ExampleConfig> _configs;
         private ExampleConfig ActiveConfig => _configs.Current;
 
-        class HashedReadIndicator
+      class ReadIndicator
         {
-            private CLRAtomic32[] _occupancyCounts; 
-            private int _paddingPower;
-            private int _numEntries;
-
-            public HashedReadIndicator(int sizePower, int paddingPower)
-            {
-                _numEntries = 1 << sizePower;
-                
-                int size = _numEntries << paddingPower;
-                _occupancyCounts = new CLRAtomic32[size];
-                _paddingPower = paddingPower;
-            }
-
-            private int GetIndex()
-            {
-                var threadId = Thread.CurrentThread.ManagedThreadId;
-                var result = (threadId.GetHashCode() & (_numEntries - 1)) << _paddingPower;
-                return result;
-            }
-
+            private CLRAtomic64 _numReaders;
             public void Arrive()
             {
-                int index = GetIndex();
-                RInterlocked.Increment(ref _occupancyCounts[index]);
+                RInterlocked.Increment(ref _numReaders);
             }
 
             public void Depart()
             {
-                int index = GetIndex();
-                RInterlocked.Decrement(ref _occupancyCounts[index]);
+                RInterlocked.Decrement(ref _numReaders);
             }
 
-            public bool IsOccupied
-            {
-                get
-                {
-                    for (int i = 0; i < _numEntries; ++i)
-                    {
-                        if (RVolatile.Read(ref _occupancyCounts[i << _paddingPower]) > 0)
-                        {
-                            return true;
-                        }
-                    }
-                    return false;
-                }
-            }
+            public bool IsEmpty => RInterlocked.Read(ref _numReaders) == 0;
         }
 
         class InstanceSnoop
@@ -118,7 +84,7 @@ namespace RelaSharp.Examples.CLR
         class LeftRightLock
         {
             private readonly Object _writersMutex = new Object();
-            private HashedReadIndicator[] _readIndicator;
+            private ReadIndicator[] _readIndicator;
             private CLRAtomic64 _index;
             private InstanceSnoop _snoop = new InstanceSnoop();
 
@@ -130,9 +96,9 @@ namespace RelaSharp.Examples.CLR
 
             public LeftRightLock()
             {
-                _readIndicator = new HashedReadIndicator[2];
-                _readIndicator[0] = new HashedReadIndicator(2, 1);
-                _readIndicator[1] = new HashedReadIndicator(2, 1);
+                _readIndicator = new ReadIndicator[2];
+                _readIndicator[0] = new ReadIndicator();
+                _readIndicator[1] = new ReadIndicator();
             }
 
             public U Read<T, U>(T[] instances, Func<T, U> read)
@@ -184,9 +150,9 @@ namespace RelaSharp.Examples.CLR
                 }
             }
 
-            private static void WaitWhileOccupied(HashedReadIndicator readIndicator)
+            private static void WaitWhileOccupied(ReadIndicator readIndicator)
             {
-                while (readIndicator.IsOccupied) TE.Yield();
+                while (!readIndicator.IsEmpty) TE.Yield();
             }
             private static long Toggle(long i)
             {
