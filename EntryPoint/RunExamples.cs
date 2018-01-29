@@ -35,7 +35,8 @@ namespace RelaSharp.EntryPoint
                                                              c("CorrectLeftRight", new LeftRight()),
                                                              c("StarvationLeftRight", new StarvationLeftRight()),
                                                              c("MultiWriterCOWList", new COWList()),
-                                                             c("SingleCounterReadIndicator", new SingleCounterReadIndicator()) };
+                                                             c("SimpleReadIndicator", new SingleCounterReadIndicator()),
+                                                             c("DCLReadIndicator", new DCLReadIndicator()) };
             if(options.ListExamples)
             {
                 Console.WriteLine("Available examples:");

@@ -136,6 +136,7 @@ namespace RelaSharp.Examples.CLR
                     
                     // Move subsequent readers to 'next' instance 
                     RInterlocked.Exchange(ref _index, nextIndex);
+                    
                     // Wait for all readers to finish reading the instance we want to write next
                     WaitWhileOccupied(_readIndicator[index]);
                     // At this point there may be readers, but they must be on nextReadIndex, we can 
@@ -156,7 +157,7 @@ namespace RelaSharp.Examples.CLR
             }
             private static long Toggle(long i)
             {
-                return i ^ 1;
+                return i;// ^ 1;
             }
         }
 

@@ -38,7 +38,6 @@ namespace RelaSharp.Examples
         private bool _moreConfigurations = true;
 
         private int _numReading = 0;
-        //private int _numWriting = 0;
         private ReadIndicator _readIndicator;
    
         public SingleCounterReadIndicator()
@@ -81,7 +80,7 @@ namespace RelaSharp.Examples
 
         public void PrepareForIteration()
         {
-            _numReading = 0;//_numWriting = 0;
+            _numReading = 0;
             _readIndicator = new ReadIndicator();
             
         }
