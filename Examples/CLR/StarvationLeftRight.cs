@@ -7,28 +7,16 @@ namespace RelaSharp.Examples.CLR
 {
     public class StarvationLeftRight : IRelaExample
     {
-        class ExampleConfig : SimpleConfig
-        {
-            public bool WaitOnFirstWrite { get; }
-            
-            public ExampleConfig(string description, bool expectedToFail, bool waitOnFirstWrite) 
-            : base(description, MemoryOrder.Relaxed, expectedToFail)
-            {
-                WaitOnFirstWrite = waitOnFirstWrite;
-            }
-        }
-
         public IReadOnlyList<Action> ThreadEntries { get; private set; }
 
-        public string Name => "Incorrect versions of the left-right readers-writers lock";
+        public string Name => "Correct Left-Right implementation that allows writer starvation";
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;
         private static TestEnvironment TE = TestEnvironment.TE;
 
-        private IEnumerator<ExampleConfig> _configs;
-        private ExampleConfig ActiveConfig => _configs.Current;
-
-      class ReadIndicator
+        private IEnumerator<SimpleConfig> _configs;
+        private SimpleConfig ActiveConfig => _configs.Current;
+        class ReadIndicator
         {
             private CLRAtomic64 _numReaders;
             public void Arrive()
@@ -84,38 +72,29 @@ namespace RelaSharp.Examples.CLR
         class LeftRightLock
         {
             private readonly Object _writersMutex = new Object();
-            private ReadIndicator[] _readIndicator;
-            private CLRAtomic64 _index;
+            private ReadIndicator _readIndicator;
+            private CLRAtomic64 _readIndex;
             private InstanceSnoop _snoop = new InstanceSnoop();
-
-            // This property is used in test configurations to control whether the first write
-            // waits for reads to finish on the next instance or not. When it is false, 
-            // mutual exclusion fails. When it is true, mutual exclusion also fails (but not as easily)
-            // and writers can be starved by newly arriving readers.
-            public bool WaitOnFirstWrite  { get; set; }
 
             public LeftRightLock()
             {
-                _readIndicator = new ReadIndicator[2];
-                _readIndicator[0] = new ReadIndicator();
-                _readIndicator[1] = new ReadIndicator();
+                _readIndicator = new ReadIndicator();
             }
 
             public U Read<T, U>(T[] instances, Func<T, U> read)
             {
-                var index = RInterlocked.Read(ref _index);
-                var readIndicator = _readIndicator[index];
-                readIndicator.Arrive();
+                _readIndicator.Arrive();
                 try
-                {
-                    _snoop.BeginRead(index);
-                    var result = read(instances[index]);
-                    _snoop.EndRead(index);
+                {   
+                    var idx = RInterlocked.Read(ref _readIndex);
+                    _snoop.BeginRead(idx);
+                    var result = read(instances[idx]);
+                    _snoop.EndRead(idx);
                     return result;
                 }
                 finally
                 {
-                    readIndicator.Depart();
+                    _readIndicator.Depart();
                 }
             }
 
@@ -124,26 +103,16 @@ namespace RelaSharp.Examples.CLR
                 RMonitor.Enter(_writersMutex);
                 try
                 {
-                    var index = RInterlocked.Read(ref _index);
-                    var nextIndex = Toggle(index);
-                    if(WaitOnFirstWrite)
-                    {
-                        WaitWhileOccupied(_readIndicator[nextIndex]); // Now we're subject to starvation by (new) readers.
-                    }                                                 // And mutual exclusion may still be violated.
-                    _snoop.BeginWrite(nextIndex);
-                    write(instances[nextIndex]);
-                    _snoop.EndWrite(nextIndex);
-                    
-                    // Move subsequent readers to 'next' instance 
-                    RInterlocked.Exchange(ref _index, nextIndex);
-                    
-                    // Wait for all readers to finish reading the instance we want to write next
-                    WaitWhileOccupied(_readIndicator[index]);
-                    // At this point there may be readers, but they must be on nextReadIndex, we can 
-                    // safely write.
-                    _snoop.BeginWrite(index);
-                    write(instances[index]);
-                    _snoop.EndWrite(index);
+                    var readIndex = RInterlocked.Read(ref _readIndex);
+                    var nextReadIndex = Toggle(readIndex);
+                    _snoop.BeginWrite(nextReadIndex);
+                    write(instances[nextReadIndex]);
+                    _snoop.EndWrite(nextReadIndex);
+                    RInterlocked.Exchange(ref _readIndex, nextReadIndex);
+                    WaitWhileOccupied(_readIndicator);
+                    _snoop.BeginWrite(readIndex);
+                    write(instances[readIndex]);
+                    _snoop.EndWrite(readIndex);
                 }
                 finally
                 {
@@ -153,35 +122,31 @@ namespace RelaSharp.Examples.CLR
 
             private static void WaitWhileOccupied(ReadIndicator readIndicator)
             {
-                while (!readIndicator.IsEmpty) TE.Yield();
+                while (!readIndicator.IsEmpty) ;
             }
             private static long Toggle(long i)
             {
-                return i;// ^ 1;
+                return i ^ 1;
             }
         }
 
         private LeftRightLock _lrLock;
         private Dictionary<int, string>[] _instances;
-
-
         public StarvationLeftRight()
         {
-            ThreadEntries = new List<Action> { ReadThread, WriteThread };
-            var configList = new List<ExampleConfig>{new ExampleConfig("Wait for next instance on first write", true, true)
-                                                   ,new ExampleConfig("No wait for next instance on first write", true, false)};
+            ThreadEntries = new List<Action> { ReadThread, ReadThread, WriteThread, WriteThread };
+            var configList = new List<SimpleConfig>{new SimpleConfig("Seq-cst operations", MemoryOrder.Relaxed, false)};
             _configs = configList.GetEnumerator();
         }
 
         public void PrepareForIteration()
         {
             PrepareForNewConfig();
-            _lrLock.WaitOnFirstWrite = ActiveConfig.WaitOnFirstWrite;
         }
 
         public void ReadThread()
         {
-            for(int i = 0; i < 1; ++i)
+            for(int i = 0; i < 5; ++i)
             {
                 string message = null;
                 bool read = _lrLock.Read(_instances, d => d.TryGetValue(i, out message));
@@ -190,7 +155,7 @@ namespace RelaSharp.Examples.CLR
 
         public void WriteThread()
         {
-            for(int i = 0; i < 1; ++i)
+            for(int i = 0; i < 5; ++i)
             {
                 _lrLock.Write(_instances, d => d[i] = $"Wrote This: {i}");
             }
@@ -224,6 +189,5 @@ namespace RelaSharp.Examples.CLR
             }
             return moreConfigurations;
         }
-
     }
 }
