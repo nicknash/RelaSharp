@@ -2,6 +2,8 @@
   where they logically run on a given test-thread is awkward and inefficient (see e.g. the hoops that the COWList Example
   has to jump through).
 
+* Event log tags?
+
 * Exhaustive scheduler: Finish fair/demonic scheduling (need to deal with thread wake-ups)
 * Exhaustive scheduler: eliminate wasteful switches / perform DPOR
 
