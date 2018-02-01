@@ -33,7 +33,7 @@ namespace RelaSharp.EntryPoint
                                                              c("Deadlock", new Deadlock()),
                                                              c("LostWakeUp", new LostWakeUp()),
                                                              c("CorrectLeftRight", new LeftRight()),
-                                                             c("StarvationLeftRight", new StarvationLeftRight()),
+                                                             c("IncorrectLeftRight", new IncorrectLeftRight()),
                                                              c("MultiWriterCOWList", new COWList()),
                                                              c("SimpleReadIndicator", new SingleCounterReadIndicator()),
                                                              c("DCLReadIndicator", new DCLReadIndicator()) };
