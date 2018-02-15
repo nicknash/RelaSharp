@@ -2,7 +2,7 @@ using RelaSharp.MemoryModel;
 
 namespace RelaSharp.Scheduling
 {
-    interface IScheduler : ILookback
+    public interface IScheduler : ILookback
     {
         void MaybeSwitch();
         bool ThreadWaiting(int waitingOnThreadId, object lockObject);

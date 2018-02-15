@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace RelaSharp.Scheduling
 {
-    class NaiveRandomScheduler : IScheduler
+    public class NaiveRandomScheduler : IScheduler
     {
         class ArraySet
         {

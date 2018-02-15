@@ -2,7 +2,7 @@ using System;
 
 namespace RelaSharp.MemoryModel
 {
-    class ShadowThread
+    public class ShadowThread
     {
         public long Clock => ReleasesAcquired[Id];
         public readonly VectorClock ReleasesAcquired; 

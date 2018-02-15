@@ -3,7 +3,7 @@ using RelaSharp.Scheduling.Exhaustive;
 
 namespace RelaSharp.Scheduling
 { 
-    class ExhaustiveScheduler : IScheduler
+    public class ExhaustiveScheduler : IScheduler
     {
         private readonly SchedulingStrategy _strategy;
         private readonly int _numThreads;

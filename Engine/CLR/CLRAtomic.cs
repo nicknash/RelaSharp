@@ -1,6 +1,6 @@
 namespace RelaSharp.CLR
 {
-    class CLRAtomic<T>
+    public class CLRAtomic<T>
     {
         private readonly Atomic<T> _atomic;
 
@@ -19,7 +19,7 @@ namespace RelaSharp.CLR
         }
     }    
 
-    class CLRAtomic32
+    public class CLRAtomic32
     {
         public readonly Atomic32 _atomic;
         private CLRAtomic32()
@@ -37,7 +37,7 @@ namespace RelaSharp.CLR
         }
     }
 
-    class CLRAtomic64
+    public class CLRAtomic64
     {
         public readonly Atomic64 _atomic;
         private CLRAtomic64()

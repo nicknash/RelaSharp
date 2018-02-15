@@ -1,6 +1,6 @@
 namespace RelaSharp.MemoryModel
 {
-    interface ILookback
+    public interface ILookback
     {
         int ChooseLookback(int maxLookback);
     }

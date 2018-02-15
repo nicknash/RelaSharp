@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace RelaSharp.CLR
 {
-    static class RMonitor
+    public static class RMonitor
     {
         private static Dictionary<Object, MonitorInstance> _lockToMonitor = new Dictionary<Object, MonitorInstance>();
 

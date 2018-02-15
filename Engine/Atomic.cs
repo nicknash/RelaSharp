@@ -3,7 +3,7 @@ using RelaSharp.MemoryModel;
 
 namespace RelaSharp
 {
-    class Atomic<T>
+    public class Atomic<T>
     {
         protected static TestEnvironment TE = TestEnvironment.TE;
         protected InternalAtomic<T> _memoryOrdered;
@@ -71,7 +71,7 @@ namespace RelaSharp
     }
  
  
-    class Atomic32 : Atomic<int>
+    public class Atomic32 : Atomic<int>
     {
         public int Add(int x, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
@@ -101,7 +101,7 @@ namespace RelaSharp
         }
     }
 
-    class Atomic64 : Atomic<long>
+    public class Atomic64 : Atomic<long>
     {
         public long Add(long x, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {

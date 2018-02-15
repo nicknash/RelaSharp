@@ -2,7 +2,7 @@
  
  namespace RelaSharp
  {
-    class Fence
+    public class Fence
     {
         private static TestEnvironment TE = TestEnvironment.TE;
        

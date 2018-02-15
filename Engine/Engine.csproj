@@ -4,9 +4,8 @@
     <TargetFramework>netcoreapp1.1</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DebugType>portable</DebugType>
-    <AssemblyName>RelaSharp</AssemblyName>
-    <OutputType>Exe</OutputType>
-    <PackageId>RelaSharp</PackageId>
+    <AssemblyName>RelaSharp.Engine</AssemblyName>
+    <PackageId>RelaSharp.Engine</PackageId>
     <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
     <RuntimeFrameworkVersion>2.0.0</RuntimeFrameworkVersion>
   </PropertyGroup>

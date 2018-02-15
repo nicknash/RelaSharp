@@ -1,6 +1,6 @@
 namespace RelaSharp
 {
-    enum MemoryOrder
+    public enum MemoryOrder
     {
         Relaxed,
         Acquire,

@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 
 namespace RelaSharp.CLR
 {
-    static class RVolatile
+    public static class RVolatile
     {
         public static T Read<T>(ref CLRAtomic<T> data, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {

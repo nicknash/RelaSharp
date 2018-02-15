@@ -4,7 +4,7 @@ using RelaSharp.MemoryModel;
 namespace RelaSharp
 {
     
-    class RaceChecked<T>
+    public class RaceChecked<T>
     {
         private static TestEnvironment TE = TestEnvironment.TE;
 

@@ -5,7 +5,7 @@ using RelaSharp.MemoryModel;
 
 namespace RelaSharp
 { 
-    class TestEnvironment // Rename to TestRunner?
+    public class TestEnvironment // Rename to TestRunner?
     {
         public int HistoryLength => 20;
         public ulong LiveLockLimit { get; private set;}

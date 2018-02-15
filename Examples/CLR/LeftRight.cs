@@ -17,7 +17,7 @@ namespace RelaSharp.Examples.CLR
         private IEnumerator<SimpleConfig> _configs;
         private SimpleConfig ActiveConfig => _configs.Current;
 
-        class HashedReadIndicator
+        /*class HashedReadIndicator
         {
             private CLRAtomic32[] _occupancyCounts; 
             private int _paddingPower;
@@ -66,6 +66,21 @@ namespace RelaSharp.Examples.CLR
                     return false;
                 }
             }
+        }*/
+        class ReadIndicator
+        {
+            private CLRAtomic64 _numReaders;
+            public void Arrive()
+            {
+                RInterlocked.Increment(ref _numReaders);
+            }
+
+            public void Depart()
+            {
+                RInterlocked.Decrement(ref _numReaders);
+            }
+
+            public bool IsEmpty => RInterlocked.Read(ref _numReaders) == 0;
         }
 
         class InstanceSnoop
@@ -108,21 +123,25 @@ namespace RelaSharp.Examples.CLR
         class LeftRightLock
         {
             private readonly Object _writersMutex = new Object();
-            private HashedReadIndicator[] _readIndicator;
+            private ReadIndicator[] _readIndicator;
             private CLRAtomic64 _versionIndex;
             private CLRAtomic64 _readIndex;
             private InstanceSnoop _snoop = new InstanceSnoop();
 
             public LeftRightLock()
             {
-                _readIndicator = new HashedReadIndicator[2];
-                _readIndicator[0] = new HashedReadIndicator(3, 1);
-                _readIndicator[1] = new HashedReadIndicator(3, 1);
+                // _readIndicator = new HashedReadIndicator[2];
+                // _readIndicator[0] = new HashedReadIndicator(3, 1);
+                // _readIndicator[1] = new HashedReadIndicator(3, 1);
+                _readIndicator = new ReadIndicator[2];
+                _readIndicator[0] = new ReadIndicator();
+                _readIndicator[1] = new ReadIndicator();
             }
 
             public U Read<T, U>(T[] instances, Func<T, U> read)
             {
-                var versionIndex = RUnordered.Read(ref _versionIndex);
+                var versionIndex = RInterlocked.Read(ref _versionIndex);
+//                var versionIndex = RUnordered.Read(ref _versionIndex);
                 var readIndicator = _readIndicator[versionIndex];
                 readIndicator.Arrive();
                 try
@@ -144,7 +163,8 @@ namespace RelaSharp.Examples.CLR
                 RMonitor.Enter(_writersMutex);
                 try
                 {
-                    var readIndex = RUnordered.Read(ref _readIndex);
+//                    var readIndex = RUnordered.Read(ref _readIndex);
+                    var readIndex = RInterlocked.Read(ref _readIndex);
                     var nextReadIndex = Toggle(readIndex);
                     _snoop.BeginWrite(nextReadIndex);
                     write(instances[nextReadIndex]);
@@ -155,13 +175,15 @@ namespace RelaSharp.Examples.CLR
                     // Wait for all readers marked in the 'next' read indicator,
                     // these readers could be reading the 'readIndex' instance 
                     // we want to write next 
-                    //var versionIndex = RVolatile.Read(ref _versionIndex);
-                    var versionIndex = RUnordered.Read(ref _versionIndex);
+                    var versionIndex = RInterlocked.Read(ref _versionIndex);
+                    //var versionIndex = RUnordered.Read(ref _versionIndex);
                     var nextVersionIndex = Toggle(versionIndex);
 
                     WaitWhileOccupied(_readIndicator[nextVersionIndex]);
                     // Move subsequent readers to the 'next' read indicator 
-                    RUnordered.Write(ref _versionIndex, nextVersionIndex);
+                    
+                    RInterlocked.Exchange(ref _versionIndex, nextVersionIndex);
+//                    RUnordered.Write(ref _versionIndex, nextVersionIndex);
                     // At this point all subsequent readers will read the 'next' instance
                     // and mark the 'nextVersionIndex' read indicator, so the only remaining potential
                     // readers are the ones on the 'versionIndex' read indicator, so wait for them to finish 
@@ -178,9 +200,9 @@ namespace RelaSharp.Examples.CLR
                 }
             }
 
-            private static void WaitWhileOccupied(HashedReadIndicator readIndicator)
+            private static void WaitWhileOccupied(ReadIndicator readIndicator)
             {
-                while (readIndicator.IsOccupied) ;
+                while (!readIndicator.IsEmpty) ;
             }
             private static long Toggle(long i)
             {
@@ -193,6 +215,7 @@ namespace RelaSharp.Examples.CLR
         public LeftRight()
         {
             ThreadEntries = new List<Action> { ReadThread, ReadThread, WriteThread, WriteThread };
+            //ThreadEntries = new List<Action> { ReadThread, WriteThread };
             var configList = new List<SimpleConfig>{new SimpleConfig("Mixed operations", MemoryOrder.Relaxed, false)};
             _configs = configList.GetEnumerator();
         }

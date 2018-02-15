@@ -1,6 +1,6 @@
 namespace RelaSharp.MemoryModel
 {    
-    class InternalAtomic<T> 
+    public class InternalAtomic<T> 
     {
         private AccessHistory<T> _history;
 

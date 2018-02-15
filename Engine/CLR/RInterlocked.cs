@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 
 namespace RelaSharp.CLR
 {      
-    class RInterlocked // TODO: Check Joe Duffy -- do these imply a SeqCstFence ?
+    public class RInterlocked // TODO: Check Joe Duffy -- do these imply a SeqCstFence ?
     {
         public static bool CompareExchange<T>(ref CLRAtomic<T> data, T newData, T comparand, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
