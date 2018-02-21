@@ -5,7 +5,7 @@ namespace RelaSharp
 {
     public class Atomic<T>
     {
-        protected static TestEnvironment TE = TestEnvironment.TE;
+        private static TestEnvironment TE = TestEnvironment.TE;
         protected InternalAtomic<T> _memoryOrdered;
 
         private void MaybeInit()
@@ -73,6 +73,8 @@ namespace RelaSharp
  
     public class Atomic32 : Atomic<int>
     {
+        private static TestEnvironment TE = TestEnvironment.TE;
+        
         public int Add(int x, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             var runningThread = Preamble();
@@ -103,6 +105,8 @@ namespace RelaSharp
 
     public class Atomic64 : Atomic<long>
     {
+        private static TestEnvironment TE = TestEnvironment.TE;
+        
         public long Add(long x, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             var runningThread = Preamble();

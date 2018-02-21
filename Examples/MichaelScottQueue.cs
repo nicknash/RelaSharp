@@ -113,7 +113,7 @@ namespace RelaSharp.Examples
         public string Name => "Michael-Scott Queue";
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;
-        private static TestEnvironment TE = TestEnvironment.TE;
+        private static RelaEngine RE = RelaEngine.RE;
         private IEnumerator<Config> _configs;
         private Config ActiveConfig => _configs.Current;
         private NaiveLockFreeQueue _queue;
@@ -132,7 +132,7 @@ namespace RelaSharp.Examples
         private void VerifyAllDequeuedInOrder()
         {
             int expectedNumRemoved = ActiveConfig.NumAddingThreads * ActiveConfig.NumAddedPerThread; 
-            TE.Assert(_dequeued.Count == expectedNumRemoved, $"Incorrect data dequeued: expected {expectedNumRemoved} but found {_dequeued.Count}");
+            RE.Assert(_dequeued.Count == expectedNumRemoved, $"Incorrect data dequeued: expected {expectedNumRemoved} but found {_dequeued.Count}");
             var nextFromExpectedFromThread = new int[ActiveConfig.NumAddingThreads];
             for(int i = 0; i < ActiveConfig.NumAddingThreads; ++i)
             {
@@ -143,7 +143,7 @@ namespace RelaSharp.Examples
                 var here = _dequeued[i];
                 int addingThread = here / ActiveConfig.NumAddedPerThread;
                 var nextExpected = nextFromExpectedFromThread[addingThread];
-                TE.Assert(here == nextExpected, $"Expected to find {nextExpected} in dequeued list but found {here}.");
+                RE.Assert(here == nextExpected, $"Expected to find {nextExpected} in dequeued list but found {here}.");
                 nextFromExpectedFromThread[addingThread]++;
             }
         }

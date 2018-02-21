@@ -81,7 +81,7 @@ namespace RelaSharp.Examples
         public string Name => "Treiber Stack";
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;
-        private static TestEnvironment TE = TestEnvironment.TE;
+        private static RelaEngine TR = RelaEngine.RE;
         private IEnumerator<Config> _configs;
         private Config ActiveConfig => _configs.Current;
         private NaiveLockFreeStack _stack;
@@ -106,22 +106,22 @@ namespace RelaSharp.Examples
         private void VerifyAllPushedWerePopped()
         {
             var distinctPopped = new HashSet<int>(_popped);
-            TE.Assert(distinctPopped.Count == _popped.Count, "Duplicates popped!");
+            TR.Assert(distinctPopped.Count == _popped.Count, "Duplicates popped!");
             for(int i = 0; i < ActiveConfig.NumPushingThreads * ActiveConfig.NumPushedPerThread; ++i)
             {
-                TE.Assert(distinctPopped.Remove(i), $"Couldn't find {i} in data popped from stack");
+                TR.Assert(distinctPopped.Remove(i), $"Couldn't find {i} in data popped from stack");
             }
-            TE.Assert(distinctPopped.Count == 0, "More data popped than pushed!");
+            TR.Assert(distinctPopped.Count == 0, "More data popped than pushed!");
         }
 
         private void VerifyAllPoppedInReverseOrder()
         {
             int expectedNumPushed = ActiveConfig.NumPushingThreads * ActiveConfig.NumPushedPerThread; 
-            TE.Assert(_poppedInOrder.Count == expectedNumPushed, $"Too much data popped: expected {expectedNumPushed} but found {_poppedInOrder.Count}");
+            TR.Assert(_poppedInOrder.Count == expectedNumPushed, $"Too much data popped: expected {expectedNumPushed} but found {_poppedInOrder.Count}");
             for(int i = 0; i < expectedNumPushed; ++i)
             {
                 int expected = expectedNumPushed - i - 1;
-                TE.Assert(_poppedInOrder[i] == expected, $"Expected to find {expected} in popped list but found {_poppedInOrder[i]}.");
+                TR.Assert(_poppedInOrder[i] == expected, $"Expected to find {expected} in popped list but found {_poppedInOrder[i]}.");
             }
         }
         public void OnBegin()

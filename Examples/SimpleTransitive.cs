@@ -5,7 +5,7 @@ namespace RelaSharp.Examples
 {
     class SimpleTransitive : IRelaExample
     {
-        private static TestEnvironment TE = TestEnvironment.TE;
+        private static RelaEngine RE = RelaEngine.RE;
         public string Name => "Acquire/Release transitive visibility example";
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;
@@ -41,7 +41,7 @@ namespace RelaSharp.Examples
         {
             if(y.Load(MemoryOrder.Acquire) == 1)
             {
-                TE.Assert(x.Load(MemoryOrder.Relaxed) == 2, "x should be 2");
+                RE.Assert(x.Load(MemoryOrder.Relaxed) == 2, "x should be 2");
             }
         } 
 

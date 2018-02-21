@@ -59,7 +59,7 @@ namespace RelaSharp.Examples
                 }
             }
         }
-        private static TestEnvironment TE = TestEnvironment.TE;
+        private static RelaEngine RE = RelaEngine.RE;
        
         public string Name => "A distributed cache line read indicator.";
 
@@ -94,9 +94,9 @@ namespace RelaSharp.Examples
             {
                 while(_readIndicator.IsOccupied)
                 {
-                    TE.Yield();
+                    RE.Yield();
                 }
-                TE.Assert(_numReading == 0, $"Write in progress but _numReading is {_numReading}");
+                RE.Assert(_numReading == 0, $"Write in progress but _numReading is {_numReading}");
             }
         }
 

@@ -20,7 +20,7 @@ namespace RelaSharp.Examples
     }
     class Petersen : IRelaExample 
     {
-        private static TestEnvironment TE = TestEnvironment.TE;
+        private static RelaEngine RE = RelaEngine.RE;
         public string Name => "Petersen Mutex";
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;
@@ -53,9 +53,9 @@ namespace RelaSharp.Examples
             {
                 victim.Store(0, MemoryOrder);                            
             }
-            while(flag1.Load(ActiveConfig.UseExchange ? MemoryOrder.Acquire : MemoryOrder) == 1 & victim.Load(MemoryOrder) == 0) TE.Yield();        
+            while(flag1.Load(ActiveConfig.UseExchange ? MemoryOrder.Acquire : MemoryOrder) == 1 & victim.Load(MemoryOrder) == 0) RE.Yield();        
             ++_threadsPassed;
-            TE.Assert(_threadsPassed == 1, $"Mutual exclusion not achieved, {_threadsPassed} threads currently in critical section!");            
+            RE.Assert(_threadsPassed == 1, $"Mutual exclusion not achieved, {_threadsPassed} threads currently in critical section!");            
             flag0.Store(0, ActiveConfig.UseExchange ? MemoryOrder.Release : MemoryOrder);
             --_threadsPassed;
         }
@@ -71,9 +71,9 @@ namespace RelaSharp.Examples
             {
                 victim.Store(1, MemoryOrder);                            
             }
-            while(flag0.Load(ActiveConfig.UseExchange ? MemoryOrder.Acquire : MemoryOrder) == 1 && victim.Load(MemoryOrder) == 1) TE.Yield();        
+            while(flag0.Load(ActiveConfig.UseExchange ? MemoryOrder.Acquire : MemoryOrder) == 1 && victim.Load(MemoryOrder) == 1) RE.Yield();        
             ++_threadsPassed;
-            TE.Assert(_threadsPassed == 1, $"Mutual exclusion not achieved, {_threadsPassed} threads currently in critical section!");
+            RE.Assert(_threadsPassed == 1, $"Mutual exclusion not achieved, {_threadsPassed} threads currently in critical section!");
             flag1.Store(0, ActiveConfig.UseExchange ? MemoryOrder.Release : MemoryOrder);
             --_threadsPassed;
         }

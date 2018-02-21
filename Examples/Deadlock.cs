@@ -11,7 +11,6 @@ namespace RelaSharp.Examples
         public string Name => "Deadlock detection example";
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;
-        private static TestEnvironment TE = TestEnvironment.TE;
 
         private IEnumerator<Config> _configs;
         private Config ActiveConfig => _configs.Current;

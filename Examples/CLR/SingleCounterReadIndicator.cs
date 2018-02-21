@@ -25,7 +25,7 @@ namespace RelaSharp.Examples
             public bool IsEmpty => RInterlocked.Read(ref _numReaders) == 0;
         }
 
-        private static TestEnvironment TE = TestEnvironment.TE;
+        private static RelaEngine RE = RelaEngine.RE;
        
         public string Name => "A read-indicator implemented as single counter";
 
@@ -60,9 +60,9 @@ namespace RelaSharp.Examples
             {
                 while(!_readIndicator.IsEmpty)
                 {
-                    TE.Yield();
+                    RE.Yield();
                 }
-                TE.Assert(_numReading == 0, $"Write in progress but _numReading is {_numReading}");
+                RE.Assert(_numReading == 0, $"Write in progress but _numReading is {_numReading}");
             }
         }
 

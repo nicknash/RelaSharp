@@ -9,7 +9,7 @@ namespace RelaSharp.Examples
 {
     class COWList : IRelaExample
     {
-        private static TestEnvironment TE = TestEnvironment.TE;
+        private static RelaEngine RE = RelaEngine.RE;
        
         public string Name => "Multiple-writer copy-on-write list.";
 
@@ -79,7 +79,7 @@ namespace RelaSharp.Examples
             }
             var final = new List<int>();
             var numElems = NumWritingThreads * NumWrittenPerThread;
-            TE.Assert(_list.Count == numElems, $"Expected final list to have {numElems} elements, but instead it has {_list.Count}");
+            RE.Assert(_list.Count == numElems, $"Expected final list to have {numElems} elements, but instead it has {_list.Count}");
             for(int i = 0; i < numElems; ++i)
             {
                 final.Add(_list[i]);
@@ -87,7 +87,7 @@ namespace RelaSharp.Examples
             final.Sort();
             for(int i = 0; i < numElems; ++i)
             {
-                TE.Assert(final[i] == i, $"Expected sorted final list element number {i} to be {i}, but it's {final[i]}.");
+                RE.Assert(final[i] == i, $"Expected sorted final list element number {i} to be {i}, but it's {final[i]}.");
             }
         }
 

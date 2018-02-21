@@ -23,7 +23,7 @@ namespace RelaSharp.Examples.CLR
         public string Name => "Incorrect versions of the left-right readers-writers lock";
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;
-        private static TestEnvironment TE = TestEnvironment.TE;
+        private static RelaEngine RE = RelaEngine.RE;
 
         private IEnumerator<ExampleConfig> _configs;
         private ExampleConfig ActiveConfig => _configs.Current;
@@ -46,37 +46,35 @@ namespace RelaSharp.Examples.CLR
 
         class InstanceSnoop
         {
-            private static TestEnvironment TE = TestEnvironment.TE;
-
             private HashSet<long> _reading = new HashSet<long>();
             private HashSet<long> _writing = new HashSet<long>();
 
             public void BeginRead(long which)
             {
-                TE.MaybeSwitch();
-                TE.Assert(!_writing.Contains(which), $"Write in progress during read at {which}");
+                RE.MaybeSwitch();
+                RE.Assert(!_writing.Contains(which), $"Write in progress during read at {which}");
                 _reading.Add(which);
             }
 
             public void EndRead(long which)
             {
-                TE.MaybeSwitch();                
+                RE.MaybeSwitch();                
                 _reading.Remove(which);
-                TE.Assert(!_writing.Contains(which), $"Write in progress during read at {which}");
+                RE.Assert(!_writing.Contains(which), $"Write in progress during read at {which}");
             }
 
             public void BeginWrite(long which)
             {
-                TE.MaybeSwitch();                
-                TE.Assert(!_reading.Contains(which), $"Read in progress during write at {which}");
-                TE.Assert(!_writing.Contains(which), $"Write in progress during write at {which}");
+                RE.MaybeSwitch();                
+                RE.Assert(!_reading.Contains(which), $"Read in progress during write at {which}");
+                RE.Assert(!_writing.Contains(which), $"Write in progress during write at {which}");
                 _writing.Add(which);
             }
 
             public void EndWrite(long which)
             {
-                TE.MaybeSwitch();                
-                TE.Assert(!_reading.Contains(which), $"Write in progress during read at {which}");
+                RE.MaybeSwitch();                
+                RE.Assert(!_reading.Contains(which), $"Write in progress during read at {which}");
                 _writing.Remove(which);
             }
         }
@@ -153,7 +151,7 @@ namespace RelaSharp.Examples.CLR
 
             private static void WaitWhileOccupied(ReadIndicator readIndicator)
             {
-                while (!readIndicator.IsEmpty) TE.Yield();
+                while (!readIndicator.IsEmpty) RE.Yield();
             }
             private static long Toggle(long i)
             {

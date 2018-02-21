@@ -5,7 +5,7 @@ namespace RelaSharp.Examples
 {
     class RelaxedModificationOrder : IRelaExample
     {
-        private static TestEnvironment TE = TestEnvironment.TE;
+        private static RelaEngine RE = RelaEngine.RE;
         public string Name => "Single modification order example, even with all operations relaxed";
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;
@@ -36,7 +36,7 @@ namespace RelaSharp.Examples
         {
             if(x.Load(MemoryOrder.Relaxed) == 3)
             {
-                TE.Assert(x.Load(MemoryOrder.Relaxed) >= 3, "x should be at least 3");
+                RE.Assert(x.Load(MemoryOrder.Relaxed) >= 3, "x should be at least 3");
             }
         }
 

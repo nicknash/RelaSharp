@@ -62,7 +62,7 @@ namespace RelaSharp.EntryPoint
 
         private static void RunExample(string exampleTag, IRelaExample example, Options options)
         {
-            var TE = TestEnvironment.TE;
+            var TR = TestRunner.TR;
             while (example.SetNextConfiguration())
             {
                 if(!options.SelfTest)
@@ -92,13 +92,13 @@ namespace RelaSharp.EntryPoint
                 while(scheduler.NewIteration() && !testFailed)
                 {
                     example.PrepareForIteration();
-                    TE.RunTest(example, scheduler, options.LiveLockLimit);
-                    testFailed = TE.TestFailed;
-                    totalOperations += TE.ExecutionLength;
+                    TR.RunTest(example, scheduler, options.LiveLockLimit);
+                    testFailed = TR.TestFailed;
+                    totalOperations += TR.ExecutionLength;
                     ++numIterations;
                 }
                 var panic = "*\n*\n*\n*\n*\n*\n*\n*";
-                if (TE.TestFailed)
+                if (TR.TestFailed)
                 {
                     if(options.SelfTest)
                     {
@@ -114,7 +114,7 @@ namespace RelaSharp.EntryPoint
                     }
                     if(!options.QuietMode && !options.SelfTest)
                     {
-                        TE.DumpExecutionLog(Console.Out);
+                        TR.DumpExecutionLog(Console.Out);
                     }
                 }
                 else

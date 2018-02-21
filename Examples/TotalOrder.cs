@@ -5,7 +5,7 @@ namespace RelaSharp.Examples
 {
     class TotalOrder : IRelaExample
     {
-        private static TestEnvironment TE = TestEnvironment.TE;
+        private static RelaEngine RE = RelaEngine.RE;
         public string Name => "Total order test (multiple-copy atomicity / write synchronization test)";
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;
@@ -56,7 +56,7 @@ namespace RelaSharp.Examples
         }
         public void OnFinished()
         {
-            TE.Assert(c + d != 2, $"c + d == {c + d} ; neither of Thread0 or Thread1 ran first!");            
+            RE.Assert(c + d != 2, $"c + d == {c + d} ; neither of Thread0 or Thread1 ran first!");            
         }
         public void PrepareForIteration()
         {

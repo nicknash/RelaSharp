@@ -98,7 +98,7 @@ namespace RelaSharp.Examples
         private IEnumerator<Config> _configs;
         private Config ActiveConfig => _configs.Current;
         private int _size;
-        private static TestEnvironment TE = TestEnvironment.TE;
+        private static RelaEngine RE = RelaEngine.RE;
 
         public BoundedSPSCQueue()
         {
@@ -135,7 +135,7 @@ namespace RelaSharp.Examples
                 {
                     var z = x.Data.Load(MemoryOrder.Relaxed);
                     int expected = _offset + numDequeued;
-                    TE.Assert(z == expected, $"Partially initialised object detected: Data = {z}, expected to be {expected}");
+                    RE.Assert(z == expected, $"Partially initialised object detected: Data = {z}, expected to be {expected}");
                     numDequeued++;
                 }
             }

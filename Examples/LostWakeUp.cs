@@ -11,7 +11,6 @@ namespace RelaSharp.Examples
         public string Name => "Lost Wake Up example";
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;
-        private static TestEnvironment TE = TestEnvironment.TE;
 
         private object _lockObject;
 

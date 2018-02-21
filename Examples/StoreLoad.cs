@@ -10,7 +10,7 @@ namespace RelaSharp.Examples
         public string Name => "Store Load Re-ordering example";
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;
-        private static TestEnvironment TE = TestEnvironment.TE;
+        private static RelaEngine RE = RelaEngine.RE;
         private Atomic<int> x0, x1;
         private int y0, y1;
 
@@ -47,7 +47,7 @@ namespace RelaSharp.Examples
         }
         public void OnFinished()
         {
-            TE.Assert(y0 != 0 || y1 != 0, "Both of y0 and y1 are zero! (store load reordering!)");
+            RE.Assert(y0 != 0 || y1 != 0, "Both of y0 and y1 are zero! (store load reordering!)");
         }
 
         private void PrepareForNewConfig()
