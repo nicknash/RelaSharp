@@ -6,7 +6,7 @@ namespace RelaSharp
     public class Atomic<T>
     {
         private static TestEnvironment TE = TestEnvironment.TE;
-        protected InternalAtomic<T> _memoryOrdered;
+        internal InternalAtomic<T> _memoryOrdered; // TODO: Change this to "private protected" once C# 7.2 useable with .NET Core 2.0. 
 
         private void MaybeInit()
         {
@@ -17,35 +17,35 @@ namespace RelaSharp
             }
         }
         
-        protected ShadowThread Preamble()
+        protected void Preamble()
         {
             MaybeInit();
             TE.MaybeSwitch();
             var runningThread = TE.RunningThread;
             runningThread.IncrementClock();
-            return runningThread;
+            return;
         }
 
         public void Store(T data, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
-            var runningThread = Preamble();
-            _memoryOrdered.Store(data, mo, runningThread);
+            Preamble();
+            _memoryOrdered.Store(data, mo, TE.RunningThread);
             TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Store ({mo}) --> {Str(data)}");            
         }
 
         public T Load(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
-            var runningThread = Preamble();
-            var result = _memoryOrdered.Load(mo, runningThread);
+            Preamble();
+            var result = _memoryOrdered.Load(mo, TE.RunningThread);
             TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Load ({mo}) <-- {Str(result)}");
             return result;
         }
 
         public bool CompareExchange(T newData, T comparand, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0) 
         {
-            var runningThread = Preamble();
+            Preamble();
             T loadedData;
-            var success = _memoryOrdered.CompareExchange(newData, comparand, mo, runningThread, out loadedData);
+            var success = _memoryOrdered.CompareExchange(newData, comparand, mo, TE.RunningThread, out loadedData);
             var description = success ? $"Success: {Str(comparand)} == {Str(loadedData)}" : $"Failed: {Str(comparand)} != {Str(loadedData)}";
             TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"CompareExchange ({mo}): --> {Str(newData)} ({description})");
             return success;
@@ -53,8 +53,8 @@ namespace RelaSharp
 
         public T Exchange(T newData, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0) 
         {
-            var runningThread = Preamble();
-            var oldData = _memoryOrdered.Exchange(newData, mo, runningThread);
+            Preamble();
+            var oldData = _memoryOrdered.Exchange(newData, mo, TE.RunningThread);
             TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Exchange ({mo}): --> {Str(newData)} ({Str(oldData)})");
             return oldData;
         }
@@ -67,71 +67,6 @@ namespace RelaSharp
         public override string ToString()
         {
             return _memoryOrdered.CurrentValue.ToString();
-        }
-    }
- 
- 
-    public class Atomic32 : Atomic<int>
-    {
-        private static TestEnvironment TE = TestEnvironment.TE;
-        
-        public int Add(int x, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
-        {
-            var runningThread = Preamble();
-            var newValue = _memoryOrdered.CurrentValue + x;
-            var oldValue = _memoryOrdered.Exchange(newValue, mo, runningThread);
-            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Add ({mo}): --> {Str(newValue)} ({Str(oldValue)})");
-            return newValue;
-        }
-
-        public int Increment(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
-        {
-            var runningThread = Preamble();
-            var newValue = _memoryOrdered.CurrentValue + 1;
-            var oldValue = _memoryOrdered.Exchange(newValue, mo, runningThread);
-            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Increment ({mo}): --> {Str(newValue)} ({Str(oldValue)})");
-            return newValue;
-        }
-
-        public int Decrement(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
-        {
-            var runningThread = Preamble();
-            var newValue = _memoryOrdered.CurrentValue - 1;
-            var oldValue = _memoryOrdered.Exchange(newValue, mo, runningThread);
-            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Decrement ({mo}): --> {Str(newValue)} ({Str(oldValue)})");
-            return newValue;
-        }
-    }
-
-    public class Atomic64 : Atomic<long>
-    {
-        private static TestEnvironment TE = TestEnvironment.TE;
-        
-        public long Add(long x, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
-        {
-            var runningThread = Preamble();
-            var newValue = _memoryOrdered.CurrentValue + x;
-            var oldValue = _memoryOrdered.Exchange(newValue, mo, runningThread);
-            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Add ({mo}): --> {Str(newValue)} ({Str(oldValue)})");
-            return newValue;
-        }
-
-        public long Increment(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
-        {
-            var runningThread = Preamble();
-            var newValue = _memoryOrdered.CurrentValue + 1;
-            var oldValue = _memoryOrdered.Exchange(newValue, mo, runningThread);
-            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Increment ({mo}): --> {Str(newValue)} ({Str(oldValue)})");
-            return newValue;
-        }
-
-        public long Decrement(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
-        {
-            var runningThread = Preamble();
-            var newValue = _memoryOrdered.CurrentValue - 1;
-            var oldValue = _memoryOrdered.Exchange(newValue, mo, runningThread);
-            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Decrement ({mo}): --> {Str(newValue)} ({Str(oldValue)})");
-            return newValue;
         }
     }
 }

@@ -49,7 +49,7 @@ namespace RelaSharp
          => TE.MaybeSwitch();
     }
 
-    internal class TestEnvironment
+    class TestEnvironment
     {
         public int HistoryLength => 20;
         public ulong LiveLockLimit { get; private set;}

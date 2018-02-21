@@ -3,7 +3,7 @@ using System.Text;
 
 namespace RelaSharp.MemoryModel
 {
-    public class VectorClock  
+    class VectorClock  
     {
         public const long MaxTime = long.MaxValue;
         private long[] _clocks;
