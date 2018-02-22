@@ -3,13 +3,25 @@ using RelaSharp.MemoryModel;
 
 namespace RelaSharp
 {
-    public class Atomic<T>
+    interface IAtomic<T>
+    {
+        void Store(T data, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0);
+        T Load(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0);
+        bool CompareExchange(T newData, T comparand, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0);
+        T Exchange(T newData, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0);
+    }
+
+    public class Atomic<T> : IAtomic<T>
     {
         private static TestEnvironment TE = TestEnvironment.TE;
         internal InternalAtomic<T> _memoryOrdered; // TODO: Change this to "private protected" once C# 7.2 useable with .NET Core 2.0. 
 
         private void MaybeInit()
         {
+            if(RelaEngine.Mode != EngineMode.Test)
+            {
+                throw new EngineException($"{nameof(Atomic<T>)} must only be used when RelaEngine.Mode is {EngineMode.Test}, but it is {RelaEngine.Mode} (did you forget to assign it?).");
+            }
             if(_memoryOrdered == null)
             {
                 _memoryOrdered = new InternalAtomic<T>(TE.HistoryLength, TE.NumThreads, TE.Lookback);

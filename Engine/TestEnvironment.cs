@@ -4,51 +4,7 @@ using RelaSharp.Scheduling;
 using RelaSharp.MemoryModel;
 
 namespace RelaSharp
-{ 
-    enum EngineMode 
-    {
-        Test,
-        LiveAssert,
-        LiveNoAssert        
-    }
-
-    public interface IRelaEngine 
-    {
-        void Assert(bool shouldBeTrue, string reason, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0);
-        void Yield();
-    }
-
-    public class TestRunner 
-    {
-        public static TestRunner TR = new TestRunner();
-
-        private static TestEnvironment TE = TestEnvironment.TE; 
-        public void RunTest(IRelaTest test, IScheduler scheduler, ulong liveLockLimit)
-         => TE.RunTest(test, scheduler, liveLockLimit);
-
-        public bool TestFailed => TE.TestFailed;
-
-        public ulong ExecutionLength => TE.ExecutionLength;
-    
-        public void DumpExecutionLog(TextWriter output)
-         => TE.DumpExecutionLog(output);
-
-    }
-
-
-    public class RelaEngine
-    {
-        public static RelaEngine RE = new RelaEngine();
-
-        private static TestEnvironment TE = TestEnvironment.TE; 
-        public void Assert(bool shouldBeTrue, string reason, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
-         => TE.Assert(shouldBeTrue, reason, memberName, sourceFilePath, sourceLineNumber);
-        public void Yield() 
-         => TE.Yield();
-        public void MaybeSwitch()
-         => TE.MaybeSwitch();
-    }
-
+{
     class TestEnvironment
     {
         public int HistoryLength => 20;
