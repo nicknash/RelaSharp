@@ -4,19 +4,22 @@ namespace RelaSharp.CLR
     {
         private readonly IAtomic<T> _atomic;
 
-        private CLRAtomic()
+        internal static IAtomic<T> GetAtomic()
         {
             switch(RelaEngine.Mode)
             {
                 case EngineMode.Test:
-                    _atomic = new Atomic<T>();
-                    break;
+                    return new Atomic<T>();
                 case EngineMode.Live:
-                    _atomic = new LiveAtomic<T>();
-                    break;
+                    return new LiveAtomic<T>();
                 default:
                 throw new EngineException($"{nameof(CLRAtomic<T>)} must only be used when RelaEngine.Mode is {EngineMode.Test} or {EngineMode.Live}, but it is {RelaEngine.Mode} (did you forget to assign it?).");
             }
+        }
+
+        private CLRAtomic()
+        {
+            _atomic = GetAtomic();         
         }
 
         internal static IAtomic<T> Get(ref CLRAtomic<T> data)

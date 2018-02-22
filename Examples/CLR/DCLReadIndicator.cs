@@ -11,7 +11,7 @@ namespace RelaSharp.Examples
     {
         class HashedReadIndicator
         {
-            private CLRAtomic64[] _occupancyCounts; 
+            private CLRAtomicLong[] _occupancyCounts; 
             private int _paddingPower;
             private int _numEntries;
 
@@ -19,7 +19,7 @@ namespace RelaSharp.Examples
             {
                 _numEntries = 1 << sizePower;
                 int size = _numEntries << paddingPower;
-                _occupancyCounts = new CLRAtomic64[size];
+                _occupancyCounts = new CLRAtomicLong[size];
                 _paddingPower = paddingPower;
             }
 

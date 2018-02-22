@@ -2,11 +2,11 @@ using System.Runtime.CompilerServices;
 
 namespace RelaSharp
 {
-    public class Atomic64 : Atomic<long>
+    public class AtomicInt : Atomic<int>
     {
         private static TestEnvironment TE = TestEnvironment.TE;
         
-        public long Add(long x, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        public int Add(int x, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             Preamble();
             var newValue = _memoryOrdered.CurrentValue + x;
@@ -15,7 +15,7 @@ namespace RelaSharp
             return newValue;
         }
 
-        public long Increment(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        public int Increment(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             Preamble();
             var newValue = _memoryOrdered.CurrentValue + 1;
@@ -24,7 +24,7 @@ namespace RelaSharp
             return newValue;
         }
 
-        public long Decrement(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        public int Decrement(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             Preamble();
             var newValue = _memoryOrdered.CurrentValue - 1;

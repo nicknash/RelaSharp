@@ -11,7 +11,7 @@ namespace RelaSharp.Examples
     {
         class ReadIndicator
         {
-            private CLRAtomic64 _numReaders;
+            private CLRAtomicLong _numReaders;
             public void Arrive()
             {
                 RInterlocked.Increment(ref _numReaders);

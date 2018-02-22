@@ -11,6 +11,11 @@ namespace RelaSharp
         T Exchange(T newData, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0);
     }
 
+    interface IAtomic32 : IAtomic<int> 
+    {
+
+    }
+
     public class Atomic<T> : IAtomic<T>
     {
         private static TestEnvironment TE = TestEnvironment.TE;

@@ -30,7 +30,7 @@ namespace RelaSharp.Examples.CLR
 
         class ReadIndicator
         {
-            private CLRAtomic64 _numReaders;
+            private CLRAtomicLong _numReaders;
             public void Arrive()
             {
                 RInterlocked.Increment(ref _numReaders);
@@ -83,7 +83,7 @@ namespace RelaSharp.Examples.CLR
         {
             private readonly Object _writersMutex = new Object();
             private ReadIndicator[] _readIndicator;
-            private CLRAtomic64 _index;
+            private CLRAtomicLong _index;
             private InstanceSnoop _snoop = new InstanceSnoop();
 
             // This property is used in test configurations to control whether the first write

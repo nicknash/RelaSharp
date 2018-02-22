@@ -18,7 +18,7 @@ namespace RelaSharp.Examples.CLR
         private SimpleConfig ActiveConfig => _configs.Current;
         class ReadIndicator
         {
-            private CLRAtomic64 _numReaders;
+            private CLRAtomicLong _numReaders;
             public void Arrive()
             {
                 RInterlocked.Increment(ref _numReaders);
@@ -71,7 +71,7 @@ namespace RelaSharp.Examples.CLR
         {
             private readonly Object _writersMutex = new Object();
             private ReadIndicator _readIndicator;
-            private CLRAtomic64 _readIndex;
+            private CLRAtomicLong _readIndex;
             private InstanceSnoop _snoop = new InstanceSnoop();
 
             public LeftRightLock()

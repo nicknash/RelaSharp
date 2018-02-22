@@ -15,54 +15,54 @@ namespace RelaSharp.CLR
             var atomic = CLRAtomic<T>.Get(ref data);
             atomic.Exchange(newData, MemoryOrder.SequentiallyConsistent, memberName, sourceFilePath, sourceLineNumber); 
         }
-        public static int Increment(ref CLRAtomic32 data, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        public static int Increment(ref CLRAtomicInt data, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
-            var atomic = CLRAtomic32.Get(ref data);
+            var atomic = CLRAtomicInt.Get(ref data);
             return atomic.Increment(MemoryOrder.SequentiallyConsistent, memberName, sourceFilePath, sourceLineNumber); 
         }
 
-        public static int Decrement(ref CLRAtomic32 data, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        public static int Decrement(ref CLRAtomicInt data, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
-            var atomic = CLRAtomic32.Get(ref data);
+            var atomic = CLRAtomicInt.Get(ref data);
             return atomic.Decrement(MemoryOrder.SequentiallyConsistent, memberName, sourceFilePath, sourceLineNumber); 
         }
 
-        public static void Exchange(ref CLRAtomic32 data, int newData, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        public static void Exchange(ref CLRAtomicInt data, int newData, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
-            var atomic = CLRAtomic32.Get(ref data);
+            var atomic = CLRAtomicInt.Get(ref data);
             atomic.Exchange(newData, MemoryOrder.SequentiallyConsistent, memberName, sourceFilePath, sourceLineNumber); 
         }
  
-        public static bool CompareExchange(ref CLRAtomic32 data, int newData, int comparand, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        public static bool CompareExchange(ref CLRAtomicInt data, int newData, int comparand, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
-            var atomic = CLRAtomic32.Get(ref data);
+            var atomic = CLRAtomicInt.Get(ref data);
             return atomic.CompareExchange(newData, comparand, MemoryOrder.SequentiallyConsistent, memberName, sourceFilePath, sourceLineNumber); 
         }
  
-        public static long Increment(ref CLRAtomic64 data, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        public static long Increment(ref CLRAtomicLong data, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
-            var atomic = CLRAtomic64.Get(ref data);
+            var atomic = CLRAtomicLong.Get(ref data);
             return atomic.Increment(MemoryOrder.SequentiallyConsistent, memberName, sourceFilePath, sourceLineNumber); 
         }
 
-        public static long Decrement(ref CLRAtomic64 data, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        public static long Decrement(ref CLRAtomicLong data, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
-            var atomic = CLRAtomic64.Get(ref data);
+            var atomic = CLRAtomicLong.Get(ref data);
             return atomic.Decrement(MemoryOrder.SequentiallyConsistent, memberName, sourceFilePath, sourceLineNumber); 
         }
-        public static long Read(ref CLRAtomic64 data, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        public static long Read(ref CLRAtomicLong data, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
-            var atomic = CLRAtomic64.Get(ref data);
+            var atomic = CLRAtomicLong.Get(ref data);
             return atomic.Load(MemoryOrder.SequentiallyConsistent, memberName, sourceFilePath, sourceLineNumber); 
         }
-        public static void Exchange(ref CLRAtomic64 data, long newData, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        public static void Exchange(ref CLRAtomicLong data, long newData, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
-            var atomic = CLRAtomic64.Get(ref data);
+            var atomic = CLRAtomicLong.Get(ref data);
             atomic.Exchange(newData, MemoryOrder.SequentiallyConsistent, memberName, sourceFilePath, sourceLineNumber); 
         }
-        public static bool CompareExchange(ref CLRAtomic64 data, long newData, long comparand, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        public static bool CompareExchange(ref CLRAtomicLong data, long newData, long comparand, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
-            var atomic = CLRAtomic64.Get(ref data);
+            var atomic = CLRAtomicLong.Get(ref data);
             return atomic.CompareExchange(newData, comparand, MemoryOrder.SequentiallyConsistent, memberName, sourceFilePath, sourceLineNumber); 
         }
         
