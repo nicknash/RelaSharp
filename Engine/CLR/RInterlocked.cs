@@ -4,13 +4,13 @@ namespace RelaSharp.CLR
 {      
     public class RInterlocked // TODO: Check Joe Duffy -- do these imply a SeqCstFence ?
     {
-        public static bool CompareExchange<T>(ref CLRAtomic<T> data, T newData, T comparand, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        public static bool CompareExchange<T>(ref CLRAtomic<T> data, T newData, T comparand, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0) where T : class
         {
             var atomic = CLRAtomic<T>.Get(ref data);
             return atomic.CompareExchange(newData, comparand, MemoryOrder.SequentiallyConsistent); 
         }
 
-        public static void Exchange<T>(ref CLRAtomic<T> data, T newData, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        public static void Exchange<T>(ref CLRAtomic<T> data, T newData, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0) where T : class
         {
             var atomic = CLRAtomic<T>.Get(ref data);
             atomic.Exchange(newData, MemoryOrder.SequentiallyConsistent, memberName, sourceFilePath, sourceLineNumber); 

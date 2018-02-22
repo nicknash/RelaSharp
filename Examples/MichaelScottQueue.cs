@@ -113,7 +113,7 @@ namespace RelaSharp.Examples
         public string Name => "Michael-Scott Queue";
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;
-        private static RelaEngine RE = RelaEngine.RE;
+        private static IRelaEngine RE = RelaEngine.RE;
         private IEnumerator<Config> _configs;
         private Config ActiveConfig => _configs.Current;
         private NaiveLockFreeQueue _queue;

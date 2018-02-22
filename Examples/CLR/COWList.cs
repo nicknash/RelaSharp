@@ -9,7 +9,7 @@ namespace RelaSharp.Examples
 {
     class COWList : IRelaExample
     {
-        private static RelaEngine RE = RelaEngine.RE;
+        private static IRelaEngine RE = RelaEngine.RE;
        
         public string Name => "Multiple-writer copy-on-write list.";
 

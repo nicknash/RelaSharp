@@ -23,7 +23,7 @@ namespace RelaSharp.Examples.CLR
         public string Name => "Incorrect versions of the left-right readers-writers lock";
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;
-        private static RelaEngine RE = RelaEngine.RE;
+        private static IRelaEngine RE = RelaEngine.RE;
 
         private IEnumerator<ExampleConfig> _configs;
         private ExampleConfig ActiveConfig => _configs.Current;

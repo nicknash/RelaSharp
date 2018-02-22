@@ -5,7 +5,7 @@ namespace RelaSharp.Examples
 {
     class TransitiveLastSeen : IRelaExample
     {
-        private static RelaEngine TR = RelaEngine.RE;
+        private static IRelaEngine RE = RelaEngine.RE;
         public string Name => "Relaxed transitive visibility (last seen) example";
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;
@@ -41,7 +41,7 @@ namespace RelaSharp.Examples
         {
             if(y.Load(MemoryOrder.Acquire) == 1)
             {
-                TR.Assert(x.Load(MemoryOrder.Relaxed) == 2, "x should be 2");
+                RE.Assert(x.Load(MemoryOrder.Relaxed) == 2, "x should be 2");
             }
         } 
 

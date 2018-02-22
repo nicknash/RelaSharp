@@ -5,7 +5,7 @@ namespace RelaSharp.Examples
 {
     class RelaxedModificationOrder : IRelaExample
     {
-        private static RelaEngine RE = RelaEngine.RE;
+        private static IRelaEngine RE = RelaEngine.RE;
         public string Name => "Single modification order example, even with all operations relaxed";
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;

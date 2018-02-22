@@ -10,7 +10,7 @@ namespace RelaSharp.Examples
         public string Name => "Livelock example (fragment of Petersen lock)";
         public string Description => "All operations sequentially consistent";
         public bool ExpectedToFail => true;
-        private static RelaEngine RE = RelaEngine.RE;
+        private static IRelaEngine RE = RelaEngine.RE;
         private Atomic<int> interested0;
         private Atomic<int> interested1;
         private bool _hasRun;

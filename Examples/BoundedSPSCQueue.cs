@@ -98,7 +98,7 @@ namespace RelaSharp.Examples
         private IEnumerator<Config> _configs;
         private Config ActiveConfig => _configs.Current;
         private int _size;
-        private static RelaEngine RE = RelaEngine.RE;
+        private static IRelaEngine RE = RelaEngine.RE;
 
         public BoundedSPSCQueue()
         {

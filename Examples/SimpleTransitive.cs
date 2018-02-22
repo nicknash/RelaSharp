@@ -5,7 +5,7 @@ namespace RelaSharp.Examples
 {
     class SimpleTransitive : IRelaExample
     {
-        private static RelaEngine RE = RelaEngine.RE;
+        private static IRelaEngine RE = RelaEngine.RE;
         public string Name => "Acquire/Release transitive visibility example";
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;

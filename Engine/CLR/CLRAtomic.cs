@@ -1,15 +1,25 @@
 namespace RelaSharp.CLR
 {
-    public class CLRAtomic<T>
+    public class CLRAtomic<T> where T : class
     {
-        private readonly Atomic<T> _atomic;
+        private readonly IAtomic<T> _atomic;
 
         private CLRAtomic()
         {
-            _atomic = new Atomic<T>();
+            switch(RelaEngine.Mode)
+            {
+                case EngineMode.Test:
+                    _atomic = new Atomic<T>();
+                    break;
+                case EngineMode.Live:
+                    _atomic = new LiveAtomic<T>();
+                    break;
+                default:
+                throw new EngineException($"{nameof(CLRAtomic<T>)} must only be used when RelaEngine.Mode is {EngineMode.Test} or {EngineMode.Live}, but it is {RelaEngine.Mode} (did you forget to assign it?).");
+            }
         }
 
-        public static Atomic<T> Get(ref CLRAtomic<T> data)
+        internal static IAtomic<T> Get(ref CLRAtomic<T> data)
         {
             if(data == null)
             {
@@ -18,41 +28,4 @@ namespace RelaSharp.CLR
             return data._atomic;
         }
     }    
-
-    public class CLRAtomic32
-    {
-        public readonly Atomic32 _atomic;
-        private CLRAtomic32()
-        {
-            _atomic = new Atomic32();
-        }
-
-        public static Atomic32 Get(ref CLRAtomic32 data)
-        {
-            if(data == null)
-            {
-                data = new CLRAtomic32();
-            }
-            return data._atomic;
-        }
-    }
-
-    public class CLRAtomic64
-    {
-        public readonly Atomic64 _atomic;
-        private CLRAtomic64()
-        {
-            _atomic = new Atomic64();
-        }
- 
-        public static Atomic64 Get(ref CLRAtomic64 data)
-        {
-            if(data == null)
-            {
-                data = new CLRAtomic64();
-            }
-            return data._atomic;
-        }
-
-    }
 }

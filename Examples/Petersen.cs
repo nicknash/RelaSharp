@@ -20,7 +20,7 @@ namespace RelaSharp.Examples
     }
     class Petersen : IRelaExample 
     {
-        private static RelaEngine RE = RelaEngine.RE;
+        private static IRelaEngine RE = RelaEngine.RE;
         public string Name => "Petersen Mutex";
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;

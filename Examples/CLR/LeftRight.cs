@@ -12,7 +12,7 @@ namespace RelaSharp.Examples.CLR
         public string Name => "Left-Right Synchronization Primitive Example";
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;
-        private static RelaEngine RE = RelaEngine.RE;
+        private static IRelaEngine RE = RelaEngine.RE;
 
         private IEnumerator<SimpleConfig> _configs;
         private SimpleConfig ActiveConfig => _configs.Current;

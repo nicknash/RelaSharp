@@ -10,7 +10,7 @@ namespace RelaSharp.Examples
         public string Name => "Store Load Re-ordering example";
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;
-        private static RelaEngine RE = RelaEngine.RE;
+        private static IRelaEngine RE = RelaEngine.RE;
         private Atomic<int> x0, x1;
         private int y0, y1;
 

@@ -18,6 +18,7 @@ namespace RelaSharp.EntryPoint
                 Console.WriteLine(Options.GetHelp());
                 return;
             }
+            RelaEngine.Mode = EngineMode.Test;
             Func<string, IRelaExample, Tuple<string, IRelaExample>> c = (s, i) =>  Tuple.Create<string, IRelaExample>(s, i); 
             var examples = new Tuple<string, IRelaExample>[]{c("SimpleAcquireRelease", new SimpleAcquireRelease()), 
                                                              c("StoreLoad", new StoreLoad()), 

@@ -24,7 +24,7 @@ namespace RelaSharp.Examples
         public string Description => ActiveConfig.Description;
         public bool ExpectedToFail => ActiveConfig.ExpectedToFail;
         public IReadOnlyList<Action> ThreadEntries { get; private set;}
-        private static RelaEngine TR = RelaEngine.RE;        
+        private static IRelaEngine RE = RelaEngine.RE;        
         private Atomic<int> _flag;
         private Atomic <int> _x;
         private IEnumerator<Config> _configs;
@@ -60,10 +60,10 @@ namespace RelaSharp.Examples
         {
             while(_flag.Load(ActiveConfig.LoadMemoryOrder) == 0) 
             {
-                TR.Yield();
+                RE.Yield();
             }
             int result = _x.Load(MemoryOrder.Relaxed);
-            TR.Assert(result == 2, $"Expected to load 2 into result, but loaded {result} instead!");
+            RE.Assert(result == 2, $"Expected to load 2 into result, but loaded {result} instead!");
         }
 
         public void OnBegin()

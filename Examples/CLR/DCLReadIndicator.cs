@@ -59,7 +59,7 @@ namespace RelaSharp.Examples
                 }
             }
         }
-        private static RelaEngine RE = RelaEngine.RE;
+        private static IRelaEngine RE = RelaEngine.RE;
        
         public string Name => "A distributed cache line read indicator.";
 
