@@ -4,7 +4,17 @@ using RelaSharp.MemoryModel;
 
 namespace RelaSharp.CLR
 {
-    class MonitorInstance
+    interface IMonitor
+    {
+        void Enter(object lockObject, string memberName, string sourceFilePath, int sourceLineNumber);
+        void Enter(object lockObject, ref bool lockTaken);
+        void Exit(object lockObject, string memberName, string sourceFilePath, int sourceLineNumber);
+        void Pulse(object lockObject, string memberName, string sourceFilePath, int sourceLineNumber);
+        void PulseAll(object lockObject, string memberName, string sourceFilePath, int sourceLineNumber);
+        bool Wait(object lockObject, string memberName, string sourceFilePath, int sourceLineNumber);
+    }
+
+    class MonitorInstance : IMonitor
     {
         private static TestEnvironment TE = TestEnvironment.TE;
 
@@ -65,7 +75,7 @@ namespace RelaSharp.CLR
             TE.MaybeSwitch();
         }
 
-        public void Pulse(string memberName, string sourceFilePath, int sourceLineNumber)
+        public void Pulse(object lockObject, string memberName, string sourceFilePath, int sourceLineNumber)
         {
             var runningThread = Preamble();
             if(_heldBy != runningThread)
@@ -80,7 +90,7 @@ namespace RelaSharp.CLR
             }
         }
 
-        public void PulseAll(string memberName, string sourceFilePath, int sourceLineNumber)
+        public void PulseAll(object lockObject, string memberName, string sourceFilePath, int sourceLineNumber)
         {            
             var runningThread = Preamble();
             if(_heldBy != runningThread)

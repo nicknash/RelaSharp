@@ -45,13 +45,13 @@ namespace RelaSharp.CLR
         public static void Pulse(Object lockObject, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             var instance = GetMonitorInstance(lockObject);
-            instance.Pulse(memberName, sourceFilePath, sourceLineNumber);
+            instance.Pulse(lockObject, memberName, sourceFilePath, sourceLineNumber);
         }
 
         public static void PulseAll(Object lockObject, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             var instance = GetMonitorInstance(lockObject);
-            instance.PulseAll(memberName, sourceFilePath, sourceLineNumber);
+            instance.PulseAll(lockObject, memberName, sourceFilePath, sourceLineNumber);
         }
 
         public static bool TryEnter(Object lockObject)

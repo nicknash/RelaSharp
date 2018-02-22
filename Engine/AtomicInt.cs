@@ -2,7 +2,14 @@ using System.Runtime.CompilerServices;
 
 namespace RelaSharp
 {
-    public class AtomicInt : Atomic<int>
+    interface IAtomicInt : IAtomic<int> 
+    {
+        int Add(int x, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0);
+        int Increment(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0);
+        int Decrement(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0);
+    }
+
+    public class AtomicInt : Atomic<int>, IAtomicInt
     {
         private static TestEnvironment TE = TestEnvironment.TE;
         
