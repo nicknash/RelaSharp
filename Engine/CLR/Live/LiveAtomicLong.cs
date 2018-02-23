@@ -25,12 +25,32 @@ namespace RelaSharp.CLR.Live
 
         public long Load(MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
-            throw new EngineException("Load should never be called via a CLRAtomic");
+            switch (mo)
+            {
+                case MemoryOrder.SequentiallyConsistent:
+                    return Interlocked.Read(ref _data);
+                case MemoryOrder.Acquire:
+                    return Volatile.Read(ref _data);
+                case MemoryOrder.Relaxed:
+                    return _data;
+                default:
+                    throw new EngineException($"LiveAtomicInt.Load should never be called with memory order {mo}.");
+            }
         }
 
         public void Store(long data, MemoryOrder mo, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
-            throw new EngineException("Store should never be called via a CLRAtomic");            
+            switch(mo)
+            {
+                case MemoryOrder.Release:
+                    Volatile.Write(ref _data, data);
+                    break;
+                case MemoryOrder.Relaxed:
+                    _data = data;
+                    break;
+                default:
+                    throw new EngineException($"LiveAtomicInt.Store should never be called with memory order {mo}.");
+            }
         }
     }
 }

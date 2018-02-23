@@ -15,7 +15,7 @@ namespace RelaSharp.CLR
             var atomic = CLRAtomic<T>.Get(ref data);
             atomic.Store(newValue, MemoryOrder.Release, memberName, sourceFilePath, sourceLineNumber);
         }
-       public static int Read(ref CLRAtomicInt data, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        public static int Read(ref CLRAtomicInt data, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
             var atomic = CLRAtomicInt.Get(ref data);
             return atomic.Load(MemoryOrder.Acquire, memberName, sourceFilePath, sourceLineNumber);

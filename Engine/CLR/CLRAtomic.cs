@@ -17,7 +17,7 @@ namespace RelaSharp.CLR
                     _atomic = new LiveAtomic<T>();
                     break;
                 default:
-                throw new EngineException($"{nameof(CLRAtomic<T>)} must only be used when RelaEngine.Mode is {EngineMode.Test} or {EngineMode.Live}, but it is {RelaEngine.Mode} (did you forget to assign it?).");
+                    throw new EngineException($"{nameof(CLRAtomic<T>)} must only be used when RelaEngine.Mode is {EngineMode.Test} or {EngineMode.Live}, but it is {RelaEngine.Mode} (did you forget to assign it?).");
             }
         }
 
