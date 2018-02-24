@@ -8,15 +8,23 @@ namespace RelaSharp.CLR
     {
         private static Dictionary<Object, MonitorInstance> _lockToMonitor = new Dictionary<Object, MonitorInstance>();
 
-        private static MonitorInstance GetMonitorInstance(Object lockObject)
+        private static IMonitor GetMonitorInstance(Object lockObject)
         {
-            MonitorInstance instance;
-            if(!_lockToMonitor.TryGetValue(lockObject, out instance))
+            if(RelaEngine.Mode == EngineMode.Test)
             {
-                instance = new MonitorInstance();
-                _lockToMonitor.Add(lockObject, instance);
+                MonitorInstance instance;
+                if (!_lockToMonitor.TryGetValue(lockObject, out instance))
+                {
+                    instance = new MonitorInstance();
+                    _lockToMonitor.Add(lockObject, instance);
+                }
+                return instance;
             }
-            return instance;
+            else if(RelaEngine.Mode == EngineMode.Live)
+            {
+                return Live.RealMonitor.TheInstance;
+            }
+            throw new EngineException($"{nameof(RMonitor)} must only be used when RelaEngine.Mode is {EngineMode.Test} or {EngineMode.Live}, but it is {RelaEngine.Mode} (did you forget to assign it?).");
         }
 
         public static void Enter(Object lockObject, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)

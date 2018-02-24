@@ -1,10 +1,11 @@
 using System;
 using System.Threading;
 
-namespace RelaSharp.CLR
+namespace RelaSharp.CLR.Live
 {
     class RealMonitor : IMonitor
     {
+        public static readonly RealMonitor TheInstance = new RealMonitor();
         public void Enter(object lockObject, string memberName, string sourceFilePath, int sourceLineNumber)
         {
             Monitor.Enter(lockObject);
