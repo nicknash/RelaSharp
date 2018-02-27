@@ -28,21 +28,6 @@ namespace RelaSharp
          => TE.MaybeSwitch();
     }
 
-    class LiveRelaEngine : IRelaEngine
-    {
-        public void Assert(bool shouldBeTrue, string reason, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
-        {
-        }
-
-        public void MaybeSwitch()
-        {
-        }
-
-        public void Yield()
-        {
-        }
-    }
-
     public class RelaEngine
     {
         public static EngineMode Mode;
