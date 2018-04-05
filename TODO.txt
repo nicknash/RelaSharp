@@ -1,3 +1,6 @@
+* Add Interlocked.MemoryBarrierProcessWide 
+* Multi-threaded test runner: This is a bit of a silly limitation, e.g. breaks xUnit with combination of Live/Sim tests.
+* Investigate adding a race-checked mode or having race-checking enabled by default.
 * Place OnBegin/OnFinished on dedicated threads with pre-emption disabled (with seq cst fences). The current situation
   where they logically run on a given test-thread is awkward and inefficient (see e.g. the hoops that the COWList Example
   has to jump through).
@@ -21,6 +24,5 @@
 * More Example algorithms: Michael-Scott two-lock queue, bounded SPMC/MPMC, CRQ/LCRQ, Fetch-Add Queue.  
 * Add Invariant() feature
 * Perf. optimizations. 
-* Multi-threaded test runner.
 * Replay optimization: Find failing execution and replay with event logging on, otherwise always have event logging off.
 * Interesting statistics?
