@@ -7,7 +7,7 @@ namespace RelaSharp.Examples
     {
         public IReadOnlyList<Action> ThreadEntries { get; private set; }
 
-        public string Name => "Asymmetric lock via Interprocessor Interrupt";
+        public string Name => "Asymmetric petersen lock via Interprocessor Interrupt";
         public string Description => "Uses Interlocked.MemoryBarrierProcessWide";
         public bool ExpectedToFail => true;
         private static IRelaEngine RE = RelaEngine.RE;

@@ -1,4 +1,5 @@
 using System.IO;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using RelaSharp.Scheduling;
 using RelaSharp.MemoryModel;
@@ -11,6 +12,7 @@ namespace RelaSharp
         public ulong LiveLockLimit { get; private set;}
         public static TestEnvironment TE = new TestEnvironment();
         public ShadowThread RunningThread => _shadowThreads[_scheduler.RunningThreadId];
+        public IReadOnlyList<ShadowThread> AllThreads => _shadowThreads;
 
         public int NumThreads { get; private set; }
         public bool TestFailed { get; private set; }

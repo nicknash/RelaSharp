@@ -13,5 +13,15 @@
             runningThread.Fence(mo, TE.SequentiallyConsistentFence);
             TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, $"Fence: {mo}");
         }
+
+        public static void InsertProcessWide([CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            TE.MaybeSwitch();
+            foreach(var thread in TE.AllThreads)
+            {
+                thread.Fence(MemoryOrder.SequentiallyConsistent, TE.SequentiallyConsistentFence);
+            }
+            TE.RecordEvent(memberName, sourceFilePath, sourceLineNumber, "Fence: ProcessWide");
+        }
     }
  }

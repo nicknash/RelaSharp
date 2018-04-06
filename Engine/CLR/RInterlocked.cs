@@ -70,5 +70,11 @@ namespace RelaSharp.CLR
         {
             Fence.Insert(MemoryOrder.SequentiallyConsistent, memberName, sourceFilePath, sourceLineNumber);
         }
+
+        public static void MemoryBarrierProcessWide([CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            throw new System.NotImplementedException();
+        }
+
     }
 }

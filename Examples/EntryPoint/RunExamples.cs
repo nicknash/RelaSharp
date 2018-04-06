@@ -39,7 +39,8 @@ namespace RelaSharp.EntryPoint
                                                              c("MultiWriterCOWList", new COWList()),
                                                              c("SimpleReadIndicator", new SingleCounterReadIndicator()),
                                                              c("DCLReadIndicator", new DCLReadIndicator()),
-                                                             c("AsymmetricPetersen", new AsymmetricPetersen()) };
+                                                             c("AsymmetricPetersen", new AsymmetricPetersen()),
+                                                             c("AsymmetricLock", new AsymmetricLock()) };
             if(options.ListExamples)
             {
                 Console.WriteLine("Available examples:");

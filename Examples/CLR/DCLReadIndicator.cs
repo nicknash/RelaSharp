@@ -116,7 +116,6 @@ namespace RelaSharp.Examples
         {
             _numReading = 0;
             _readIndicator = new HashedReadIndicator(4, 3);
-            
         }
         public bool SetNextConfiguration()
         {
