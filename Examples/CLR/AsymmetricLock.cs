@@ -6,42 +6,46 @@ namespace RelaSharp.Examples
 {
     public class AsymmetricLock : IRelaExample 
     {
-        class AsymmetricLockInternal // TODO, translate
+        class AsymmetricLockInternal 
         {
-            class LockCookie
+            internal class LockCookie
             {
                 internal LockCookie(int threadId)
                 {
                     ThreadId = threadId;
-                    Taken = false;
+                    RUnordered.Write(ref Taken, 1);
                 }
 
                 public void Exit()
                 {
-                    Taken = false;
+                    RUnordered.Write(ref Taken, 0);
                 }
 
                 internal readonly int ThreadId;
-                internal bool Taken; // TODO annotate!
+                internal CLRAtomicInt Taken;
             }
 
-            LockCookie _current = new LockCookie(-1);
+            CLRAtomic<LockCookie> _current;// = new LockCookie(-1);
 
-            LockCookie Enter()
+            public AsymmetricLockInternal()
+            {
+            }
+
+            internal LockCookie Enter()
             {
                 int currentThreadId = Environment.CurrentManagedThreadId;
 
-                LockCookie entry = _current;
+                LockCookie entry = RUnordered.Read(ref _current);
 
-                if (entry.ThreadId == currentThreadId)
+                if (entry?.ThreadId == currentThreadId)
                 {
-                    entry.Taken = true;
+                    RUnordered.Write(ref entry.Taken, 1);
                 
                     if (RVolatile.Read(ref _current) == entry)
                     {
                         return entry;
                     }
-                    entry.Taken = false;
+                    RUnordered.Write(ref entry.Taken, 0);
                 }
                 return EnterSlow();
             }    
@@ -50,31 +54,33 @@ namespace RelaSharp.Examples
 
             private LockCookie EnterSlow()
             {
-                RMonitor.Enter(_lockObj);
-                var oldEntry = _current;
-                _current = new LockCookie(Environment.CurrentManagedThreadId);
+                RMonitor.Enter(_lockObj); 
+                var oldEntry = RUnordered.Read(ref _current);
+                RUnordered.Write(ref _current, new LockCookie(Environment.CurrentManagedThreadId));
                 RInterlocked.MemoryBarrierProcessWide();
-                while (oldEntry.Taken)
+                while (oldEntry != null && RUnordered.Read(ref oldEntry.Taken) == 1)
                 {
                     RE.Yield();
                 }
-                _current.Taken = true;
+                var current = RUnordered.Read(ref _current);
+                RUnordered.Write(ref current.Taken, 1);
                 RMonitor.Exit(_lockObj);
-                return _current;
+                return current;
             }
         }
         public IReadOnlyList<Action> ThreadEntries { get; private set; }
 
         public string Name => "Quickly re-acquirable lock via interprocessor interrupt";
         public string Description => "Uses Interlocked.MemoryBarrierProcessWide";
-        public bool ExpectedToFail => true;
+        public bool ExpectedToFail => true; // While I figure out implementation.
         private static IRelaEngine RE = RelaEngine.RE;
         private int _threadsPassed;
         private bool _hasRun;
+        private AsymmetricLockInternal _asymLock;
 
         public AsymmetricLock()
         {
-            ThreadEntries = new List<Action> {FastThread,SlowThread};
+            ThreadEntries = new List<Action> {Thread0,Thread1};
         }
 
         public void PrepareForIteration()
@@ -82,13 +88,32 @@ namespace RelaSharp.Examples
             PrepareForNewConfig();
         }
 
-        public void FastThread()
+        public void Thread0()
         {
+            for (int i = 0; i < 2; ++i)
+            {
+                var c = _asymLock.Enter(); 
+                RE.Assert(_threadsPassed == 0, $"Iteration {i}: Thread0 entered while Thread1 in critical section! ({_threadsPassed})");
+                //Console.WriteLine("thread 0 in!");
+                _threadsPassed++;
+                c.Exit();
+                _threadsPassed--;
+                //Console.WriteLine("thread 0 out!");
+            }
         }
 
-        public void SlowThread()
+        public void Thread1()
         {
-                 
+            for (int i = 0; i < 2; ++i)
+            {
+                var c = _asymLock.Enter();
+                RE.Assert(_threadsPassed == 0, $"Iteration {i}: Thread1 entered while Thread0 in critical section! ({_threadsPassed})");
+                //Console.WriteLine("thread1 in!");
+                _threadsPassed++;
+                c.Exit();
+                _threadsPassed--;
+                //Console.WriteLine("thread1 out!");
+            }
         }
         public void OnBegin()
         {
@@ -100,6 +125,7 @@ namespace RelaSharp.Examples
         private void PrepareForNewConfig()
         {
             _threadsPassed = 0;
+            _asymLock = new AsymmetricLockInternal();
         }
 
         public bool SetNextConfiguration()
