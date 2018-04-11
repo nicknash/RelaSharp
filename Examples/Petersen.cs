@@ -36,7 +36,7 @@ namespace RelaSharp.Examples
         public Petersen()
         {
             ThreadEntries = new List<Action>{Thread0,Thread1};
-            var configList = new List<Config>{new Config("All operations acquire-release", MemoryOrder.Relaxed, false, true), 
+            var configList = new List<Config>{new Config("All operations acquire-release", MemoryOrder.AcquireRelease, false, true), 
                                               new Config("All operations sequentially consistent", MemoryOrder.SequentiallyConsistent, false, false),
                                               new Config("Relaxed flag entry, Release flag exit, Acquire flag spin, acquire-release exchange on victim.", MemoryOrder.Relaxed, true, false)};
             _configs = configList.GetEnumerator();
