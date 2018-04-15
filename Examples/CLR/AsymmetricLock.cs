@@ -25,7 +25,7 @@ namespace RelaSharp.Examples
                 internal CLRAtomicInt Taken;
             }
 
-            CLRAtomic<LockCookie> _current;// = new LockCookie(-1);
+            CLRAtomic<LockCookie> _current;
 
             public AsymmetricLockInternal()
             {
@@ -72,7 +72,7 @@ namespace RelaSharp.Examples
 
         public string Name => "Quickly re-acquirable lock via interprocessor interrupt";
         public string Description => "Uses Interlocked.MemoryBarrierProcessWide";
-        public bool ExpectedToFail => true; // While I figure out implementation.
+        public bool ExpectedToFail => false; 
         private static IRelaEngine RE = RelaEngine.RE;
         private int _threadsPassed;
         private bool _hasRun;
@@ -94,11 +94,9 @@ namespace RelaSharp.Examples
             {
                 var c = _asymLock.Enter(); 
                 RE.Assert(_threadsPassed == 0, $"Iteration {i}: Thread0 entered while Thread1 in critical section! ({_threadsPassed})");
-                //Console.WriteLine("thread 0 in!");
                 _threadsPassed++;
                 c.Exit();
                 _threadsPassed--;
-                //Console.WriteLine("thread 0 out!");
             }
         }
 
@@ -108,11 +106,9 @@ namespace RelaSharp.Examples
             {
                 var c = _asymLock.Enter();
                 RE.Assert(_threadsPassed == 0, $"Iteration {i}: Thread1 entered while Thread0 in critical section! ({_threadsPassed})");
-                //Console.WriteLine("thread1 in!");
                 _threadsPassed++;
                 c.Exit();
                 _threadsPassed--;
-                //Console.WriteLine("thread1 out!");
             }
         }
         public void OnBegin()

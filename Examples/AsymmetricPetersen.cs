@@ -7,9 +7,9 @@ namespace RelaSharp.Examples
     {
         public IReadOnlyList<Action> ThreadEntries { get; private set; }
 
-        public string Name => "Asymmetric petersen lock via Interprocessor Interrupt";
-        public string Description => "Uses Interlocked.MemoryBarrierProcessWide";
-        public bool ExpectedToFail => true;
+        public string Name => "Asymmetric Petersen lock via Interprocessor Interrupt";
+        public string Description => "Uses Interlocked.MemoryBarrierProcessWide (FlushProcessWriteBuffers / mprotect)";
+        public bool ExpectedToFail => false;
         private static IRelaEngine RE = RelaEngine.RE;
         private Atomic<int> interestedF;
         private Atomic<int> interestedS;
@@ -30,9 +30,7 @@ namespace RelaSharp.Examples
         public void FastThread()
         {
             interestedF.Store(1, MemoryOrder.Relaxed);
-            victim.Store(0, MemoryOrder.Relaxed);
-            Fence.Insert(MemoryOrder.SequentiallyConsistent);
-            
+            victim.Store(0, MemoryOrder.Release);
             while(true) 
             {
                 if(interestedS.Load(MemoryOrder.Relaxed) != 1)
@@ -54,9 +52,8 @@ namespace RelaSharp.Examples
         public void SlowThread()
         {
             interestedS.Store(1, MemoryOrder.Relaxed);
-            victim.Store(1, MemoryOrder.Relaxed);
-            //Fence.InsertProcessWide();
-            Fence.Insert(MemoryOrder.SequentiallyConsistent);
+            Fence.InsertProcessWide();
+            victim.Exchange(1, MemoryOrder.AcquireRelease);
             while(true)
             {
                 if(interestedF.Load(MemoryOrder.Relaxed) != 1)
