@@ -73,7 +73,7 @@ namespace RelaSharp.CLR
 
         public static void MemoryBarrierProcessWide([CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
         {
-            throw new System.NotImplementedException();
+            Fence.InsertProcessWide(memberName, sourceFilePath, sourceLineNumber);
         }
 
     }
