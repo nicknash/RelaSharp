@@ -40,7 +40,8 @@ namespace RelaSharp.EntryPoint
                                                              c("SimpleReadIndicator", new SingleCounterReadIndicator()),
                                                              c("DCLReadIndicator", new DCLReadIndicator()),
                                                              c("AsymmetricPetersen", new AsymmetricPetersen()),
-                                                             c("AsymmetricLock", new AsymmetricLock()) };
+                                                             c("AsymmetricLock", new AsymmetricLock()),
+                                                             c("MinimalIPI", new MinimalIPI()) };
             if(options.ListExamples)
             {
                 Console.WriteLine("Available examples:");
