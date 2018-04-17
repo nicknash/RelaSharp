@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Text;
+using System.Text.RegularExpressions;
 using System.Linq;
 using System.Diagnostics;
 using RelaSharp.Examples;
@@ -55,7 +55,7 @@ namespace RelaSharp.EntryPoint
             {
                 var tag = examples[i].Item1;
                 var example = examples[i].Item2;
-                if(options.TestTag == null || tag.ToLower().Contains(options.TestTag.ToLower()))
+                if(options.TestTag == null || Regex.Match(tag, options.TestTag, RegexOptions.IgnoreCase) != Match.Empty)
                 {
                     if(!options.SelfTest)
                     {
