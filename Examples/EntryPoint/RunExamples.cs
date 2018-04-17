@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using System.Linq;
 using System.Diagnostics;
 using RelaSharp.Examples;
@@ -41,6 +42,7 @@ namespace RelaSharp.EntryPoint
                                                              c("DCLReadIndicator", new DCLReadIndicator()),
                                                              c("AsymmetricPetersen", new AsymmetricPetersen()),
                                                              c("AsymmetricLock", new AsymmetricLock()),
+                                                             c("SafeAsymmetricLock", new SafeAsymmetricLock()),
                                                              c("MinimalIPI", new MinimalIPI()) };
             if(options.ListExamples)
             {
