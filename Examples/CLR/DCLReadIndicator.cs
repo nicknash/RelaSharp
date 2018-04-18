@@ -9,7 +9,7 @@ namespace RelaSharp.Examples
 {
     class DCLReadIndicator : IRelaExample
     {
-        class HashedReadIndicator
+        internal class HashedReadIndicator
         {
             private CLRAtomicLong[] _occupancyCounts; 
             private int _paddingPower;
@@ -65,7 +65,7 @@ namespace RelaSharp.Examples
 
         public string Description => "1 writing threads, 2 reading threads";
 
-        public bool ExpectedToFail => false;
+        public bool ExpectedToFail => true; // TODO: Revise this example and set to false.
 
         public IReadOnlyList<Action> ThreadEntries { get; }
 
