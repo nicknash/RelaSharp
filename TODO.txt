@@ -1,4 +1,3 @@
-* Add a non-allocating asymmetric lock (rename existing one to SafeAsymmetricLock ?)
 * Multi-threaded test runner: This is a bit of a silly limitation, e.g. breaks xUnit with combination of Live/Sim tests.
 * Investigate adding a race-checked mode or having race-checking enabled by default.
 * Place OnBegin/OnFinished on dedicated threads with pre-emption disabled (with seq cst fences). The current situation
